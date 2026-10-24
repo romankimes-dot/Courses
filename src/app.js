@@ -476,7 +476,7 @@ const views = {
         </div>` : `
         <p class="hint">Pour partager, créez une base Supabase (voir README) puis collez ses accès. Les autres rejoignent via le lien d'invitation.</p>
         <form id="share" class="add">
-          <input name="url" placeholder="https://xxxx.supabase.co" required>
+          <input name="url" placeholder="https://xxxx.supabase.co" value="https://lxvtsxjsjyeyppybfrqx.supabase.co" required>
           <input name="key" placeholder="Clé anon" required>
           <button>Créer la liste partagée</button>
         </form>`}
