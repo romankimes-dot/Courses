@@ -477,7 +477,7 @@ const views = {
         <p class="hint">Pour partager, créez une base Supabase (voir README) puis collez ses accès. Les autres rejoignent via le lien d'invitation.</p>
         <form id="share" class="add">
           <input name="url" placeholder="https://xxxx.supabase.co" value="https://lxvtsxjsjyeyppybfrqx.supabase.co" required>
-          <input name="key" placeholder="Clé anon" required>
+          <input name="key" placeholder="Clé publique (publishable)" value="sb_publishable_CO8IqARcVoq2SiSa6Sk0Dw_LCfx_SkH" required>
           <button>Créer la liste partagée</button>
         </form>`}
       <h3>Données</h3>
