@@ -58,7 +58,8 @@ const Sync = (() => {
   async function rpc(fn, body) {
     const r = await fetch(`${cfg.url}/rest/v1/rpc/${fn}`, {
       method: 'POST',
-      headers: { apikey: cfg.key, Authorization: 'Bearer ' + cfg.key, 'Content-Type': 'application/json' },
+      // Ancienne clé « anon » (JWT) : aussi en Authorization ; nouvelle clé « publishable » : apikey seule
+      headers: { apikey: cfg.key, 'Content-Type': 'application/json', ...(cfg.key.startsWith('eyJ') ? { Authorization: 'Bearer ' + cfg.key } : {}) },
       body: JSON.stringify(body),
     });
     if (!r.ok) throw new Error(`${fn} ${r.status}`);

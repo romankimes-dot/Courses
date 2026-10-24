@@ -17,7 +17,7 @@ Ouvrir l'app une fois avec du réseau suffit pour qu'elle fonctionne ensuite hor
 
 1. Créer un projet sur supabase.com.
 2. SQL Editor : exécuter `supabase/schema.sql`.
-3. Dans l'app, onglet Rayons > Partage : coller l'URL du projet et la clé `anon` (Project Settings > API).
+3. Dans l'app, onglet Réglages > Partage : coller l'URL du projet et la clé publique (`publishable` ou `anon`, dans Project Settings > API Keys).
 4. « Copier le lien d'invitation » et l'envoyer aux autres. Le lien contient le code secret de la liste.
 
 Synchro : chaque modification est mise en file d'attente sur le téléphone et envoyée quand le réseau
