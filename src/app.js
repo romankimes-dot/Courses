@@ -19,6 +19,10 @@ const DEFAULTS = {
   'Divers': [],
 };
 
+// Commerces hors supermarché (ids fixes : pas de doublons quand deux téléphones les créent)
+const defaultShops = () => ['🥖 Boulangerie', '🥩 Boucherie', '🧀 Fromager', '🍷 Caviste', '🧺 Marché']
+  .map(name => ({ id: 'shop-' + name.split(' ')[1].toLowerCase(), name }));
+
 function seed() {
   const aisles = [], items = [];
   for (const [name, list] of Object.entries(DEFAULTS)) {
@@ -26,7 +30,7 @@ function seed() {
     aisles.push(aisle);
     for (const n of list) items.push({ id: uid(), name: n, aisle: aisle.id, freq: true, need: false, done: false });
   }
-  return { aisles, items, recipes: [], map: newMap() };
+  return { aisles, items, recipes: [], shops: defaultShops(), map: newMap() };
 }
 // Plan du magasin : quadrillage approximatif, case "x,y" -> rayon
 const newMap = () => ({ cols: 6, rows: 8, cells: {}, entry: null, auto: true });
@@ -37,6 +41,7 @@ function load() {
 let S = load() || seed();
 S.map ||= newMap();
 S.recipes ||= [];
+S.shops ||= defaultShops();
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {}
   if (typeof Sync !== 'undefined') Sync.changed();
@@ -46,15 +51,21 @@ let tab = 'prep';
 let who = 0; // courses à deux : 0 = seul, 1 ou 2 = mon circuit (propre à cet appareil)
 try { who = +localStorage.getItem('courses.who') || 0; } catch {}
 let recipeEdit = null, recipeAdd = null, recipeSkip = new Set(); // recette en cours d'édition / d'ajout
+let place = ''; // en courses : '' = supermarché, sinon id du commerce
 let photoFor = null; // article auquel lier la photo en cours
 let brush = null; // pinceau de l'éditeur de plan : id de rayon, 'entry' ou '' (gomme)
 const app = document.getElementById('app');
 
-const byAisle = filter => S.aisles
+// Groupes par rayon (ou par commerce avec list = S.shops) ; un article d'un commerce a aisle = id du commerce
+const byAisle = (filter, list = S.aisles) => list
   .map(a => ({ aisle: a, items: S.items.filter(i => i.aisle === a.id && filter(i)) }))
   .filter(g => g.items.length);
 const fallbackAisle = () => (S.aisles.find(a => a.name === 'Divers') || S.aisles[S.aisles.length - 1]).id;
-const aisleOptions = sel => S.aisles.map(a => `<option value="${a.id}"${a.id === sel ? ' selected' : ''}>${esc(a.name)}</option>`).join('');
+const option = (o, sel) => `<option value="${o.id}"${o.id === sel ? ' selected' : ''}>${esc(o.name)}</option>`;
+const aisleOptions = sel => `
+  <optgroup label="Supermarché">${S.aisles.map(a => option(a, sel)).join('')}</optgroup>
+  ${S.shops.length ? `<optgroup label="Commerces">${S.shops.map(a => option(a, sel)).join('')}</optgroup>` : ''}`;
+const shopOf = i => S.shops.find(s => s.id === i.aisle);
 
 function addItem(name, aisle, freq) {
   name = name.trim();
@@ -207,6 +218,8 @@ function mapSvg(groups) {
 
 // ---------- Vues ----------
 
+const doneLast = items => [...items.filter(i => !i.done), ...items.filter(i => i.done)];
+
 const thumb = (i, add) => i.photo
   ? `<img class="thumb" src="${i.photo}" alt="" data-a="viewPhoto" data-id="${i.id}">`
   : add ? `<button class="ghost" data-a="photo" data-id="${i.id}" title="Photo">📷</button>` : '';
@@ -237,9 +250,9 @@ const views = {
         <label class="small"><input type="checkbox" name="freq" checked> fréquent</label>
         <button>Ajouter</button>
       </form>
-      ${byAisle(i => i.freq || i.need).map(g => `
+      ${[...byAisle(i => i.freq || i.need), ...byAisle(i => i.freq || i.need, S.shops)].map(g => `
         <section>
-          <h3>${esc(g.aisle.name)}</h3>
+          <h3>${esc(g.aisle.name)}${S.shops.includes(g.aisle) ? ' <small>commerce</small>' : ''}</h3>
           ${g.items.map(i => `
             <div class="row ${i.need ? 'on' : ''}" data-a="toggleNeed" data-id="${i.id}">
               <span class="box"></span>
@@ -254,6 +267,26 @@ const views = {
     const need = S.items.filter(i => i.need);
     const done = need.filter(i => i.done).length;
     if (!need.length) return `<p class="empty">Liste vide. Passez par « Préparer ».</p>`;
+    const shops = byAisle(i => i.need, S.shops);
+    if (place && !shops.some(g => g.aisle.id === place)) place = '';
+    const superCount = need.filter(i => !shopOf(i) && !i.done).length;
+    const places = shops.length ? `
+      <div class="seg places">
+        <button data-a="setPlace" data-v="" class="${place ? '' : 'active'}">🛒 Supermarché <small>${superCount}</small></button>
+        ${shops.map(g => `<button data-a="setPlace" data-v="${g.aisle.id}" class="${place === g.aisle.id ? 'active' : ''}">${esc(g.aisle.name)} <small>${g.items.filter(i => !i.done).length}</small></button>`).join('')}
+      </div>` : '';
+    if (place) {
+      const g = shops.find(g => g.aisle.id === place), d = g.items.filter(i => i.done).length;
+      return `
+        <div class="progress"><div style="width:${100 * d / g.items.length}%"></div></div>
+        <p class="count">${d} / ${g.items.length} · total ${done} / ${need.length}</p>
+        ${places}
+        ${doneLast(g.items).map(i => `
+          <div class="row big ${i.done ? 'done' : ''}" data-a="toggleDone" data-id="${i.id}">
+            <span class="box"></span><span class="name">${esc(i.name)}</span>${thumb(i)}
+          </div>`).join('')}
+        <button class="primary" data-a="finish">Valider les courses</button>`;
+    }
     let groups = byAisle(i => i.need);
     const order = route(groups.map(g => g.aisle.id));
     groups.sort((a, b) => order.indexOf(a.aisle.id) - order.indexOf(b.aisle.id));
@@ -267,6 +300,8 @@ const views = {
     return `
       <div class="progress"><div style="width:${100 * mineDone / (mineItems.length || 1)}%"></div></div>
       <p class="count">${duo ? `Mon circuit : ${mineDone} / ${mineItems.length} · total ${done} / ${need.length}` : `${done} / ${need.length} dans le panier`}</p>
+      ${places}
+      ${groups.length ? '' : '<p class="empty">Rien à prendre au supermarché.</p>'}
       ${mapped ? `
         <div class="seg">
           <button data-a="setAuto" data-v="1" class="${S.map.auto ? 'active' : ''}">Circuit optimisé</button>
@@ -282,8 +317,8 @@ const views = {
       ${groups.map((g, k) => `
         <section>
           <h3><span class="num" style="background:${aisleColor(g.aisle.id)}">${k + 1}</span>${esc(g.aisle.name)}</h3>
-          ${g.items.map(i => `
-            <div class="row ${i.done ? 'done' : ''}" data-a="toggleDone" data-id="${i.id}">
+          ${doneLast(g.items).map(i => `
+            <div class="row big ${i.done ? 'done' : ''}" data-a="toggleDone" data-id="${i.id}">
               <span class="box"></span><span class="name">${esc(i.name)}</span>${thumb(i)}
             </div>`).join('')}
         </section>`).join('')}
@@ -293,13 +328,9 @@ const views = {
   simple() {
     const need = S.items.filter(i => i.need);
     return `
-      <form id="quick" class="add">
-        <input name="name" placeholder="Ajouter à la liste…" autocomplete="off" required>
-        <button>+</button>
-      </form>
       ${need.length ? need.map(i => `
         <div class="row ${i.done ? 'done' : ''}" data-a="toggleDone" data-id="${i.id}">
-          <span class="box"></span><span class="name">${esc(i.name)}</span>
+          <span class="box"></span><span class="name">${esc(i.name)}${shopOf(i) ? ` <small>${esc(shopOf(i).name)}</small>` : ''}</span>
           <button class="ghost" data-a="unneed" data-id="${i.id}" title="Retirer">×</button>
         </div>`).join('') : '<p class="empty">Rien pour l\'instant.</p>'}`;
   },
@@ -312,7 +343,7 @@ const views = {
         <button>Créer</button>
       </form>
       ${rs.map(recipeCard).join('') || '<p class="empty">Aucune recette pour l\'instant.</p>'}
-      <datalist id="catalog">${S.items.map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>`;
+      ${tab === 'recipes' ? `<datalist id="catalog">${S.items.map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>` : ''}`;
   },
 
   aisles() {
@@ -329,6 +360,18 @@ const views = {
         </div>`).join('')}
       <form id="addAisle" class="add">
         <input name="name" placeholder="Nouveau rayon" required>
+        <button>Ajouter</button>
+      </form>
+      <h3>Commerces</h3>
+      <p class="hint">Boulangerie, boucher, marché… : leurs articles ont leur propre liste en courses.</p>
+      ${S.shops.map(sh => `
+        <div class="row static">
+          <span class="name">${esc(sh.name)} <small>${S.items.filter(i => i.aisle === sh.id).length}</small></span>
+          <button class="ghost" data-a="renameShop" data-id="${sh.id}">✎</button>
+          <button class="ghost" data-a="delShop" data-id="${sh.id}">×</button>
+        </div>`).join('')}
+      <form id="addShop" class="add">
+        <input name="name" placeholder="Nouveau commerce (ex. 🐟 Poissonnier)" required>
         <button>Ajouter</button>
       </form>
       <h3>Plan du magasin</h3>
@@ -375,13 +418,21 @@ const views = {
   },
 };
 
+// Ajout rapide en bas d'écran : reconnaît les articles connus (et leur rayon), sinon Divers
+const quickBar = () => `
+  <form id="quick" class="quickbar">
+    <input name="name" list="catalog" placeholder="J'ajoute à la liste…" autocomplete="off" required>
+    <button aria-label="Ajouter">+</button>
+  </form>
+  <datalist id="catalog">${S.items.map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>`;
+
 function render() {
   if (!S.aisles.length) {
     app.innerHTML = `<p class="empty">${tab === 'aisles' ? '' : 'En attente de la première synchronisation…'}</p>${tab === 'aisles' ? views.aisles() : ''}`;
     return;
   }
   if (brush === null || (brush && brush !== 'entry' && !S.aisles.some(a => a.id === brush))) brush = S.aisles[0].id;
-  app.innerHTML = views[tab]();
+  app.innerHTML = views[tab]() + (['prep', 'shop', 'simple'].includes(tab) ? quickBar() : '');
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
 }
 
@@ -480,6 +531,13 @@ const actions = {
     S.items.forEach(i => { if (i.aisle === a.id) i.aisle = target; });
   },
   setAuto: ({ v }) => { S.map.auto = !!v; },
+  setPlace: ({ v }) => { place = v; },
+  renameShop: ({ id }) => { const sh = S.shops.find(x => x.id === id), n = prompt('Nom du commerce', sh.name); if (n?.trim()) sh.name = n.trim(); },
+  delShop: ({ id }) => {
+    if (!confirm('Supprimer ce commerce ? Ses articles passent au supermarché.')) return;
+    S.shops = S.shops.filter(x => x.id !== id);
+    S.items.forEach(i => { if (i.aisle === id) i.aisle = fallbackAisle(); });
+  },
   setWho: ({ v }) => { who = +v; try { localStorage.setItem('courses.who', v); } catch {} },
   paint: ({ c }) => {
     if (brush === 'entry') S.map.entry = S.map.entry === c ? null : c;
@@ -539,6 +597,7 @@ document.addEventListener('submit', e => {
   if (e.target.id === 'add') addItem(name, f.get('aisle'), f.get('freq') === 'on');
   if (e.target.id === 'quick') addItem(name, null, false);
   if (e.target.id === 'addAisle' && name.trim()) S.aisles.push({ id: uid(), name: name.trim() });
+  if (e.target.id === 'addShop' && name.trim()) S.shops.push({ id: uid(), name: name.trim() });
   if (e.target.id === 'newRecipe' && name.trim()) {
     const r = { id: uid(), name: name.trim(), items: [] };
     S.recipes.push(r);
@@ -577,6 +636,7 @@ document.addEventListener('change', async e => {
     S = data;
     S.map ||= newMap();
     S.recipes ||= [];
+    S.shops ||= defaultShops();
     save(); render();
   } catch { alert('Fichier invalide'); }
 });

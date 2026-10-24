@@ -15,6 +15,7 @@ const Sync = (() => {
     const r = { map: st.map };
     st.items.forEach(i => { r['item:' + i.id] = i; });
     st.recipes.forEach(x => { r['recipe:' + x.id] = x; });
+    st.shops.forEach((x, pos) => { r['shop:' + x.id] = { ...x, pos }; });
     st.aisles.forEach((a, pos) => { r['aisle:' + a.id] = { ...a, pos }; });
     return r;
   }
@@ -23,6 +24,7 @@ const Sync = (() => {
     return {
       items: all('item:'),
       recipes: all('recipe:'),
+      shops: all('shop:').sort((a, b) => a.pos - b.pos).map(({ pos, ...x }) => x),
       aisles: all('aisle:').sort((a, b) => a.pos - b.pos).map(({ pos, ...a }) => a),
       map: r.map || newMap(),
     };
@@ -85,8 +87,13 @@ const Sync = (() => {
           S = fromRecords(cur);
           snap = strings(records(S));
           save();
-          // Ne pas casser une saisie en cours
-          if (!document.activeElement?.matches('input:not([type=checkbox]), select')) render();
+          // Ne pas casser une saisie en cours ; le champ d'ajout rapide vide garde le focus
+          const el = document.activeElement;
+          if (!el?.matches('input:not([type=checkbox]), select') || (el.closest('#quick') && !el.value)) {
+            const quick = el?.closest('#quick');
+            render();
+            if (quick) app.querySelector('#quick input')?.focus();
+          }
         }
       }
       state = 'ok';
@@ -132,7 +139,7 @@ const Sync = (() => {
       connect(c);
       outbox = {};
       put(OUT, outbox);
-      S = { aisles: [], items: [], recipes: [], map: newMap() };
+      S = { aisles: [], items: [], recipes: [], shops: [], map: newMap() };
       snap = strings(records(S));
       save();
       render();
@@ -165,4 +172,4 @@ render();
 Sync.init();
 addEventListener('online', Sync.run);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) Sync.run(); });
-setInterval(() => { if (!document.hidden) Sync.run(); }, 15000);
+setInterval(() => { if (!document.hidden) Sync.run(); }, 8000);
