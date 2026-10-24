@@ -30,7 +30,7 @@ function seed() {
     aisles.push(aisle);
     for (const n of list) items.push({ id: uid(), name: n, aisle: aisle.id, freq: true, need: false, done: false });
   }
-  return { aisles, items, recipes: [], shops: defaultShops(), stores: [newStore()], trips: [], settings: {} };
+  return { aisles, items, recipes: [], shops: defaultShops(), stores: [newStore()], trips: [], settings: {}, aliases: {} };
 }
 // Plan d'un magasin : quadrillage approximatif, case "x,y" -> rayon
 const newMap = () => ({ cols: 6, rows: 8, cells: {}, entry: null, auto: true });
@@ -44,6 +44,7 @@ function upgrade(st) {
   st.shops ||= defaultShops();
   st.trips ||= [];
   st.settings ||= {};
+  st.aliases ||= {}; // libellé de ticket normalisé -> id d'article, ou 'ignore'
   if (!st.stores) { st.stores = [newStore()]; if (st.map) st.stores[0].map = st.map; }
   delete st.map;
   return st;
@@ -240,6 +241,7 @@ function mapSvg(groups) {
 
 // ---------- Vues ----------
 
+const lastPrice = i => i.prices?.length ? i.prices[i.prices.length - 1].p : null;
 const euro = v => v.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
 const doneLast = items => [...items.filter(i => !i.done), ...items.filter(i => i.done)];
 
@@ -250,6 +252,7 @@ const thumb = (i, add) => i.photo
 const views = {
   prep() {
     const count = S.items.filter(i => i.need).length;
+    const estimate = S.items.filter(i => i.need && lastPrice(i) != null).reduce((t, i) => t + lastPrice(i), 0);
     const sug = suggestions();
     return `
       <p class="hint">Touchez un article pour l'ajouter ou le retirer de la liste.</p>
@@ -265,7 +268,7 @@ const views = {
       <div class="bar">
         <button data-a="allFreq">Tout cocher</button>
         <button data-a="noneNeed">Tout décocher</button>
-        <span class="count">${count} à acheter</span>
+        <span class="count">${count} à acheter${estimate ? ` · ≈ ${euro(estimate)}` : ''}</span>
       </div>
       <form id="add" class="add">
         <input name="name" placeholder="Nouvel article" autocomplete="off" required>
@@ -279,7 +282,7 @@ const views = {
           ${g.items.map(i => `
             <div class="row ${i.need ? 'on' : ''}" data-a="toggleNeed" data-id="${i.id}">
               <span class="box"></span>
-              <span class="name">${esc(i.name)}${i.freq ? '' : ' <small>ponctuel</small>'}</span>
+              <span class="name">${esc(i.name)}${i.freq ? '' : ' <small>ponctuel</small>'}${lastPrice(i) != null ? ` <small>${euro(lastPrice(i))}</small>` : ''}</span>
               ${thumb(i, true)}
               <button class="ghost" data-a="delItem" data-id="${i.id}" title="Supprimer">×</button>
             </div>`).join('')}
@@ -346,7 +349,8 @@ const views = {
               <span class="box"></span><span class="name">${esc(i.name)}</span>${thumb(i)}
             </div>`).join('')}
         </section>`).join('')}
-      <button class="primary" data-a="finish">Valider les courses</button>`;
+      <button class="primary" data-a="finish">Valider les courses</button>
+      <button class="ghost wide" data-a="openScan">📷 Scanner le ticket de caisse</button>`;
   },
 
   simple() {
@@ -385,13 +389,19 @@ const views = {
     const projection = perDay == null ? null : sum(month) + perDay * (days - day);
     const budget = S.settings.budget;
     const byPlace = Object.entries(month.reduce((o, t) => ({ ...o, [t.place]: (o[t.place] || 0) + t.total }), {})).sort((a, b) => b[1] - a[1]);
+    // Conso estimée : prix connu × fréquence d'achat (rythme), ramenée à 30 jours
+    const tracked = S.items.map(i => ({ i, r: rhythm(i), p: lastPrice(i) })).filter(x => x.r && x.p != null);
+    const monthlyUse = tracked.reduce((t, x) => t + x.p * 30 / x.r.every, 0);
+    const priced = S.items.filter(i => i.prices?.length).sort((a, b) => b.prices.at(-1).d - a.prices.at(-1).d);
     const tile = (label, v, sub = '') => `<div class="tile"><small>${label}</small><strong>${v == null ? '—' : euro(v)}</strong><small>${sub}</small></div>`;
     return `
+      <button class="primary" data-a="openScan" style="margin:8px 0 12px">📷 Scanner un ticket</button>
       <div class="tiles">
         ${tile('Ce mois', sum(month), `${month.length} passage${month.length > 1 ? 's' : ''}`)}
         ${tile('Fin de mois (estim.)', projection, 'au rythme des 3 derniers mois')}
         ${tile('Panier moyen', avg, '3 derniers mois')}
         ${tile('Mois dernier', prev.length ? sum(prev) : null)}
+        ${tracked.length ? tile('Conso estimée / mois', monthlyUse, `${tracked.length} produit${tracked.length > 1 ? 's' : ''} suivi${tracked.length > 1 ? 's' : ''} (prix × fréquence)`) : ''}
       </div>
       <form id="budgetForm" class="add">
         <label class="small grow">Budget mensuel (€)</label>
@@ -402,6 +412,10 @@ const views = {
         <div class="progress ${sum(month) > budget ? 'over' : ''}"><div style="width:${Math.min(100, 100 * sum(month) / budget)}%"></div></div>
         <p class="count">${sum(month) > budget ? `Dépassé de ${euro(sum(month) - budget)}` : `Reste ${euro(budget - sum(month))} pour ${days - day + 1} jour${days - day ? 's' : ''}`}${projection != null && projection > budget ? ' · attention, l\'estimation dépasse le budget' : ''}</p>` : ''}
       ${byPlace.length > 1 ? `<h3>Ce mois par magasin</h3>${byPlace.map(([p, v]) => `<div class="row static"><span class="name">${esc(p)}</span><span>${euro(v)}</span></div>`).join('')}` : ''}
+      ${priced.length ? `<h3>Prix suivis</h3>${priced.slice(0, 15).map(i => {
+        const [a, b] = [i.prices.at(-2)?.p, i.prices.at(-1).p], diff = a ? Math.round((b - a) / a * 100) : 0;
+        return `<div class="row static"><span class="name">${esc(i.name)} <small>${esc(i.prices.at(-1).at || '')}</small></span>${diff ? `<small class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? '↑' : '↓'} ${Math.abs(diff)} %</small>` : ''}<span>${euro(b)}</span></div>`;
+      }).join('')}` : ''}
       <h3>Passages en caisse</h3>
       ${S.trips.slice(-20).reverse().map(t => `
         <div class="row static">
@@ -522,6 +536,7 @@ function render() {
   }
   if (brush === null || (brush && brush !== 'entry' && !S.aisles.some(a => a.id === brush))) brush = S.aisles[0].id;
   app.innerHTML = views[tab]() + (['prep', 'shop', 'simple'].includes(tab) ? quickBar() : '');
+  if (tab === 'scan') scrollTo(0, 0);
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
 }
 

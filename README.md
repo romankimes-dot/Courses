@@ -6,7 +6,11 @@ les modifications se synchronisent dès que le réseau revient.
 - **Préparer** : basiques par rayon, tout cocher / tout décocher, suggestions selon le rythme d'achat.
 - **Magasin** : plan 3D, circuit optimisé, mode à deux (deux circuits équilibrés).
 - **Liste** : liste simple.
-- **Rayons** : ordre des rayons, plan du magasin, partage, export/import.
+- **Recettes** : un tap ajoute tous les ingrédients, on décoche ce qu'on a déjà.
+- **Budget** : dépenses, panier moyen, estimation de fin de mois, prix suivis, conso estimée.
+- **Scan de ticket** (Budget > Scanner un ticket) : lecture sur le téléphone (Tesseract.js, gratuit),
+  puis page de validation. Les lignes validées sont mémorisées et reconnues automatiquement ensuite.
+- **Réglages** : magasins, rayons, plan, commerces, partage, export/import.
 
 ## Lancer
 
