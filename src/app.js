@@ -40,6 +40,8 @@ function save() {
 }
 
 let tab = 'prep';
+let who = 0; // courses à deux : 0 = seul, 1 ou 2 = mon circuit (propre à cet appareil)
+try { who = +localStorage.getItem('courses.who') || 0; } catch {}
 let brush = null; // pinceau de l'éditeur de plan : id de rayon, 'entry' ou '' (gomme)
 const app = document.getElementById('app');
 
@@ -123,6 +125,27 @@ function route(ids) {
     }
   }
   return [...bestOrder, ...rest];
+}
+
+const manhattan = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]);
+function tourCost(order) {
+  const pts = [entryPoint(), ...order.map(centroid), entryPoint()].filter(Boolean);
+  return pts.slice(1).reduce((t, p, k) => t + manhattan(pts[k], p), 0);
+}
+
+// Deux circuits : on coupe le circuit optimal en deux, chaque moitié est réoptimisée,
+// et on garde la coupe qui équilibre le mieux marche + nombre d'articles (1 article ≈ 1 case).
+function splitRoute(groups) {
+  const ids = groups.map(g => g.aisle.id);
+  const load = Object.fromEntries(groups.map(g => [g.aisle.id, g.items.length]));
+  const cost = part => tourCost(part) + part.reduce((t, id) => t + load[id], 0);
+  let best = null;
+  for (let k = 1; k < ids.length; k++) {
+    const a = route(ids.slice(0, k)), b = route(ids.slice(k));
+    const worst = Math.max(cost(a), cost(b));
+    if (!best || worst < best.worst) best = { worst, parts: [a, b] };
+  }
+  return best ? best.parts : [ids, []];
 }
 
 // Projection isométrique : (x, y) au sol, z en hauteur
@@ -221,17 +244,30 @@ const views = {
     const need = S.items.filter(i => i.need);
     const done = need.filter(i => i.done).length;
     if (!need.length) return `<p class="empty">Liste vide. Passez par « Préparer ».</p>`;
-    const groups = byAisle(i => i.need);
+    let groups = byAisle(i => i.need);
     const order = route(groups.map(g => g.aisle.id));
     groups.sort((a, b) => order.indexOf(a.aisle.id) - order.indexOf(b.aisle.id));
+    const mapped = groups.some(g => centroid(g.aisle.id));
+    const duo = who && mapped && S.map.auto && groups.length > 1;
+    if (duo) {
+      const mine = splitRoute(groups)[who - 1];
+      groups = mine.map(id => groups.find(g => g.aisle.id === id));
+    }
+    const mineItems = groups.flatMap(g => g.items), mineDone = mineItems.filter(i => i.done).length;
     return `
-      <div class="progress"><div style="width:${100 * done / need.length}%"></div></div>
-      <p class="count">${done} / ${need.length} dans le panier</p>
-      ${groups.some(g => centroid(g.aisle.id)) ? `
+      <div class="progress"><div style="width:${100 * mineDone / (mineItems.length || 1)}%"></div></div>
+      <p class="count">${duo ? `Mon circuit : ${mineDone} / ${mineItems.length} · total ${done} / ${need.length}` : `${done} / ${need.length} dans le panier`}</p>
+      ${mapped ? `
         <div class="seg">
           <button data-a="setAuto" data-v="1" class="${S.map.auto ? 'active' : ''}">Circuit optimisé</button>
           <button data-a="setAuto" data-v="" class="${S.map.auto ? '' : 'active'}">Ordre des rayons</button>
         </div>
+        ${S.map.auto ? `
+        <div class="seg">
+          <button data-a="setWho" data-v="0" class="${who ? '' : 'active'}">Seul</button>
+          <button data-a="setWho" data-v="1" class="${who === 1 ? 'active' : ''}">Circuit 1</button>
+          <button data-a="setWho" data-v="2" class="${who === 2 ? 'active' : ''}">Circuit 2</button>
+        </div>` : ''}
         ${mapSvg(groups)}` : ''}
       ${groups.map((g, k) => `
         <section>
@@ -344,6 +380,7 @@ const actions = {
     S.items.forEach(i => { if (i.aisle === a.id) i.aisle = target; });
   },
   setAuto: ({ v }) => { S.map.auto = !!v; },
+  setWho: ({ v }) => { who = +v; try { localStorage.setItem('courses.who', v); } catch {} },
   paint: ({ c }) => {
     if (brush === 'entry') S.map.entry = S.map.entry === c ? null : c;
     else if (!brush || S.map.cells[c] === brush) delete S.map.cells[c];
