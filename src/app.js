@@ -20,8 +20,8 @@ const DEFAULTS = {
 };
 
 // Commerces hors supermarché (ids fixes : pas de doublons quand deux téléphones les créent)
-const defaultShops = () => ['🥖 Boulangerie', '🥩 Boucherie', '🧀 Fromager', '🍷 Caviste', '🧺 Marché']
-  .map(name => ({ id: 'shop-' + name.split(' ')[1].toLowerCase(), name }));
+const defaultShops = () => [['boulangerie', '🥖 Boulanger'], ['boucherie', '🥩 Boucher'], ['fromager', '🧀 Fromager'], ['caviste', '🍷 Caviste'], ['marché', '🧺 Marché']]
+  .map(([id, name]) => ({ id: 'shop-' + id, name }));
 
 function seed() {
   const aisles = [], items = [];
@@ -39,7 +39,48 @@ const newStore = (name = 'Mon supermarché', id = 'store-main') => ({ id, name, 
 const NO_MAP = { cols: 6, rows: 8, cells: {}, entry: null, auto: false };
 
 // Complète un état ancien ou importé
+// Données venues d'ailleurs (synchro, import) : on ne garde que des formes attendues,
+// pour qu'un enregistrement malformé ne puisse rien injecter dans la page
+const ID = /^[\w-]{1,40}$/, PHOTO = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/, CELL = /^\d{1,2},\d{1,2}$/;
+const num0 = v => Number.isFinite(+v) ? +v : 0;
+function clean(st) {
+  const ok = x => x && typeof x === 'object' && ID.test(x.id) && typeof x.name === 'string';
+  st.items = st.items.filter(ok);
+  for (const i of st.items) {
+    if (i.photo && !PHOTO.test(i.photo)) delete i.photo;
+    if (!ID.test(i.aisle)) i.aisle = '';
+    i.bought = Array.isArray(i.bought) ? i.bought.map(num0) : undefined;
+    i.prices = Array.isArray(i.prices) ? i.prices.filter(p => p && typeof p === 'object').map(p => ({ d: num0(p.d), p: num0(p.p), at: String(p.at || '') })) : undefined;
+    if (i.note != null) i.note = String(i.note);
+    if (i.by != null) i.by = String(i.by);
+    if (i.alt != null) i.alt = String(i.alt);
+    if (i.lastBy != null) i.lastBy = String(i.lastBy);
+    if (i.missing) i.missing = { by: String(i.missing.by || ''), at: num0(i.missing.at) };
+  }
+  st.aisles = st.aisles.filter(ok);
+  st.shops = st.shops.filter(ok);
+  const fb = (st.aisles.find(a => a.name === 'Divers') || st.aisles.at(-1))?.id;
+  if (fb) st.items.forEach(i => { if (!i.aisle) i.aisle = fb; });
+  st.recipes = st.recipes.filter(ok).map(r => ({ ...r, items: (Array.isArray(r.items) ? r.items : []).filter(x => ID.test(x)) }));
+  st.stores = st.stores.filter(ok);
+  for (const s of st.stores) {
+    s.order = Array.isArray(s.order) ? s.order.filter(x => ID.test(x)) : null;
+    const m = s.map && typeof s.map === 'object' ? s.map : newMap();
+    s.map = { cols: Math.min(20, Math.max(2, num0(m.cols) || 6)), rows: Math.min(20, Math.max(2, num0(m.rows) || 8)), auto: m.auto !== false,
+      entry: CELL.test(m.entry) ? m.entry : null,
+      cells: Object.fromEntries(Object.entries(m.cells || {}).filter(([c, a]) => CELL.test(c) && ID.test(a))) };
+  }
+  st.trips = st.trips.filter(t => t && ID.test(t.id)).map(t => ({ ...t, date: num0(t.date), n: num0(t.n), total: t.total == null ? null : num0(t.total), place: String(t.place || ''), names: Array.isArray(t.names) ? t.names.map(String) : undefined }));
+  st.aliases = Object.fromEntries(Object.entries(st.aliases || {}).filter(([, v]) => v === 'ignore' || ID.test(v)));
+  if (st.settings.budget != null) st.settings.budget = num0(st.settings.budget);
+  delete st.settings.shopping;
+  if (st.settings.shoppers) st.settings.shoppers = Object.fromEntries(Object.entries(st.settings.shoppers).map(([n, at]) => [String(n).slice(0, 40), num0(at)]));
+  return st;
+}
+
 function upgrade(st) {
+  st.items ||= [];
+  st.aisles ||= [];
   st.recipes ||= [];
   st.shops ||= defaultShops();
   st.trips ||= [];
@@ -47,7 +88,7 @@ function upgrade(st) {
   st.aliases ||= {}; // libellé de ticket normalisé -> id d'article, ou 'ignore'
   if (!st.stores) { st.stores = [newStore()]; if (st.map) st.stores[0].map = st.map; }
   delete st.map;
-  return st;
+  return clean(st);
 }
 
 function load() {
@@ -55,7 +96,8 @@ function load() {
 }
 let S = upgrade(load() || seed());
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {}
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch { if (typeof toast === 'function') toast('Mémoire du téléphone pleine : supprimez quelques photos d\'articles.', false); }
   if (typeof Sync !== 'undefined') Sync.changed();
 }
 
@@ -77,6 +119,10 @@ function applyTheme() {
   document.querySelector('meta[name=theme-color]')?.setAttribute('content', dark ? '#121413' : '#2f7d4f');
 }
 applyTheme();
+let size = '';
+try { size = localStorage.getItem('courses.size') || ''; } catch {}
+const applySize = () => { document.documentElement.dataset.size = size; };
+applySize();
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
 let who = 0; // courses à deux : 0 = seul, 1 ou 2 = mon circuit (propre à cet appareil)
 try { who = +localStorage.getItem('courses.who') || 0; } catch {}
@@ -108,17 +154,53 @@ const aisleOptions = sel => `
   ${S.shops.length ? `<optgroup label="Commerces">${S.shops.map(a => option(a, sel)).join('')}</optgroup>` : ''}`;
 const shopOf = i => S.shops.find(s => s.id === i.aisle);
 
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const plain = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/œ/g, 'oe').replace(/æ/g, 'ae');
+const sameKey = s => plain(s).replace(/[^a-z0-9]+/g, ' ').trim().split(' ').map(w => w.length > 3 ? w.replace(/[sx]$/, '') : w).join(' ');
+const findItem = name => S.items.find(i => sameKey(i.name) === sameKey(name));
+
+// Rayon deviné pour un nouvel article : d'abord un article proche déjà classé (même premier mot),
+// puis des mots-clés courants, sinon Divers
+const AISLE_WORDS = {
+  'fruits': 'banane pomme poire orange citron fraise raisin kiwi melon peche abricot clementine mangue ananas avocat tomate salade carotte oignon ail echalote pomme de terre patate courgette aubergine poivron concombre champignon poireau brocoli chou epinard haricot vert legume fruit herbe persil basilic radis betterave',
+  'boulangerie': 'pain baguette brioche croissant viennoiserie pain de mie biscotte',
+  'cremerie': 'lait yaourt yogourt fromage beurre creme oeuf babybel danonino danone petit suisse kiri vache qui rit emmental comte mozzarella feta skyr fromage blanc compote lait',
+  'boucherie': 'poulet boeuf veau porc agneau dinde jambon lardon saucisse steak viande hache saumon cabillaud poisson crevette thon frais chorizo merguez escalope filet',
+  'epicerie salee': 'pates riz semoule farine huile vinaigre sel poivre epice curry sauce ketchup mayonnaise moutarde conserve thon sardine lentille pois chiche haricot bouillon soupe chips cracker quinoa nouille',
+  'epicerie sucree': 'sucre chocolat cereale biscuit gateau confiture miel nutella cafe the tisane cacao bonbon gouter madeleine compote',
+  'boissons': 'eau jus soda coca biere vin sirop limonade boisson',
+  'surgeles': 'surgele glace frite pizza surgelee poelee',
+  'hygiene': 'shampoing gel douche savon dentifrice brosse a dents deodorant papier toilette mouchoir coton couche lingette rasoir creme solaire serviette hygienique tampon',
+  'entretien': 'lessive adoucissant eponge liquide vaisselle pastille lave vaisselle sac poubelle javel nettoyant essuie tout aluminium film',
+};
+const AISLE_PHRASES = { 'lait de coco': 'epicerie salee', 'creme solaire': 'hygiene', 'pomme de terre': 'fruits', 'papier toilette': 'hygiene', 'liquide vaisselle': 'entretien', 'creme fraiche': 'cremerie' };
+const aisleByKey = key => S.aisles.find(a => plain(a.name).startsWith(key.split(' ')[0]) && (key.split(' ').length < 2 || plain(a.name).includes(key.split(' ')[1])));
+function guessAisle(name) {
+  const n = plain(name), first = n.split(/\s+/)[0];
+  for (const [phrase, key] of Object.entries(AISLE_PHRASES)) if (n.includes(phrase) && aisleByKey(key)) return aisleByKey(key).id;
+  const twin = S.items.find(i => plain(i.name).split(/\s+/)[0] === first && !shopOf(i) && i.aisle !== fallbackAisle());
+  if (twin) return twin.aisle;
+  const words = n.split(/[^a-z]+/).filter(w => w.length > 2);
+  for (const [key, list] of Object.entries(AISLE_WORDS)) {
+    const known = list.split(' ');
+    if (words.some(w => known.includes(w) || known.includes(w.replace(/x$|s$/, ''))) && aisleByKey(key)) return aisleByKey(key).id;
+  }
+  return fallbackAisle();
+}
+
 // Met un article sur la liste, en notant qui l'a ajouté et quand
 function want(i) {
   if (i.need) return;
   Object.assign(i, { need: true, done: false, by: me || undefined, at: Date.now() });
+  delete i.missing;
 }
 function addItem(name, aisle, freq) {
   name = name.trim();
   if (!name) return;
-  const existing = S.items.find(i => i.name.toLowerCase() === name.toLowerCase());
+  const existing = findItem(name);
   if (existing) return want(existing);
-  const i = { id: uid(), name, aisle: aisle || fallbackAisle(), freq, need: false, done: false };
+  name = cap(name);
+  const i = { id: uid(), name, aisle: aisle || guessAisle(name), freq, need: false, done: false };
   S.items.push(i);
   want(i);
 }
@@ -270,26 +352,30 @@ const lastPrice = i => i.prices?.length ? i.prices[i.prices.length - 1].p : null
 const euro = v => v.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
 
 const thumb = (i, add) => i.photo
-  ? `<img class="thumb" src="${i.photo}" alt="" data-a="viewPhoto" data-id="${i.id}">`
+  ? `<img class="thumb" src="${esc(i.photo)}" alt="" data-a="viewPhoto" data-id="${i.id}">`
   : add ? `<button class="ghost" data-a="photo" data-id="${i.id}" title="Photo">📷</button>` : '';
 
 const shopRow = i => `
   <div class="row big ${i.done ? 'done' : ''} ${isNew(i) ? 'new' : ''}" data-a="toggleDone" data-id="${i.id}">
-    <span class="box"></span><span class="name">${esc(i.name)}${noteOf(i)}${isNew(i) ? ` <small class="tag">nouveau${i.by ? ` · ${esc(i.by)}` : ''}</small>` : ''}</span>${thumb(i)}${more(i)}
+    <span class="box"></span><span class="name">${esc(i.name)}${noteOf(i)}${i.alt && !i.done ? `<br><small>si absent : ${esc(i.alt)}</small>` : ''}${i.done && !mine(i) ? ` <small>· pris par ${esc(i.doneBy)}</small>` : ''}${isNew(i) ? ` <small class="tag">nouveau${i.by ? ` · ${esc(i.by)}` : ''}</small>` : ''}</span>${thumb(i)}${more(i)}
   </div>`;
 const basket = items => {
   const done = items.filter(i => i.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
   return done.length ? `<section class="basket"><h3>🧺 Dans le panier · ${done.length}</h3>${done.map(shopRow).join('')}</section>` : '';
 };
-const shopping = () => { const sh = S.settings.shopping; return sh && Date.now() - sh.at < 3 * 36e5 ? sh : null; };
+// Qui est en courses en ce moment (« J'y vais », valable 3 h), plusieurs personnes possibles
+const shoppers = () => Object.entries(S.settings.shoppers || {}).filter(([, at]) => Date.now() - at < 3 * 36e5);
+const myShopping = () => shoppers().find(([n]) => n === (me || '?'))?.[1];
 const shoppingBanner = () => {
-  const sh = shopping();
-  if (!sh || sh.by === me) return '';
-  const min = Math.round((Date.now() - sh.at) / 6e4);
-  return `<div class="banner">🛒 ${esc(sh.by || 'Quelqu\'un')} fait les courses ${min < 2 ? 'à l\'instant' : `depuis ${min} min`}. Ce que vous ajoutez lui arrive.</div>`;
+  const others = shoppers().filter(([n]) => n !== (me || '?'));
+  if (!others.length) return '';
+  const who = others.map(([n, at]) => { const min = Math.round((Date.now() - at) / 6e4); return `${esc(n === '?' ? 'Quelqu\'un' : n)} (${min < 2 ? 'à l\'instant' : `depuis ${min} min`})`; }).join(', ');
+  return `<div class="banner">🛒 En courses : ${who}. Ce que vous ajoutez ${others.length > 1 ? 'leur' : 'lui'} arrive.</div>`;
 };
 // Ajouté par quelqu'un d'autre depuis le début de mes courses
-const isNew = i => { const sh = shopping(); return sh && sh.by === me && i.at > sh.at && i.by !== me && !i.done; };
+const mine = i => !i.doneBy || i.doneBy === (me || '?');
+const othersShopping = () => shoppers().some(([n]) => n !== (me || '?'));
+const isNew = i => { const at = myShopping(); return at && i.at > at && i.by !== me && !i.done; };
 const byOf = i => Sync.config() && i.by ? ` <small>· ${esc(i.by)}</small>` : '';
 const more = i => `<button class="ghost more" data-a="openItem" data-id="${i.id}" title="Fiche produit">›</button>`;
 const noteOf = i => i.note ? ` <small>${esc(i.note)}</small>` : '';
@@ -312,7 +398,12 @@ const views = {
     const groups = [...(pinned.length ? [{ aisle: { name: '⭐ Indispensables' }, items: pinned }] : []),
       ...byAisle(i => i.need && !i.pin), ...byAisle(i => i.need && !i.pin, S.shops)];
     return `
-      ${welcomeInvite()}
+      ${Sync.config() && !me ? `
+        <form id="meForm" class="card invite">
+          <strong>Votre prénom ?</strong>
+          <p class="hint">Il s'affiche sur vos ajouts, pour que le foyer sache qui a demandé quoi.</p>
+          <div class="add"><input name="name" placeholder="ex. Inès" autocomplete="given-name" required><button class="accent">OK</button></div>
+        </form>` : welcomeInvite()}
       ${shoppingBanner()}
       <div class="list-head">
         <strong>${need.length ? `${need.length} article${need.length > 1 ? 's' : ''} à acheter` : 'Liste vide'}</strong>
@@ -332,8 +423,8 @@ const views = {
         <section>
           <h3>${esc(g.aisle.name)}</h3>
           ${g.items.map(i => `
-            <div class="row" data-a="openItem" data-id="${i.id}">
-              <span class="name">${esc(i.name)}${noteOf(i)}${byOf(i)}</span>${thumb(i)}
+            <div class="row ${i.done ? 'done-soft' : ''}" data-a="openItem" data-id="${i.id}">
+              <span class="name">${esc(i.name)}${noteOf(i)}${byOf(i)}${i.done ? ' <small class="tag">✓ dans le panier</small>' : i.missing ? ` <small class="warn">⚠ pas trouvé le ${new Date(i.missing.at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</small>` : ''}</span>${thumb(i)}
               <button class="ghost" data-a="unneed" data-id="${i.id}" title="Retirer de la liste">×</button>
             </div>`).join('')}
         </section>`).join('') + `<button class="primary" data-a="goShopping">🛒 J'y vais</button>` : `
@@ -356,11 +447,6 @@ const views = {
         <button data-a="noneNeed">Tout décocher</button>
         <span class="count">${count} sur la liste</span>
       </div>
-      <form id="add" class="add">
-        <input name="name" placeholder="Nouvel article de base" autocomplete="off" required>
-        <select name="aisle">${aisleOptions(fallbackAisle())}</select>
-        <button>Ajouter</button>
-      </form>
       ${pins.length ? `
         <section class="pins">
           <h3>⭐ Indispensables <button class="ghost" data-a="allPins">Tout ajouter</button></h3>
@@ -405,10 +491,17 @@ const views = {
     const order = route(groups.map(g => g.aisle.id));
     groups.sort((a, b) => order.indexOf(a.aisle.id) - order.indexOf(b.aisle.id));
     const mapped = groups.some(g => centroid(g.aisle.id));
-    const duo = who && mapped && M().auto && groups.length > 1;
+    const duo = who && groups.length > 1 && (!mapped || M().auto);
     if (duo) {
-      const mine = splitRoute(groups)[who - 1];
-      groups = mine.map(id => groups.find(g => g.aisle.id === id));
+      let part;
+      if (mapped) part = splitRoute(groups)[who - 1];
+      else {
+        const total = groups.reduce((t, g) => t + g.items.length, 0);
+        let acc = 0, cut = 1, best = Infinity;
+        groups.forEach((g, k) => { acc += g.items.length; if (k < groups.length - 1 && Math.abs(total / 2 - acc) < best) { best = Math.abs(total / 2 - acc); cut = k + 1; } });
+        part = (who === 1 ? groups.slice(0, cut) : groups.slice(cut)).map(g => g.aisle.id);
+      }
+      groups = part.map(id => groups.find(g => g.aisle.id === id));
     }
     const mineItems = groups.flatMap(g => g.items), mineDone = mineItems.filter(i => i.done).length;
     return `
@@ -418,6 +511,12 @@ const views = {
       <p class="count">${duo ? `Mon circuit : ${mineDone} / ${mineItems.length} · total ${done} / ${need.length}` : `${done} / ${need.length} dans le panier`}</p>
       ${places}
       ${groups.length ? '' : '<p class="empty">Rien à prendre au supermarché.</p>'}
+      ${!mapped && need.filter(i => !shopOf(i)).length > 3 ? `
+        <div class="seg">
+          <button data-a="setWho" data-v="0" class="${who ? '' : 'active'}">Seul</button>
+          <button data-a="setWho" data-v="1" class="${who === 1 ? 'active' : ''}">À deux : début</button>
+          <button data-a="setWho" data-v="2" class="${who === 2 ? 'active' : ''}">À deux : fin</button>
+        </div>` : ''}
       ${mapped ? `
         <div class="seg">
           <button data-a="setAuto" data-v="1" class="${M().auto ? 'active' : ''}">Circuit optimisé</button>
@@ -485,17 +584,18 @@ const views = {
           <small>${sum(month) > budget ? `Budget dépassé de ${euro(sum(month) - budget)}` : `Reste ${euro(budget - sum(month))} sur ${euro(budget)}`}</small>` : ''}
       </div>
       <button class="primary" data-a="openScan" style="margin:12px 0">📷 Scanner un ticket</button>
+      <form id="budgetForm" class="add">
+        <label class="small grow">Budget mensuel (€)</label>
+        <input name="name" inputmode="decimal" value="${budget ?? ''}" placeholder="ex. 600" style="flex:0 0 110px">
+        <button>OK</button>
+      </form>
+
       <details class="adv"><summary>Plus de chiffres et budget mensuel</summary>
       <div class="tiles">
         ${tile('Fin de mois (estim.)', projection, 'au rythme des 3 derniers mois')}
         ${tile('Panier moyen', avg, '3 derniers mois')}
         ${tracked.length ? tile('Conso estimée / mois', monthlyUse, `${tracked.length} produit${tracked.length > 1 ? 's' : ''} suivi${tracked.length > 1 ? 's' : ''} (prix × fréquence)`) : ''}
       </div>
-      <form id="budgetForm" class="add">
-        <label class="small grow">Budget mensuel (€)</label>
-        <input name="name" inputmode="decimal" value="${budget ?? ''}" placeholder="ex. 600" style="flex:0 0 110px">
-        <button>OK</button>
-      </form>
       ${budget && projection != null && projection > budget ? '<p class="count">Attention : à ce rythme, le budget sera dépassé en fin de mois.</p>' : ''}
       ${byPlace.length > 1 ? `<h3>Ce mois par magasin</h3>${byPlace.map(([p, v]) => `<div class="row static"><span class="name">${esc(p)}</span><span>${euro(v)}</span></div>`).join('')}` : ''}
       ${priced.length ? `<h3>Prix suivis</h3>${priced.slice(0, 15).map(i => {
@@ -506,7 +606,7 @@ const views = {
       <h3>Passages en caisse</h3>
       ${S.trips.slice(-20).reverse().map(t => `
         <div class="row static">
-          <span class="name">${new Date(t.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} · ${esc(t.place)} <small>${t.n} art.</small></span>
+          <span class="name">${new Date(t.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} · ${esc(t.place)} <small>${t.n} art.</small>${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
           <button class="ghost" data-a="editTrip" data-id="${t.id}">${t.total == null ? 'Ajouter €' : euro(t.total)}</button>
           <button class="ghost" data-a="delTrip" data-id="${t.id}">×</button>
         </div>`).join('') || '<p class="hint">Le montant est demandé (facultatif) quand vous terminez des courses, ou lu sur le ticket scanné.</p>'}`;
@@ -518,6 +618,10 @@ const views = {
       <button class="ghost back" data-a="go" data-v="${settingsBack}">← Retour</button>
       <h2>Réglages</h2>
       <label class="field">Votre prénom <small>(sur ce téléphone, affiché sur vos ajouts)</small><input id="meName" value="${esc(me)}" placeholder="ex. Léa" autocomplete="given-name"></label>
+      <h3>Taille du texte</h3>
+      <div class="seg">
+        ${[['', 'Normale'], ['large', 'Grande'], ['xl', 'Très grande']].map(([v, l]) => `<button data-a="setSize" data-v="${v}" class="${size === v ? 'active' : ''}">${l}</button>`).join('')}
+      </div>
       <h3>Apparence</h3>
       <div class="seg">
         ${[['auto', 'Automatique'], ['light', 'Clair'], ['dark', 'Sombre']].map(([v, l]) => `<button data-a="setTheme" data-v="${v}" class="${theme === v ? 'active' : ''}">${l}</button>`).join('')}
@@ -608,7 +712,7 @@ const storePicker = manage => `
   <div class="bar">
     <select id="store" class="grow">
       ${S.stores.map(s => `<option value="${s.id}"${s === store() ? ' selected' : ''}>📍 ${esc(s.name)}</option>`).join('')}
-      <option value="none"${store() ? '' : ' selected'}>📍 Autre magasin (non cartographié)</option>
+      <option value="none"${store() ? '' : ' selected'}>📍 Autre magasin (ordre standard)</option>
     </select>
     ${manage ? `
       <button class="ghost" data-a="newStore" title="Nouveau magasin">＋</button>
@@ -619,7 +723,7 @@ const storePicker = manage => `
 // Ajout rapide en bas d'écran : reconnaît les articles connus (et leur rayon), sinon Divers
 const quickBar = () => `
   <form id="quick" class="quickbar">
-    <input name="name" list="catalog" placeholder="J'ajoute à la liste…" autocomplete="off" required>
+    <input name="name" list="catalog" placeholder="${tab === 'catalog' ? 'Nouvel article de base…' : 'J\'ajoute… (lait, œufs, pain)'}" autocomplete="off" required>
     <button aria-label="Ajouter">+</button>
   </form>
   <datalist id="catalog">${S.items.map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>`;
@@ -750,10 +854,12 @@ const recipe = id => S.recipes.find(r => r.id === id);
 
 // Annuler : instantané de l'état avant une action destructive, bandeau 6 s
 let undoSnap = null, toastTimer;
-function snapshot() { undoSnap = JSON.stringify(S); }
+let undoAfter = null;
+function snapshot() { undoSnap = Sync.strings(Sync.records(S)); }
 function toast(msg, undo = true) {
   let el = document.getElementById('toast');
   if (!el) { el = Object.assign(document.createElement('div'), { id: 'toast' }); document.body.append(el); }
+  if (undo) undoAfter = Sync.strings(Sync.records(S));
   el.innerHTML = `<span>${esc(msg)}</span>${undo ? '<button data-a="undo">Annuler</button>' : ''}`;
   el.className = 'show';
   clearTimeout(toastTimer);
@@ -789,9 +895,14 @@ const actions = {
   inviteDone: () => { try { localStorage.setItem('courses.invited', '1'); } catch {} },
   go: ({ v }) => { if (v === 'aisles' && tab !== 'aisles') settingsBack = tab; tab = v; },
   undo: () => {
-    if (!undoSnap) return;
-    S = upgrade(JSON.parse(undoSnap));
-    undoSnap = null;
+    if (!undoSnap || !undoAfter) return;
+    const cur = Sync.records(S);
+    for (const k of new Set([...Object.keys(undoSnap), ...Object.keys(undoAfter)])) {
+      if (undoSnap[k] === undoAfter[k]) continue; // pas touché par l'action
+      if (undoSnap[k] === undefined) delete cur[k]; else cur[k] = JSON.parse(undoSnap[k]);
+    }
+    S = upgrade(Sync.fromRecords(cur));
+    undoSnap = undoAfter = null;
     document.getElementById('toast').className = '';
   },
   startRecipe: ({ id }) => { recipeAdd = id; recipeEdit = null; recipeSkip = new Set(); },
@@ -810,43 +921,44 @@ const actions = {
     const i = item(id);
     i.done = !i.done;
     i.doneAt = i.done ? Date.now() : undefined;
+    i.doneBy = i.done ? me || '?' : undefined;
   },
   unneed: ({ id }) => { snapshot(); const i = item(id); i.need = false; i.done = false; toast(`${i.name} retiré de la liste`); },
   delItem: ({ id }) => { S.items = S.items.filter(i => i.id !== id); },
   allFreq: () => S.items.forEach(i => { if (i.freq) want(i); }),
   allPins: () => S.items.forEach(i => { if (i.pin) want(i); }),
   pin: ({ id }) => { const i = item(id); i.pin = !i.pin || undefined; if (i.pin) i.freq = true; },
-  noneNeed: () => { snapshot(); S.items.forEach(i => { i.need = false; i.done = false; }); toast('Liste vidée'); },
+  noneNeed: () => {
+    if (Sync.config() && !confirm('Vider la liste pour tout le foyer ?')) return;
+    snapshot(); S.items.forEach(i => { i.need = false; i.done = false; }); toast('Liste vidée');
+  },
   addSug: () => suggestions().forEach(({ i }) => want(i)),
   // Valide la liste : les articles pris alimentent l'historique d'achat
   // Valide la liste : les articles pris alimentent l'historique d'achat, le montant du ticket le budget
-  goShopping: () => { S.settings.shopping = { by: me, at: Date.now() }; tab = 'shop'; },
+  goShopping: () => { S.settings.shoppers = { ...Object.fromEntries(shoppers()), [me || '?']: Date.now() }; tab = 'shop'; },
   shareList: async () => {
     const groups = [...byAisle(i => i.need), ...byAisle(i => i.need, S.shops)];
     const text = '🛒 Courses\n' + groups.map(g => `\n${g.aisle.name}\n` + g.items.map(i => `• ${i.name}${i.note ? ` (${i.note})` : ''}`).join('\n')).join('\n');
     try { await navigator.share({ title: 'Courses', text }); }
     catch (e) { if (e.name !== 'AbortError') { await navigator.clipboard?.writeText(text); toast('Liste copiée', false); } }
   },
+  // Terminer : petit écran (montant facultatif) au lieu d'une boîte de dialogue
   finish: () => {
-    const taken = S.items.filter(i => i.done);
-    if (!taken.length) return alert('Cochez d\'abord ce qui est dans le caddie.');
-    const left = S.items.filter(i => i.need && !i.done).length;
-    const raw = prompt(`${taken.length} article${taken.length > 1 ? 's' : ''} pris${left ? `, ${left} non trouvé${left > 1 ? 's' : ''} (ils restent sur la liste)` : ''}.\n\nMontant du ticket en € (facultatif) :`, '');
-    if (raw === null) return;
-    snapshot();
-    const learned = !place && learnOrder(taken);
-    if (S.settings.shopping?.by === me) delete S.settings.shopping;
-    const now = Date.now();
-    taken.forEach(i => {
-      i.bought = [...(i.bought || []), now].slice(-HISTORY);
-      i.need = false;
-      i.done = false;
-      delete i.doneAt;
-    });
-    const where = place ? S.shops.find(s => s.id === place)?.name : store()?.name;
-    S.trips.push({ id: uid(), date: now, total: parseEuro(raw), place: where || 'Autre magasin', n: taken.length });
-    toast(learned ? `Courses terminées 👍 Ordre des rayons ajusté pour ${store().name}` : 'Courses terminées 👍');
-    tab = 'list';
+    const here = i => place ? i.aisle === place : !shopOf(i);
+    const taken = S.items.filter(i => i.done && here(i) && mine(i));
+    if (!taken.length) return alert('Cochez d\'abord ce qui est dans votre caddie.');
+    const left = othersShopping() ? 0 : S.items.filter(i => i.need && !i.done && here(i)).length;
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="overlay sheet-modal">
+        <form id="finishForm" class="card">
+          <h2>Terminer les courses</h2>
+          <p>${taken.length} article${taken.length > 1 ? 's' : ''} pris${left ? `, ${left} pas trouvé${left > 1 ? 's' : ''} : ${left > 1 ? 'ils restent' : 'il reste'} sur la liste et l'auteur le voit.` : '.'}</p>
+          <label class="field">Montant du ticket <small>(facultatif)</small><input name="name" inputmode="decimal" placeholder="ex. 42,50" autocomplete="off"></label>
+          <button class="primary">✓ Terminer</button>
+          <button type="button" class="ghost wide" data-a="closePhoto">Continuer les courses</button>
+        </form>
+      </div>`);
+    document.querySelector('#finishForm input').focus();
   },
   editTrip: ({ id }) => {
     const t = S.trips.find(x => x.id === id), raw = prompt('Montant du ticket en €', t.total ?? '');
@@ -887,7 +999,12 @@ const actions = {
   },
   setAuto: ({ v }) => { if (store()) store().map.auto = !!v; },
   setPlace: ({ v }) => { place = v; },
-  setTheme: ({ v }) => { theme = v; try { localStorage.setItem('courses.theme', v); } catch {} applyTheme(); },
+  setSize: ({ v }) => { size = v; try { localStorage.setItem('courses.size', v); } catch {} applySize(); },
+  setTheme: ({ v }) => { theme = v; try { localStorage.setItem('courses.theme', v); } catch {} applyTheme();
+let size = '';
+try { size = localStorage.getItem('courses.size') || ''; } catch {}
+const applySize = () => { document.documentElement.dataset.size = size; };
+applySize(); },
   renameShop: ({ id }) => { const sh = S.shops.find(x => x.id === id), n = prompt('Nom du commerce', sh.name); if (n?.trim()) sh.name = n.trim(); },
   delShop: ({ id }) => {
     if (!confirm('Supprimer ce commerce ? Ses articles passent au supermarché.')) return;
@@ -929,7 +1046,7 @@ const actions = {
     const i = item(id);
     document.body.insertAdjacentHTML('beforeend', `
       <div class="overlay" data-a="closePhoto">
-        <img src="${i.photo}" alt="">
+        <img src="${esc(i.photo)}" alt="">
         <p>${esc(i.name)}</p>
         <div class="bar"><button data-a="photo" data-id="${id}">Changer</button><button data-a="delPhoto" data-id="${id}">Supprimer</button></div>
       </div>`);
@@ -942,7 +1059,7 @@ const actions = {
     URL.revokeObjectURL(url);
   },
   reset: () => {
-    if (!confirm('Tout effacer et revenir aux basiques ?')) return;
+    if (!confirm(Sync.config() ? 'Liste partagée : cela efface la liste, l\'historique et le budget de TOUT le foyer, sur tous les téléphones. Continuer ?' : 'Tout effacer et revenir aux basiques ?')) return;
     S = seed();
     setStore('store-main');
   },
@@ -962,8 +1079,18 @@ document.addEventListener('submit', e => {
   e.preventDefault();
   const f = new FormData(e.target);
   const name = f.get('name');
-  if (e.target.id === 'add') addItem(name, f.get('aisle'), f.get('freq') === 'on');
-  if (e.target.id === 'quick') name.split(/[,;\n]+/).forEach(n => addItem(n, null, false)); // « lait, œufs, pain »
+  if (e.target.id === 'quick') { // « lait, œufs, 2 kg tomates »
+    const already = [];
+    name.split(/[,;\n]+/).forEach(raw => {
+      const m = raw.trim().match(/^(\d+(?:[.,]\d+)?\s*(?:kg|g|l|cl|ml|x|×|paquets?|boîtes?|bouteilles?)?)\s+(?:de |d')?(.+)$/i);
+      const n = m ? m[2] : raw, qty = m ? m[1].trim() : null;
+      const ex = findItem(n);
+      if (ex?.need) already.push(`${ex.name}${ex.by ? ` (${ex.by})` : ''}`);
+      addItem(n, null, tab === 'catalog');
+      if (qty) { const i = findItem(n); if (i) i.note = qty; }
+    });
+    if (already.length) setTimeout(() => toast(`Déjà sur la liste : ${already.join(', ')}`, false));
+  }
   if (e.target.id === 'addAisle' && name.trim()) S.aisles.push({ id: uid(), name: name.trim() });
   if (e.target.id === 'addShop' && name.trim()) S.shops.push({ id: uid(), name: name.trim() });
   if (e.target.id === 'newRecipe' && name.trim()) {
@@ -972,10 +1099,37 @@ document.addEventListener('submit', e => {
     recipeEdit = r.id;
   }
   if (e.target.id === 'link') {
-    const r = recipe(e.target.dataset.id), n = name.trim();
-    let i = S.items.find(x => x.name.toLowerCase() === n.toLowerCase());
-    if (!i && n) S.items.push(i = { id: uid(), name: n, aisle: fallbackAisle(), freq: false, need: false, done: false });
-    if (i && !r.items.includes(i.id)) r.items.push(i.id);
+    const r = recipe(e.target.dataset.id);
+    for (const raw of name.split(/[,;\n]+/)) {
+      const n = cap(raw.trim());
+      if (!n) continue;
+      let i = findItem(n);
+      if (!i) S.items.push(i = { id: uid(), name: n, aisle: guessAisle(n), freq: false, need: false, done: false });
+      if (!r.items.includes(i.id)) r.items.push(i.id);
+    }
+  }
+  if (e.target.id === 'meForm') { setMe(name); save(); render(); return; }
+  if (e.target.id === 'finishForm') {
+    document.querySelector('.overlay')?.remove();
+    const here = i => place ? i.aisle === place : !shopOf(i);
+    const taken = S.items.filter(i => i.done && here(i) && mine(i));
+    snapshot();
+    const learned = !place && learnOrder(taken);
+    if (S.settings.shoppers) delete S.settings.shoppers[me || '?'];
+    const now = Date.now();
+    taken.forEach(i => {
+      i.bought = [...(i.bought || []), now].slice(-HISTORY);
+      Object.assign(i, { need: false, done: false, lastBy: me || undefined });
+      delete i.doneAt; delete i.doneBy; delete i.missing;
+    });
+    // « Pas trouvé » seulement si personne d'autre n'est encore en courses
+    if (!othersShopping()) S.items.filter(i => i.need && !i.done && here(i)).forEach(i => { i.missing = { by: me || '', at: now }; });
+    const where = place ? S.shops.find(s => s.id === place)?.name : store()?.name;
+    S.trips.push({ id: uid(), date: now, total: parseEuro(name || ''), place: where || 'Autre magasin', n: taken.length, names: taken.map(i => i.name) });
+    tab = 'list';
+    save(); render();
+    toast(learned ? `Courses terminées 👍 Ordre des rayons ajusté pour ${store().name}` : 'Courses terminées 👍');
+    return;
   }
   if (e.target.id === 'budgetForm') S.settings.budget = parseEuro(name);
   if (e.target.id === 'joinForm') {
@@ -983,8 +1137,10 @@ document.addEventListener('submit', e => {
     let c = null;
     try { c = m && JSON.parse(atob(m[1])); } catch {}
     if (!c?.code) return alert('Lien d\'invitation invalide');
-    if (tab === 'welcome' || confirm('Rejoindre la liste partagée ? La liste de ce téléphone sera remplacée.')) {
+    const mine = S.trips.length || S.items.some(i => i.need || i.bought?.length);
+    if (tab === 'welcome' || !mine || confirm('Rejoindre la liste partagée ? La liste de ce téléphone sera remplacée.')) {
       if (tab === 'welcome') finishWelcome('list');
+      try { localStorage.setItem('courses.invited', '1'); } catch {}
       Sync.join(c);
     }
     return;
@@ -1004,7 +1160,7 @@ document.addEventListener('change', async e => {
     const file = e.target.files[0], i = item(photoFor);
     e.target.value = '';
     if (!file || !i) return;
-    i.photo = await shrink(file, 360);
+    i.photo = await shrink(file, 280);
     actions.closePhoto();
     save();
     return render();
@@ -1015,6 +1171,7 @@ document.addEventListener('change', async e => {
   try {
     const data = JSON.parse(await e.target.files[0].text());
     if (!Array.isArray(data.aisles) || !Array.isArray(data.items)) throw 0;
+    if (Sync.config() && !confirm('Liste partagée : l\'import remplace la liste de TOUT le foyer. Continuer ?')) return;
     S = upgrade(data);
     save(); render();
   } catch { alert('Fichier invalide'); }
@@ -1029,7 +1186,7 @@ async function shrink(file, max) {
   const c = Object.assign(document.createElement('canvas'), { width: Math.round(img.naturalWidth * k), height: Math.round(img.naturalHeight * k) });
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
   URL.revokeObjectURL(img.src);
-  return c.toDataURL('image/jpeg', .7);
+  return c.toDataURL('image/jpeg', .6);
 }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

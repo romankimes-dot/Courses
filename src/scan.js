@@ -186,7 +186,7 @@ function lineCard(l) {
     <section class="card">${head}
       <form id="lineNew" data-id="${l.id}" class="add">
         <input name="name" value="${esc(pretty(l.label))}" autocomplete="off" required>
-        <select name="aisle">${aisleOptions(fallbackAisle())}</select>
+        <select name="aisle">${aisleOptions(guessAisle(pretty(l.label)))}</select>
         <button>Créer</button>
         <button type="button" class="ghost" data-a="lineMode" data-id="${l.id}" data-v="">Annuler</button>
       </form>
@@ -249,7 +249,7 @@ document.addEventListener('submit', e => {
   const id = e.target.id;
   if (id !== 'linePick' && id !== 'lineNew') return;
   const l = line(e.target.dataset.id), f = new FormData(e.target), n = f.get('name').trim();
-  let i = S.items.find(x => x.name.toLowerCase() === n.toLowerCase());
+  let i = findItem(n);
   if (!i && n) S.items.push(i = { id: uid(), name: n, aisle: f.get('aisle') || fallbackAisle(), freq: false, need: false, done: false });
   if (i) Object.assign(l, { item: i.id, mode: null });
 }, true);
