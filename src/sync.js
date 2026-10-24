@@ -12,10 +12,12 @@ const Sync = (() => {
   let cfg = get(CFG, null), outbox = get(OUT, {}), seq = get(SEQ, 0), snap, state = '', busy = false;
 
   function records(st) {
-    const r = { map: st.map };
+    const r = { settings: st.settings };
     st.items.forEach(i => { r['item:' + i.id] = i; });
     st.recipes.forEach(x => { r['recipe:' + x.id] = x; });
     st.shops.forEach((x, pos) => { r['shop:' + x.id] = { ...x, pos }; });
+    st.stores.forEach((x, pos) => { r['store:' + x.id] = { ...x, pos }; });
+    st.trips.forEach(x => { r['trip:' + x.id] = x; });
     st.aisles.forEach((a, pos) => { r['aisle:' + a.id] = { ...a, pos }; });
     return r;
   }
@@ -26,7 +28,10 @@ const Sync = (() => {
       recipes: all('recipe:'),
       shops: all('shop:').sort((a, b) => a.pos - b.pos).map(({ pos, ...x }) => x),
       aisles: all('aisle:').sort((a, b) => a.pos - b.pos).map(({ pos, ...a }) => a),
-      map: r.map || newMap(),
+      stores: all('store:').sort((a, b) => a.pos - b.pos).map(({ pos, ...x }) => x),
+      trips: all('trip:').sort((a, b) => a.date - b.date),
+      settings: r.settings || {},
+      ...(r.map && !all('store:').length ? { map: r.map } : {}), // ancien format : plan unique
     };
   }
   const strings = r => Object.fromEntries(Object.entries(r).map(([k, d]) => [k, JSON.stringify(d)]));
@@ -84,7 +89,7 @@ const Sync = (() => {
         }
         put(SEQ, seq);
         if (touched) {
-          S = fromRecords(cur);
+          S = upgrade(fromRecords(cur));
           snap = strings(records(S));
           save();
           // Ne pas casser une saisie en cours ; le champ d'ajout rapide vide garde le focus
@@ -139,7 +144,7 @@ const Sync = (() => {
       connect(c);
       outbox = {};
       put(OUT, outbox);
-      S = { aisles: [], items: [], recipes: [], shops: [], map: newMap() };
+      S = { aisles: [], items: [], recipes: [], shops: [], stores: [], trips: [], settings: {} };
       snap = strings(records(S));
       save();
       render();

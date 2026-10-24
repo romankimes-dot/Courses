@@ -74,3 +74,9 @@ nav button { font-size: 15px; }
 .quickbar { position: sticky; bottom: 0; display: flex; gap: 8px; padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--line); margin-top: 16px; }
 .quickbar input { flex: 1; font-size: 16px; padding: 10px 12px; border-radius: 22px; }
 .quickbar button { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff; border: 0; font-size: 24px; line-height: 1; padding: 0; }
+nav { overflow-x: auto; scrollbar-width: none; }
+nav button { flex: 1 0 auto; padding: 10px 6px; font-size: 14px; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0 12px; }
+.tile { background: var(--card); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; }
+.tile strong { font-size: 22px; font-variant-numeric: tabular-nums; }
+.progress.over div { background: #c0392b; }
