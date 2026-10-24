@@ -14,6 +14,7 @@ const Sync = (() => {
   function records(st) {
     const r = { map: st.map };
     st.items.forEach(i => { r['item:' + i.id] = i; });
+    st.recipes.forEach(x => { r['recipe:' + x.id] = x; });
     st.aisles.forEach((a, pos) => { r['aisle:' + a.id] = { ...a, pos }; });
     return r;
   }
@@ -21,6 +22,7 @@ const Sync = (() => {
     const all = prefix => Object.entries(r).filter(([k]) => k.startsWith(prefix)).map(([, d]) => d);
     return {
       items: all('item:'),
+      recipes: all('recipe:'),
       aisles: all('aisle:').sort((a, b) => a.pos - b.pos).map(({ pos, ...a }) => a),
       map: r.map || newMap(),
     };
@@ -130,7 +132,7 @@ const Sync = (() => {
       connect(c);
       outbox = {};
       put(OUT, outbox);
-      S = { aisles: [], items: [], map: newMap() };
+      S = { aisles: [], items: [], recipes: [], map: newMap() };
       snap = strings(records(S));
       save();
       render();

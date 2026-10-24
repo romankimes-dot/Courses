@@ -26,7 +26,7 @@ function seed() {
     aisles.push(aisle);
     for (const n of list) items.push({ id: uid(), name: n, aisle: aisle.id, freq: true, need: false, done: false });
   }
-  return { aisles, items, map: newMap() };
+  return { aisles, items, recipes: [], map: newMap() };
 }
 // Plan du magasin : quadrillage approximatif, case "x,y" -> rayon
 const newMap = () => ({ cols: 6, rows: 8, cells: {}, entry: null, auto: true });
@@ -36,6 +36,7 @@ function load() {
 }
 let S = load() || seed();
 S.map ||= newMap();
+S.recipes ||= [];
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {}
   if (typeof Sync !== 'undefined') Sync.changed();
@@ -44,6 +45,7 @@ function save() {
 let tab = 'prep';
 let who = 0; // courses à deux : 0 = seul, 1 ou 2 = mon circuit (propre à cet appareil)
 try { who = +localStorage.getItem('courses.who') || 0; } catch {}
+let recipeEdit = null, recipeAdd = null, recipeSkip = new Set(); // recette en cours d'édition / d'ajout
 let photoFor = null; // article auquel lier la photo en cours
 let brush = null; // pinceau de l'éditeur de plan : id de rayon, 'entry' ou '' (gomme)
 const app = document.getElementById('app');
@@ -302,6 +304,17 @@ const views = {
         </div>`).join('') : '<p class="empty">Rien pour l\'instant.</p>'}`;
   },
 
+  recipes() {
+    const rs = [...S.recipes].sort((a, b) => a.name.localeCompare(b.name));
+    return `
+      <form id="newRecipe" class="add">
+        <input name="name" placeholder="Nouvelle recette" autocomplete="off" required>
+        <button>Créer</button>
+      </form>
+      ${rs.map(recipeCard).join('') || '<p class="empty">Aucune recette pour l\'instant.</p>'}
+      <datalist id="catalog">${S.items.map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>`;
+  },
+
   aisles() {
     return `
       <p class="hint">L'ordre des rayons définit le circuit en magasin${S.map.auto && Object.keys(S.map.cells).length ? ', sauf pour les rayons placés sur le plan' : ''}.</p>
@@ -372,11 +385,72 @@ function render() {
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
 }
 
+function recipeCard(r) {
+  const its = r.items.map(item).filter(Boolean);
+  if (recipeEdit === r.id) return `
+    <section class="card">
+      <div class="bar">
+        <input id="rname" data-id="${r.id}" value="${esc(r.name)}" class="grow">
+        <button data-a="closeRecipe">OK</button>
+      </div>
+      ${its.map(i => `
+        <div class="row static">
+          <span class="name">${esc(i.name)}</span>
+          <select data-item-aisle="${i.id}">${aisleOptions(i.aisle)}</select>
+          <button class="ghost" data-a="unlink" data-id="${r.id}" data-item="${i.id}">×</button>
+        </div>`).join('')}
+      <form id="link" data-id="${r.id}" class="add">
+        <input name="name" list="catalog" placeholder="Lier un article" autocomplete="off" required>
+        <button>+</button>
+      </form>
+      <button class="ghost" data-a="delRecipe" data-id="${r.id}">Supprimer la recette</button>
+    </section>`;
+  if (recipeAdd === r.id) {
+    const n = its.filter(i => !recipeSkip.has(i.id)).length;
+    return `
+      <section class="card">
+        <strong>${esc(r.name)}</strong>
+        <p class="hint">Décochez ce que vous avez déjà à la maison.</p>
+        ${its.map(i => `
+          <div class="row ${recipeSkip.has(i.id) ? '' : 'on'}" data-a="toggleSkip" data-id="${i.id}">
+            <span class="box"></span>
+            <span class="name">${esc(i.name)}${i.need ? ' <small>déjà sur la liste</small>' : ''}</span>
+          </div>`).join('')}
+        <div class="bar">
+          <button class="accent" data-a="confirmRecipe" data-id="${r.id}" ${n ? '' : 'disabled'}>Ajouter ${n} article${n > 1 ? 's' : ''}</button>
+          <button data-a="cancelRecipe">Annuler</button>
+        </div>
+      </section>`;
+  }
+  return `
+    <section class="card">
+      <div class="bar">
+        <strong class="grow">${esc(r.name)}</strong>
+        <button data-a="startRecipe" data-id="${r.id}" ${its.length ? '' : 'disabled'}>Ajouter à la liste</button>
+        <button class="ghost" data-a="editRecipe" data-id="${r.id}" title="Modifier">✎</button>
+      </div>
+      <p class="small">${its.map(i => esc(i.name)).join(' · ') || 'Aucun article lié'}</p>
+    </section>`;
+}
+
 // ---------- Actions ----------
 
 const item = id => S.items.find(i => i.id === id);
 
+const recipe = id => S.recipes.find(r => r.id === id);
+
 const actions = {
+  startRecipe: ({ id }) => { recipeAdd = id; recipeEdit = null; recipeSkip = new Set(); },
+  toggleSkip: ({ id }) => { recipeSkip.has(id) ? recipeSkip.delete(id) : recipeSkip.add(id); },
+  confirmRecipe: ({ id }) => {
+    recipe(id).items.map(item).filter(i => i && !recipeSkip.has(i.id)).forEach(i => { i.need = true; i.done = false; });
+    recipeAdd = null;
+  },
+  cancelRecipe: () => { recipeAdd = null; },
+  editRecipe: ({ id }) => { recipeEdit = id; recipeAdd = null; },
+  closeRecipe: () => { recipeEdit = null; },
+  unlink: ({ id, item: itemId }) => { const r = recipe(id); r.items = r.items.filter(x => x !== itemId); },
+  delRecipe: ({ id }) => { if (confirm('Supprimer cette recette ?')) { S.recipes = S.recipes.filter(r => r.id !== id); recipeEdit = null; } },
   toggleNeed: ({ id }) => { const i = item(id); i.need = !i.need; i.done = false; },
   toggleDone: ({ id }) => { const i = item(id); i.done = !i.done; },
   unneed: ({ id }) => { const i = item(id); i.need = false; i.done = false; },
@@ -465,6 +539,17 @@ document.addEventListener('submit', e => {
   if (e.target.id === 'add') addItem(name, f.get('aisle'), f.get('freq') === 'on');
   if (e.target.id === 'quick') addItem(name, null, false);
   if (e.target.id === 'addAisle' && name.trim()) S.aisles.push({ id: uid(), name: name.trim() });
+  if (e.target.id === 'newRecipe' && name.trim()) {
+    const r = { id: uid(), name: name.trim(), items: [] };
+    S.recipes.push(r);
+    recipeEdit = r.id;
+  }
+  if (e.target.id === 'link') {
+    const r = recipe(e.target.dataset.id), n = name.trim();
+    let i = S.items.find(x => x.name.toLowerCase() === n.toLowerCase());
+    if (!i && n) S.items.push(i = { id: uid(), name: n, aisle: fallbackAisle(), freq: false, need: false, done: false });
+    if (i && !r.items.includes(i.id)) r.items.push(i.id);
+  }
   if (e.target.id === 'share') Sync.create(f.get('url').trim().replace(/\/+$/, ''), f.get('key').trim());
   save();
   render();
@@ -473,6 +558,8 @@ document.addEventListener('submit', e => {
 
 document.addEventListener('change', async e => {
   if (e.target.id === 'brush') { brush = e.target.value; return; }
+  if (e.target.id === 'rname') { const r = recipe(e.target.dataset.id); if (e.target.value.trim()) r.name = e.target.value.trim(); return save(); }
+  if (e.target.dataset.itemAisle) { item(e.target.dataset.itemAisle).aisle = e.target.value; return save(); }
   if (e.target.id === 'photo') {
     const file = e.target.files[0], i = item(photoFor);
     e.target.value = '';
@@ -489,6 +576,7 @@ document.addEventListener('change', async e => {
     if (!Array.isArray(data.aisles) || !Array.isArray(data.items)) throw 0;
     S = data;
     S.map ||= newMap();
+    S.recipes ||= [];
     save(); render();
   } catch { alert('Fichier invalide'); }
 });
