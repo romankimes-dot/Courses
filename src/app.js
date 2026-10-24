@@ -60,6 +60,17 @@ function save() {
 }
 
 let tab = 'prep';
+// Apparence : automatique (réglage du téléphone), clair ou sombre ; propre à chaque appareil
+let theme = 'auto';
+try { theme = localStorage.getItem('courses.theme') || 'auto'; } catch {}
+function applyTheme() {
+  if (theme === 'auto') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = theme;
+  const dark = theme === 'dark' || (theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content', dark ? '#121413' : '#2f7d4f');
+}
+applyTheme();
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
 let who = 0; // courses à deux : 0 = seul, 1 ou 2 = mon circuit (propre à cet appareil)
 try { who = +localStorage.getItem('courses.who') || 0; } catch {}
 let recipeEdit = null, recipeAdd = null, recipeSkip = new Set(); // recette en cours d'édition / d'ajout
@@ -282,9 +293,9 @@ const views = {
           ${g.items.map(i => `
             <div class="row ${i.need ? 'on' : ''}" data-a="toggleNeed" data-id="${i.id}">
               <span class="box"></span>
-              <span class="name">${esc(i.name)}${i.freq ? '' : ' <small>ponctuel</small>'}${lastPrice(i) != null ? ` <small>${euro(lastPrice(i))}</small>` : ''}</span>
+              <span class="name">${esc(i.name)}${i.note ? ` <small>${esc(i.note)}</small>` : ''}${lastPrice(i) != null ? ` <small>${euro(lastPrice(i))}</small>` : ''}</span>
               ${thumb(i, true)}
-              <button class="ghost" data-a="delItem" data-id="${i.id}" title="Supprimer">×</button>
+              <button class="ghost more" data-a="openItem" data-id="${i.id}" title="Fiche produit">›</button>
             </div>`).join('')}
         </section>`).join('')}`;
   },
@@ -309,7 +320,7 @@ const views = {
         ${places}
         ${doneLast(g.items).map(i => `
           <div class="row big ${i.done ? 'done' : ''}" data-a="toggleDone" data-id="${i.id}">
-            <span class="box"></span><span class="name">${esc(i.name)}</span>${thumb(i)}
+            <span class="box"></span><span class="name">${esc(i.name)}${i.note ? ` <small>${esc(i.note)}</small>` : ''}</span>${thumb(i)}<button class="ghost more" data-a="openItem" data-id="${i.id}" title="Fiche produit">›</button>
           </div>`).join('')}
         <button class="primary" data-a="finish">Valider les courses</button>`;
     }
@@ -346,7 +357,7 @@ const views = {
           <h3><span class="num" style="background:${aisleColor(g.aisle.id)}">${k + 1}</span>${esc(g.aisle.name)}</h3>
           ${doneLast(g.items).map(i => `
             <div class="row big ${i.done ? 'done' : ''}" data-a="toggleDone" data-id="${i.id}">
-              <span class="box"></span><span class="name">${esc(i.name)}</span>${thumb(i)}
+              <span class="box"></span><span class="name">${esc(i.name)}${i.note ? ` <small>${esc(i.note)}</small>` : ''}</span>${thumb(i)}<button class="ghost more" data-a="openItem" data-id="${i.id}" title="Fiche produit">›</button>
             </div>`).join('')}
         </section>`).join('')}
       <button class="primary" data-a="finish">Valider les courses</button>
@@ -358,8 +369,9 @@ const views = {
     return `
       ${need.length ? need.map(i => `
         <div class="row ${i.done ? 'done' : ''}" data-a="toggleDone" data-id="${i.id}">
-          <span class="box"></span><span class="name">${esc(i.name)}${shopOf(i) ? ` <small>${esc(shopOf(i).name)}</small>` : ''}</span>
+          <span class="box"></span><span class="name">${esc(i.name)}${i.note ? ` <small>${esc(i.note)}</small>` : ''}${shopOf(i) ? ` <small>${esc(shopOf(i).name)}</small>` : ''}</span>
           <button class="ghost" data-a="unneed" data-id="${i.id}" title="Retirer">×</button>
+          <button class="ghost more" data-a="openItem" data-id="${i.id}" title="Fiche produit">›</button>
         </div>`).join('') : '<p class="empty">Rien pour l\'instant.</p>'}`;
   },
 
@@ -414,7 +426,7 @@ const views = {
       ${byPlace.length > 1 ? `<h3>Ce mois par magasin</h3>${byPlace.map(([p, v]) => `<div class="row static"><span class="name">${esc(p)}</span><span>${euro(v)}</span></div>`).join('')}` : ''}
       ${priced.length ? `<h3>Prix suivis</h3>${priced.slice(0, 15).map(i => {
         const [a, b] = [i.prices.at(-2)?.p, i.prices.at(-1).p], diff = a ? Math.round((b - a) / a * 100) : 0;
-        return `<div class="row static"><span class="name">${esc(i.name)} <small>${esc(i.prices.at(-1).at || '')}</small></span>${diff ? `<small class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? '↑' : '↓'} ${Math.abs(diff)} %</small>` : ''}<span>${euro(b)}</span></div>`;
+        return `<div class="row" data-a="openItem" data-id="${i.id}"><span class="name">${esc(i.name)} <small>${esc(i.prices.at(-1).at || '')}</small></span>${diff ? `<small class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? '↑' : '↓'} ${Math.abs(diff)} %</small>` : ''}<span>${euro(b)}</span></div>`;
       }).join('')}` : ''}
       <h3>Passages en caisse</h3>
       ${S.trips.slice(-20).reverse().map(t => `
@@ -428,6 +440,10 @@ const views = {
   aisles() {
     const st = store(), list = orderedAisles();
     return `
+      <h3>Apparence</h3>
+      <div class="seg">
+        ${[['auto', 'Automatique'], ['light', 'Clair'], ['dark', 'Sombre']].map(([v, l]) => `<button data-a="setTheme" data-v="${v}" class="${theme === v ? 'active' : ''}">${l}</button>`).join('')}
+      </div>
       <h3>Magasin</h3>
       ${storePicker(true)}
       <h3>Rayons</h3>
@@ -550,7 +566,7 @@ function recipeCard(r) {
       </div>
       ${its.map(i => `
         <div class="row static">
-          <span class="name">${esc(i.name)}</span>
+          <span class="name link" data-a="openItem" data-id="${i.id}">${esc(i.name)}</span>
           <select data-item-aisle="${i.id}">${aisleOptions(i.aisle)}</select>
           <button class="ghost" data-a="unlink" data-id="${r.id}" data-item="${i.id}">×</button>
         </div>`).join('')}
@@ -670,6 +686,7 @@ const actions = {
   },
   setAuto: ({ v }) => { if (store()) store().map.auto = !!v; },
   setPlace: ({ v }) => { place = v; },
+  setTheme: ({ v }) => { theme = v; try { localStorage.setItem('courses.theme', v); } catch {} applyTheme(); },
   renameShop: ({ id }) => { const sh = S.shops.find(x => x.id === id), n = prompt('Nom du commerce', sh.name); if (n?.trim()) sh.name = n.trim(); },
   delShop: ({ id }) => {
     if (!confirm('Supprimer ce commerce ? Ses articles passent au supermarché.')) return;
