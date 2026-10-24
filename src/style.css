@@ -43,3 +43,6 @@ input, select { font: inherit; padding: 8px 10px; border: 1px solid var(--line);
 
 .progress { height: 6px; background: var(--card); border-radius: 3px; overflow: hidden; }
 .progress div { height: 100%; background: var(--accent); transition: width .2s; }
+
+.sug { background: var(--card); border-radius: 10px; padding: 4px 8px 8px; margin-top: 8px; }
+.sug h3 { display: flex; justify-content: space-between; align-items: center; }

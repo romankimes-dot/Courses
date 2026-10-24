@@ -54,13 +54,43 @@ function addItem(name, aisle, freq) {
   S.items.push({ id: uid(), name, aisle: aisle || fallbackAisle(), freq, need: true, done: false });
 }
 
+// ---------- Suggestions (rythme d'achat) ----------
+
+const DAY = 864e5;
+const HISTORY = 10;
+
+// Intervalle moyen entre achats validés, et jours depuis le dernier
+function rhythm(i) {
+  const b = i.bought || [];
+  if (b.length < 2) return null;
+  const every = Math.max(1, (b[b.length - 1] - b[0]) / (b.length - 1) / DAY);
+  const since = (Date.now() - b[b.length - 1]) / DAY;
+  return { every, since, due: since / every };
+}
+const suggestions = () => S.items
+  .filter(i => !i.need)
+  .map(i => ({ i, r: rhythm(i) }))
+  .filter(x => x.r && x.r.due >= 0.8)
+  .sort((a, b) => b.r.due - a.r.due);
+const rhythmLabel = r => `tous les ~${Math.round(r.every)} j · il y a ${Math.round(r.since)} j`;
+
 // ---------- Vues ----------
 
 const views = {
   prep() {
     const count = S.items.filter(i => i.need).length;
+    const sug = suggestions();
     return `
       <p class="hint">Touchez un article pour l'ajouter ou le retirer de la liste.</p>
+      ${sug.length ? `
+        <section class="sug">
+          <h3>Suggestions <button class="ghost" data-a="addSug">Tout ajouter</button></h3>
+          ${sug.map(({ i, r }) => `
+            <div class="row" data-a="toggleNeed" data-id="${i.id}">
+              <span class="box"></span>
+              <span class="name">${esc(i.name)} <small>${rhythmLabel(r)}</small></span>
+            </div>`).join('')}
+        </section>` : ''}
       <div class="bar">
         <button data-a="allFreq">Tout cocher</button>
         <button data-a="noneNeed">Tout décocher</button>
@@ -72,7 +102,7 @@ const views = {
         <label class="small"><input type="checkbox" name="freq" checked> fréquent</label>
         <button>Ajouter</button>
       </form>
-      ${byAisle(() => true).map(g => `
+      ${byAisle(i => i.freq || i.need).map(g => `
         <section>
           <h3>${esc(g.aisle.name)}</h3>
           ${g.items.map(i => `
@@ -99,7 +129,7 @@ const views = {
               <span class="box"></span><span class="name">${esc(i.name)}</span>
             </div>`).join('')}
         </section>`).join('')}
-      <button class="primary" data-a="finish">Terminer les courses</button>`;
+      <button class="primary" data-a="finish">Valider les courses</button>`;
   },
 
   simple() {
@@ -156,10 +186,17 @@ const actions = {
   delItem: ({ id }) => { S.items = S.items.filter(i => i.id !== id); },
   allFreq: () => S.items.forEach(i => { if (i.freq) i.need = true; }),
   noneNeed: () => S.items.forEach(i => { i.need = false; i.done = false; }),
+  addSug: () => suggestions().forEach(({ i }) => { i.need = true; }),
+  // Valide la liste : les articles pris alimentent l'historique d'achat
   finish: () => {
-    if (!confirm('Retirer de la liste les articles pris ?')) return;
-    S.items = S.items.filter(i => !(i.done && !i.freq));
-    S.items.forEach(i => { if (i.done) { i.need = false; i.done = false; } });
+    if (!confirm('Valider les courses ? Les articles pris sortent de la liste.')) return;
+    const now = Date.now();
+    S.items.forEach(i => {
+      if (!i.done) return;
+      i.bought = [...(i.bought || []), now].slice(-HISTORY);
+      i.need = false;
+      i.done = false;
+    });
   },
   up: ({ k }) => { k = +k; [S.aisles[k - 1], S.aisles[k]] = [S.aisles[k], S.aisles[k - 1]]; },
   down: ({ k }) => { k = +k; [S.aisles[k + 1], S.aisles[k]] = [S.aisles[k], S.aisles[k + 1]]; },
