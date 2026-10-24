@@ -479,6 +479,11 @@ const views = {
           <input name="url" placeholder="https://xxxx.supabase.co" value="https://lxvtsxjsjyeyppybfrqx.supabase.co" required>
           <input name="key" placeholder="Clé publique (publishable)" value="sb_publishable_CO8IqARcVoq2SiSa6Sk0Dw_LCfx_SkH" required>
           <button>Créer la liste partagée</button>
+        </form>
+        <p class="hint">Ou rejoignez une liste existante : collez le lien d'invitation reçu.</p>
+        <form id="joinForm" class="add">
+          <input name="name" placeholder="Lien d'invitation" autocomplete="off" required>
+          <button>Rejoindre</button>
         </form>`}
       <h3>Données</h3>
       <div class="bar">
@@ -731,6 +736,14 @@ document.addEventListener('submit', e => {
     if (i && !r.items.includes(i.id)) r.items.push(i.id);
   }
   if (e.target.id === 'budgetForm') S.settings.budget = parseEuro(name);
+  if (e.target.id === 'joinForm') {
+    const m = name.match(/#join=([^\s]+)/);
+    let c = null;
+    try { c = m && JSON.parse(atob(m[1])); } catch {}
+    if (!c?.code) return alert('Lien d\'invitation invalide');
+    if (confirm('Rejoindre la liste partagée ? La liste de ce téléphone sera remplacée.')) Sync.join(c);
+    return;
+  }
   if (e.target.id === 'share') Sync.create(f.get('url').trim().replace(/\/+$/, ''), f.get('key').trim());
   save();
   render();
