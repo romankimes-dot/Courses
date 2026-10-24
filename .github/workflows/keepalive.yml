@@ -1,0 +1,19 @@
+# Garde le projet Supabase gratuit actif : une petite requête tous les 3 jours,
+# pour éviter la mise en pause après 7 jours sans activité (vacances…).
+name: Garder Supabase actif
+
+on:
+  schedule:
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Requête légère à la base
+        run: |
+          curl -sSf --retry 3 -X POST "https://lxvtsxjsjyeyppybfrqx.supabase.co/rest/v1/rpc/pull" \
+            -H "apikey: sb_publishable_CO8IqARcVoq2SiSa6Sk0Dw_LCfx_SkH" \
+            -H "Content-Type: application/json" \
+            -d '{"h":"keepalive-000000000000000000000000000000","since":0}'
