@@ -46,3 +46,12 @@ input, select { font: inherit; padding: 8px 10px; border: 1px solid var(--line);
 
 .sug { background: var(--card); border-radius: 10px; padding: 4px 8px 8px; margin-top: 8px; }
 .sug h3 { display: flex; justify-content: space-between; align-items: center; }
+
+.dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.num { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: #fff; font-size: 12px; margin-right: 8px; letter-spacing: 0; }
+.grid { display: grid; gap: 2px; margin: 8px 0; max-width: 420px; }
+.cell { aspect-ratio: 1; background: var(--card); border: 1px solid var(--line); border-radius: 4px; display: grid; place-items: center; font-size: 12px; color: #fff; cursor: pointer; user-select: none; }
+.map { display: block; width: 100%; max-width: 520px; margin: 12px auto; }
+.seg { display: flex; margin-top: 12px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { flex: 1; border: 0; border-radius: 0; background: none; font-size: 14px; color: var(--muted); }
+.seg button.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
