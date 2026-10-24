@@ -1,4 +1,4 @@
-// Courses — v0 locale (stockage navigateur). Le partage viendra ensuite.
+// Courses — données locales d'abord (fonctionne sans réseau), synchro dans sync.js.
 
 const KEY = 'courses.v1';
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -26,17 +26,19 @@ function seed() {
     aisles.push(aisle);
     for (const n of list) items.push({ id: uid(), name: n, aisle: aisle.id, freq: true, need: false, done: false });
   }
-  return { aisles, items };
+  return { aisles, items, map: newMap() };
 }
+// Plan du magasin : quadrillage approximatif, case "x,y" -> rayon
+const newMap = () => ({ cols: 6, rows: 8, cells: {}, entry: null, auto: true });
 
 function load() {
   try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; }
 }
 let S = load() || seed();
-// Plan du magasin : quadrillage approximatif, case "x,y" -> rayon
-S.map ||= { cols: 6, rows: 8, cells: {}, entry: null, auto: true };
+S.map ||= newMap();
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {}
+  if (typeof Sync !== 'undefined') Sync.changed();
 }
 
 let tab = 'prep';
@@ -331,6 +333,20 @@ const views = {
         }).join('')}
       </div>
       <label class="small"><input type="checkbox" id="auto"${S.map.auto ? ' checked' : ''}> Calculer le circuit le plus court à partir du plan (entrée → rayons → caisses)</label>
+      <h3>Partage</h3>
+      ${Sync.config() ? `
+        <p class="hint">Liste partagée. Les modifications faites sans réseau partent dès qu'il revient.</p>
+        <div class="bar">
+          <button data-a="invite">Copier le lien d'invitation</button>
+          <button data-a="syncNow">Synchroniser</button>
+          <button data-a="leave">Quitter</button>
+        </div>` : `
+        <p class="hint">Pour partager, créez une base Supabase (voir README) puis collez ses accès. Les autres rejoignent via le lien d'invitation.</p>
+        <form id="share" class="add">
+          <input name="url" placeholder="https://xxxx.supabase.co" required>
+          <input name="key" placeholder="Clé anon" required>
+          <button>Créer la liste partagée</button>
+        </form>`}
       <h3>Données</h3>
       <div class="bar">
         <button data-a="export">Exporter</button>
@@ -341,6 +357,10 @@ const views = {
 };
 
 function render() {
+  if (!S.aisles.length) {
+    app.innerHTML = `<p class="empty">${tab === 'aisles' ? '' : 'En attente de la première synchronisation…'}</p>${tab === 'aisles' ? views.aisles() : ''}`;
+    return;
+  }
   if (brush === null || (brush && brush !== 'entry' && !S.aisles.some(a => a.id === brush))) brush = S.aisles[0].id;
   app.innerHTML = views[tab]();
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
@@ -392,6 +412,13 @@ const actions = {
     for (const c in S.map.cells) if (out(c)) delete S.map.cells[c];
     if (S.map.entry && out(S.map.entry)) S.map.entry = null;
   },
+  invite: () => {
+    const link = Sync.inviteLink();
+    navigator.clipboard?.writeText(link).then(() => alert('Lien copié'), () => prompt('Lien d\'invitation', link))
+      ?? prompt('Lien d\'invitation', link);
+  },
+  syncNow: () => Sync.run(),
+  leave: () => { if (confirm('Quitter le partage ? La liste reste sur ce téléphone.')) Sync.leave(); },
   export: () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }));
     Object.assign(document.createElement('a'), { href: url, download: 'courses.json' }).click();
@@ -400,7 +427,6 @@ const actions = {
   reset: () => {
     if (!confirm('Tout effacer et revenir aux basiques ?')) return;
     S = seed();
-    S.map = { cols: 6, rows: 8, cells: {}, entry: null, auto: true };
   },
 };
 
@@ -421,6 +447,7 @@ document.addEventListener('submit', e => {
   if (e.target.id === 'add') addItem(name, f.get('aisle'), f.get('freq') === 'on');
   if (e.target.id === 'quick') addItem(name, null, false);
   if (e.target.id === 'addAisle' && name.trim()) S.aisles.push({ id: uid(), name: name.trim() });
+  if (e.target.id === 'share') Sync.create(f.get('url').trim().replace(/\/+$/, ''), f.get('key').trim());
   save();
   render();
   app.querySelector(`#${e.target.id} input`)?.focus();
@@ -434,10 +461,9 @@ document.addEventListener('change', async e => {
     const data = JSON.parse(await e.target.files[0].text());
     if (!Array.isArray(data.aisles) || !Array.isArray(data.items)) throw 0;
     S = data;
-    S.map ||= { cols: 6, rows: 8, cells: {}, entry: null, auto: true };
+    S.map ||= newMap();
     save(); render();
   } catch { alert('Fichier invalide'); }
 });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
-render();
