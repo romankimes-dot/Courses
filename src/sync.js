@@ -18,6 +18,7 @@ const Sync = (() => {
     st.shops.forEach((x, pos) => { r['shop:' + x.id] = { ...x, pos }; });
     st.stores.forEach((x, pos) => { r['store:' + x.id] = { ...x, pos }; });
     st.trips.forEach(x => { r['trip:' + x.id] = x; });
+    Object.entries(st.aliases).forEach(([k, v]) => { r['alias:' + k] = v; });
     st.aisles.forEach((a, pos) => { r['aisle:' + a.id] = { ...a, pos }; });
     return r;
   }
@@ -31,6 +32,7 @@ const Sync = (() => {
       stores: all('store:').sort((a, b) => a.pos - b.pos).map(({ pos, ...x }) => x),
       trips: all('trip:').sort((a, b) => a.date - b.date),
       settings: r.settings || {},
+      aliases: Object.fromEntries(Object.entries(r).filter(([k]) => k.startsWith('alias:')).map(([k, v]) => [k.slice(6), v])),
       ...(r.map && !all('store:').length ? { map: r.map } : {}), // ancien format : plan unique
     };
   }
@@ -145,7 +147,7 @@ const Sync = (() => {
       connect(c);
       outbox = {};
       put(OUT, outbox);
-      S = { aisles: [], items: [], recipes: [], shops: [], stores: [], trips: [], settings: {} };
+      S = { aisles: [], items: [], recipes: [], shops: [], stores: [], trips: [], settings: {}, aliases: {} };
       snap = strings(records(S));
       save();
       render();
@@ -174,6 +176,7 @@ const Sync = (() => {
   };
 })();
 
+if (!welcomed && !Sync.config() && !location.hash.startsWith('#join=')) tab = 'welcome';
 render();
 Sync.init();
 addEventListener('online', Sync.run);
