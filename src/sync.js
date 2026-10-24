@@ -176,6 +176,7 @@ const Sync = (() => {
   };
 })();
 
+if (!welcomed && !Sync.config() && !location.hash.startsWith('#join=')) tab = 'welcome';
 render();
 Sync.init();
 addEventListener('online', Sync.run);

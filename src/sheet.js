@@ -1,7 +1,7 @@
 // Fiche produit : nom, rayon ou commerce, précision, fréquent, photo, habitudes, prix, recettes,
 // libellés de ticket reconnus. Ouverte par le chevron › d'un article (ou un prix suivi).
 
-let sheetId = null, sheetBack = 'prep';
+let sheetId = null, sheetBack = 'list';
 const fmtDate = t => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 
 views.item = () => {
@@ -21,6 +21,7 @@ views.item = () => {
     <button class="wide ${i.need ? '' : 'accent'}" data-a="toggleNeed" data-id="${i.id}">${i.need ? '✓ Sur la liste · retirer' : '+ Ajouter à la liste'}</button>
     <label class="field">Rayon ou commerce<select id="itemAisle">${aisleOptions(i.aisle)}</select></label>
     <label class="field">Précision <small>(quantité, marque, bio…)</small><input id="itemNote" value="${esc(i.note || '')}" placeholder="ex. 2 l, bio, marque X" autocomplete="off"></label>
+    <label class="field check"><input type="checkbox" id="itemPin"${i.pin ? ' checked' : ''}><span>⭐ Indispensable<br><small>Toujours en haut des basiques et de la liste.</small></span></label>
     <label class="field check"><input type="checkbox" id="itemFreq"${i.freq ? ' checked' : ''}><span>Article de base<br><small>Toujours visible dans Préparer, coché par « Tout cocher ».</small></span></label>
     <h3>Habitudes</h3>
     <div class="row static"><span class="name">Rythme d'achat</span><span>${r ? `tous les ~${Math.round(r.every)} j` : '<small>2 achats validés minimum</small>'}</span></div>
@@ -40,11 +41,13 @@ Object.assign(actions, {
   closeItem: () => { tab = sheetBack; },
   unalias: ({ k }) => { delete S.aliases[k]; },
   delItemSheet: ({ id }) => {
-    if (!confirm('Supprimer cet article, son historique et ses prix ?')) return;
+    snapshot();
+    const name = item(id).name;
     S.items = S.items.filter(i => i.id !== id);
     S.recipes.forEach(rc => { rc.items = rc.items.filter(x => x !== id); });
     for (const k in S.aliases) if (S.aliases[k] === id) delete S.aliases[k];
     tab = sheetBack;
+    toast(`${name} supprimé`);
   },
 });
 
@@ -60,6 +63,7 @@ document.addEventListener('change', e => {
   else if (t.id === 'itemAisle') i.aisle = t.value;
   else if (t.id === 'itemNote') i.note = t.value.trim() || undefined;
   else if (t.id === 'itemFreq') i.freq = t.checked;
+  else if (t.id === 'itemPin') { i.pin = t.checked || undefined; if (i.pin) i.freq = true; }
   else return;
   save();
 }, true);

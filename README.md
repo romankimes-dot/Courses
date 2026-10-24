@@ -3,14 +3,18 @@
 Liste de courses partagée, pensée pour un supermarché sans réseau : tout fonctionne hors-ligne,
 les modifications se synchronisent dès que le réseau revient.
 
-- **Préparer** : basiques par rayon, tout cocher / tout décocher, suggestions selon le rythme d'achat.
-- **Magasin** : plan 3D, circuit optimisé, mode à deux (deux circuits équilibrés).
-- **Liste** : liste simple.
-- **Recettes** : un tap ajoute tous les ingrédients, on décoche ce qu'on a déjà.
-- **Budget** : dépenses, panier moyen, estimation de fin de mois, prix suivis, conso estimée.
-- **Scan de ticket** (Budget > Scanner un ticket) : lecture sur le téléphone (Tesseract.js, gratuit),
-  puis page de validation. Les lignes validées sont mémorisées et reconnues automatiquement ensuite.
-- **Réglages** : magasins, rayons, plan, commerces, partage, export/import.
+Trois onglets, trois moments :
+
+- **📝 Liste** (avant) : ce qu'il faut acheter, à remplir à plusieurs (« ajouté par »), ajout de plusieurs
+  articles d'un coup (« lait, œufs, pain »), suggestions selon le rythme d'achat, ⭐ indispensables
+  toujours en haut, basiques et recettes, envoi de la liste par message, « J'y vais » visible par les autres.
+- **🛒 Courses** (pendant) : magasin, ordre des rayons (appris selon l'ordre où l'on coche), cases en grand,
+  articles cochés rayés dans « Dans le panier » en bas, commerces, plan et circuit (avancé), mode à deux.
+- **💶 Budget** (après) : dépensé ce mois, scan de ticket gratuit avec page de validation qui apprend,
+  prix suivis, conso estimée.
+- **⚙️ Réglages** : prénom, apparence (auto/clair/sombre), magasins, rayons, plan, commerces, partage.
+
+Fiche produit (›) : rayon, précision, indispensable, photo, historique de prix. « Annuler » après une suppression.
 
 ## Lancer
 

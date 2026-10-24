@@ -12,16 +12,14 @@
 <body>
   <header>
     <h1>Courses <span id="sync"></span></h1>
-    <nav>
-      <button data-tab="prep">Préparer</button>
-      <button data-tab="shop">Magasin</button>
-      <button data-tab="simple">Liste</button>
-      <button data-tab="recipes">Recettes</button>
-      <button data-tab="budget">Budget</button>
-      <button data-tab="aisles">Réglages</button>
-    </nav>
+    <button id="gear" class="ghost" data-a="go" data-v="aisles" aria-label="Réglages">⚙️</button>
   </header>
   <main id="app"></main>
+  <nav class="tabbar">
+    <button data-tab="list"><span>📝</span>Liste</button>
+    <button data-tab="shop"><span>🛒</span>Courses</button>
+    <button data-tab="budget"><span>💶</span>Budget</button>
+  </nav>
   <input type="file" id="photo" accept="image/*" capture="environment" hidden>
   <input type="file" id="ticket" accept="image/*" hidden>
   <script src="src/app.js"></script>
