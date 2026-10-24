@@ -44,6 +44,7 @@ function save() {
 let tab = 'prep';
 let who = 0; // courses à deux : 0 = seul, 1 ou 2 = mon circuit (propre à cet appareil)
 try { who = +localStorage.getItem('courses.who') || 0; } catch {}
+let photoFor = null; // article auquel lier la photo en cours
 let brush = null; // pinceau de l'éditeur de plan : id de rayon, 'entry' ou '' (gomme)
 const app = document.getElementById('app');
 
@@ -204,6 +205,10 @@ function mapSvg(groups) {
 
 // ---------- Vues ----------
 
+const thumb = (i, add) => i.photo
+  ? `<img class="thumb" src="${i.photo}" alt="" data-a="viewPhoto" data-id="${i.id}">`
+  : add ? `<button class="ghost" data-a="photo" data-id="${i.id}" title="Photo">📷</button>` : '';
+
 const views = {
   prep() {
     const count = S.items.filter(i => i.need).length;
@@ -237,6 +242,7 @@ const views = {
             <div class="row ${i.need ? 'on' : ''}" data-a="toggleNeed" data-id="${i.id}">
               <span class="box"></span>
               <span class="name">${esc(i.name)}${i.freq ? '' : ' <small>ponctuel</small>'}</span>
+              ${thumb(i, true)}
               <button class="ghost" data-a="delItem" data-id="${i.id}" title="Supprimer">×</button>
             </div>`).join('')}
         </section>`).join('')}`;
@@ -276,7 +282,7 @@ const views = {
           <h3><span class="num" style="background:${aisleColor(g.aisle.id)}">${k + 1}</span>${esc(g.aisle.name)}</h3>
           ${g.items.map(i => `
             <div class="row ${i.done ? 'done' : ''}" data-a="toggleDone" data-id="${i.id}">
-              <span class="box"></span><span class="name">${esc(i.name)}</span>
+              <span class="box"></span><span class="name">${esc(i.name)}</span>${thumb(i)}
             </div>`).join('')}
         </section>`).join('')}
       <button class="primary" data-a="finish">Valider les courses</button>`;
@@ -419,6 +425,18 @@ const actions = {
   },
   syncNow: () => Sync.run(),
   leave: () => { if (confirm('Quitter le partage ? La liste reste sur ce téléphone.')) Sync.leave(); },
+  photo: ({ id }) => { photoFor = id; document.getElementById('photo').click(); },
+  viewPhoto: ({ id }) => {
+    const i = item(id);
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="overlay" data-a="closePhoto">
+        <img src="${i.photo}" alt="">
+        <p>${esc(i.name)}</p>
+        <div class="bar"><button data-a="photo" data-id="${id}">Changer</button><button data-a="delPhoto" data-id="${id}">Supprimer</button></div>
+      </div>`);
+  },
+  closePhoto: () => document.querySelector('.overlay')?.remove(),
+  delPhoto: ({ id }) => { delete item(id).photo; actions.closePhoto(); },
   export: () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }));
     Object.assign(document.createElement('a'), { href: url, download: 'courses.json' }).click();
@@ -455,6 +473,15 @@ document.addEventListener('submit', e => {
 
 document.addEventListener('change', async e => {
   if (e.target.id === 'brush') { brush = e.target.value; return; }
+  if (e.target.id === 'photo') {
+    const file = e.target.files[0], i = item(photoFor);
+    e.target.value = '';
+    if (!file || !i) return;
+    i.photo = await shrink(file, 360);
+    actions.closePhoto();
+    save();
+    return render();
+  }
   if (e.target.id === 'auto') { S.map.auto = e.target.checked; save(); return render(); }
   if (e.target.id !== 'import' || !e.target.files[0]) return;
   try {
@@ -465,5 +492,17 @@ document.addEventListener('change', async e => {
     save(); render();
   } catch { alert('Fichier invalide'); }
 });
+
+// Photo réduite en JPEG (~20 Ko) : stockée avec l'article et synchronisée
+async function shrink(file, max) {
+  const img = new Image();
+  img.src = URL.createObjectURL(file);
+  await img.decode();
+  const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = Object.assign(document.createElement('canvas'), { width: Math.round(img.naturalWidth * k), height: Math.round(img.naturalHeight * k) });
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  URL.revokeObjectURL(img.src);
+  return c.toDataURL('image/jpeg', .7);
+}
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
