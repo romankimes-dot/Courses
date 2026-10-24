@@ -1,0 +1,45 @@
+:root {
+  --bg: #ffffff; --fg: #1d1f1e; --muted: #6b716e; --line: #e4e7e5;
+  --card: #f5f7f6; --accent: #2f7d4f; --accent-soft: #e2f1e8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121413; --fg: #e8ebe9; --muted: #9aa19d; --line: #2a2e2c;
+    --card: #1b1e1c; --accent: #5dbb84; --accent-soft: #1f3328;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.4 system-ui, sans-serif; }
+header { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--line); padding: 12px 16px 0; z-index: 1; }
+h1 { margin: 0 0 8px; font-size: 20px; }
+nav { display: flex; gap: 4px; }
+nav button { flex: 1; border: 0; background: none; color: var(--muted); padding: 10px 0; font: inherit; border-bottom: 2px solid transparent; cursor: pointer; }
+nav button.active { color: var(--accent); border-color: var(--accent); font-weight: 600; }
+main { max-width: 640px; margin: 0 auto; padding: 12px 16px 48px; }
+h3 { margin: 18px 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+small { color: var(--muted); font-size: 12px; }
+.hint, .empty, .count { color: var(--muted); font-size: 14px; }
+.empty { text-align: center; margin-top: 40px; }
+
+button, .btn { font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--fg); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+button:disabled { opacity: .3; cursor: default; }
+button.ghost { border: 0; background: none; padding: 4px 8px; color: var(--muted); }
+button.primary { width: 100%; margin-top: 24px; background: var(--accent); color: #fff; border: 0; padding: 12px; }
+
+.bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+.add { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
+.add input[name="name"] { flex: 1 1 160px; }
+input, select { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); min-width: 0; }
+.small { font-size: 14px; color: var(--muted); }
+
+.row { display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-radius: 8px; cursor: pointer; user-select: none; }
+.row.static { cursor: default; }
+.row:not(.static):hover { background: var(--card); }
+.row .name { flex: 1; }
+.box { width: 20px; height: 20px; border: 2px solid var(--line); border-radius: 6px; flex: none; }
+.row.on { background: var(--accent-soft); }
+.row.on .box, .row.done .box { background: var(--accent); border-color: var(--accent); }
+.row.done .name { text-decoration: line-through; color: var(--muted); }
+
+.progress { height: 6px; background: var(--card); border-radius: 3px; overflow: hidden; }
+.progress div { height: 100%; background: var(--accent); transition: width .2s; }
