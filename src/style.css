@@ -129,8 +129,8 @@ details.adv summary { cursor: pointer; color: var(--accent); font-weight: 600; p
 .welcome .logo { font-size: 56px; }
 .welcome .field { text-align: left; }
 .invite { background: var(--accent-soft); border: 0; }
-#toast { position: fixed; left: 16px; right: 16px; bottom: calc(136px + env(safe-area-inset-bottom)); max-width: 600px; margin: 0 auto; background: var(--fg); color: var(--bg); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; z-index: 20; transform: translateY(200%); transition: transform .2s; }
-#toast.show { transform: none; }
+#toast { position: fixed; left: 16px; right: 16px; bottom: calc(136px + env(safe-area-inset-bottom)); max-width: 600px; margin: 0 auto; background: var(--fg); color: var(--bg); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; z-index: 20; transform: translateY(16px); opacity: 0; visibility: hidden; pointer-events: none; transition: transform .2s, opacity .2s, visibility .2s; }
+#toast.show { transform: none; opacity: 1; visibility: visible; pointer-events: auto; }
 #toast span { flex: 1; }
 #toast button { background: none; border: 0; color: var(--accent-soft); font-weight: 700; }
 
@@ -139,3 +139,10 @@ details.adv summary { cursor: pointer; color: var(--accent); font-weight: 600; p
 .pins { background: var(--card); border-radius: 10px; padding: 2px 8px 6px; margin-top: 6px; }
 .pins h3 { display: flex; justify-content: space-between; align-items: center; }
 .basket { margin-top: 18px; opacity: .85; }
+
+.warn { color: #c0392b !important; }
+.row.done-soft .name { color: var(--muted); }
+.sheet-modal { align-content: end; background: rgba(0,0,0,.45); color: var(--fg); }
+.sheet-modal .card { background: var(--bg); width: min(560px, 100%); margin: 0 auto; padding: 16px; display: grid; gap: 8px; }
+:root[data-size="large"] body { zoom: 1.15; }
+:root[data-size="xl"] body { zoom: 1.32; }

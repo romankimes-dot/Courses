@@ -10,6 +10,9 @@ const Sync = (() => {
   const put = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
   let cfg = get(CFG, null), outbox = get(OUT, {}), seq = get(SEQ, 0), snap, state = '', busy = false;
+  // Dernière date de version reçue du serveur, par enregistrement : si l'horloge de ce téléphone
+  // retarde, ses modifications sont quand même datées après et ne sont pas ignorées
+  let seen = get('courses.seen', {});
 
   function records(st) {
     const r = { settings: st.settings };
@@ -44,8 +47,9 @@ const Sync = (() => {
     const cur = strings(records(S)), u = Date.now();
     if (cfg) {
       let n = 0;
-      for (const k in cur) if (cur[k] !== snap[k]) { outbox[k] = { data: JSON.parse(cur[k]), u }; n++; }
-      for (const k in snap) if (!(k in cur)) { outbox[k] = { data: null, u }; n++; }
+      const at = k => Math.max(u, (seen[k] || 0) + 1);
+      for (const k in cur) if (cur[k] !== snap[k]) { outbox[k] = { data: JSON.parse(cur[k]), u: at(k) }; n++; }
+      for (const k in snap) if (!(k in cur)) { outbox[k] = { data: null, u: at(k) }; n++; }
       if (n) {
         put(OUT, outbox);
         clearTimeout(changed.t);
@@ -85,15 +89,18 @@ const Sync = (() => {
         let touched = false;
         for (const row of rows) {
           seq = Math.max(seq, row.seq);
+          seen[row.key] = Math.max(seen[row.key] || 0, row.u);
           if (outbox[row.key]?.u > row.u) continue; // ma version, plus récente, partira au prochain envoi
           if (JSON.stringify(row.data) === JSON.stringify(cur[row.key] ?? null)) continue;
           if (row.data === null) delete cur[row.key]; else cur[row.key] = row.data;
           touched = true;
         }
         put(SEQ, seq);
+        put('courses.seen', seen);
         if (touched) {
           S = upgrade(fromRecords(cur));
           snap = strings(records(S));
+          dedupe(S); // ses fusions partent au prochain envoi
           save();
           // Ne pas casser une saisie en cours ; le champ d'ajout rapide vide garde le focus
           const el = document.activeElement;
@@ -118,9 +125,8 @@ const Sync = (() => {
     if (!el) return;
     const n = Object.keys(outbox).length;
     el.textContent = !cfg ? ''
-      : state === 'off' ? `Hors-ligne${n ? ` · ${n} en attente` : ''}`
-      : state === 'err' ? `Pas de connexion${n ? ` · ${n} en attente` : ''}`
-      : n ? `${n} en attente` : 'Synchronisé';
+      : state === 'off' || state === 'err' ? `Sans réseau${n ? ` · ${n} modif${n > 1 ? 's' : ''} partira${n > 1 ? 'ont' : ''} plus tard` : ''}`
+      : n ? 'Envoi…' : 'À jour ✓';
     el.className = state === 'ok' && !n ? 'ok' : '';
   }
 
@@ -131,8 +137,34 @@ const Sync = (() => {
     put(SEQ, 0);
   }
 
+  // Deux téléphones ont créé le même article hors-ligne : on garde le plus ancien identifiant
+  // (même choix sur tous les téléphones) et on fusionne liste, historique, prix, photo
+  function dedupe(st) {
+    const groups = {};
+    for (const i of st.items) (groups[sameKey(i.name)] ||= []).push(i);
+    for (const list of Object.values(groups)) {
+      if (list.length < 2) continue;
+      list.sort((a, b) => a.id < b.id ? -1 : 1);
+      const [keep, ...dups] = list;
+      for (const d of dups) {
+        keep.need = keep.need || d.need;
+        keep.done = keep.done || d.done;
+        keep.pin = keep.pin || d.pin;
+        keep.freq = keep.freq || d.freq;
+        keep.photo ||= d.photo;
+        keep.note ||= d.note;
+        if ((d.at || 0) > (keep.at || 0)) Object.assign(keep, { by: d.by, at: d.at });
+        keep.bought = [...new Set([...(keep.bought || []), ...(d.bought || [])])].sort((a, b) => a - b).slice(-HISTORY);
+        keep.prices = [...(keep.prices || []), ...(d.prices || [])].sort((a, b) => a.d - b.d).slice(-HISTORY);
+        st.recipes.forEach(r => { r.items = [...new Set(r.items.map(x => x === d.id ? keep.id : x))]; });
+        for (const k in st.aliases) if (st.aliases[k] === d.id) st.aliases[k] = keep.id;
+      }
+      st.items = st.items.filter(i => !dups.includes(i));
+    }
+  }
+
   return {
-    changed, run,
+    changed, run, records, fromRecords, strings,
     config: () => cfg,
     // Crée la liste partagée à partir de la liste de ce téléphone
     create(url, key) {

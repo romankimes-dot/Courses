@@ -14,18 +14,19 @@ views.item = () => {
   return `
     ${back}
     <div class="sheet-head">
-      ${i.photo ? `<img class="sheet-photo" src="${i.photo}" alt="" data-a="viewPhoto" data-id="${i.id}">`
+      ${i.photo ? `<img class="sheet-photo" src="${esc(i.photo)}" alt="" data-a="viewPhoto" data-id="${i.id}">`
         : `<button class="sheet-photo empty-photo" data-a="photo" data-id="${i.id}" title="Ajouter une photo">📷</button>`}
       <input id="itemTitle" class="title" value="${esc(i.name)}" aria-label="Nom">
     </div>
     <button class="wide ${i.need ? '' : 'accent'}" data-a="toggleNeed" data-id="${i.id}">${i.need ? '✓ Sur la liste · retirer' : '+ Ajouter à la liste'}</button>
     <label class="field">Rayon ou commerce<select id="itemAisle">${aisleOptions(i.aisle)}</select></label>
     <label class="field">Précision <small>(quantité, marque, bio…)</small><input id="itemNote" value="${esc(i.note || '')}" placeholder="ex. 2 l, bio, marque X" autocomplete="off"></label>
+    <label class="field">Si absent, prendre… <small>(consigne pour qui fait les courses)</small><input id="itemAlt" value="${esc(i.alt || '')}" placeholder="ex. la marque Schär, sinon rien" autocomplete="off"></label>
     <label class="field check"><input type="checkbox" id="itemPin"${i.pin ? ' checked' : ''}><span>⭐ Indispensable<br><small>Toujours en haut des basiques et de la liste.</small></span></label>
-    <label class="field check"><input type="checkbox" id="itemFreq"${i.freq ? ' checked' : ''}><span>Article de base<br><small>Toujours visible dans Préparer, coché par « Tout cocher ».</small></span></label>
+    <label class="field check"><input type="checkbox" id="itemFreq"${i.freq ? ' checked' : ''}><span>Article de base<br><small>Toujours visible dans « Mes basiques », coché par « Tout cocher ».</small></span></label>
     <h3>Habitudes</h3>
-    <div class="row static"><span class="name">Rythme d'achat</span><span>${r ? `tous les ~${Math.round(r.every)} j` : '<small>2 achats validés minimum</small>'}</span></div>
-    <div class="row static"><span class="name">Dernier achat</span><span>${last ? fmtDate(last) : '—'}</span></div>
+    <div class="row static"><span class="name">Acheté en moyenne</span><span>${r ? `tous les ${Math.round(r.every)} jours` : '<small>pas encore assez d\'achats</small>'}</span></div>
+    <div class="row static"><span class="name">Dernier achat</span><span>${last ? `${fmtDate(last)}${i.lastBy ? ` · ${esc(i.lastBy)}` : ''}` : '—'}</span></div>
     ${i.prices?.length ? `
       <h3>Prix</h3>
       ${[...i.prices].reverse().map(p => `<div class="row static"><span class="name">${fmtDate(p.d)} <small>${esc(p.at || '')}</small></span><span>${euro(p.p)}</span></div>`).join('')}` : ''}
@@ -56,12 +57,13 @@ document.addEventListener('change', e => {
   if (!i) return;
   const t = e.target;
   if (t.id === 'itemTitle') {
-    const n = t.value.trim(), dup = S.items.find(x => x !== i && x.name.toLowerCase() === n.toLowerCase());
+    const n = t.value.trim(), dup = S.items.find(x => x !== i && sameKey(x.name) === sameKey(n));
     if (!n || dup) { if (dup) alert(`« ${dup.name} » existe déjà.`); t.value = i.name; return; }
     i.name = n;
   }
   else if (t.id === 'itemAisle') i.aisle = t.value;
   else if (t.id === 'itemNote') i.note = t.value.trim() || undefined;
+  else if (t.id === 'itemAlt') i.alt = t.value.trim() || undefined;
   else if (t.id === 'itemFreq') i.freq = t.checked;
   else if (t.id === 'itemPin') { i.pin = t.checked || undefined; if (i.pin) i.freq = true; }
   else return;

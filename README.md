@@ -30,3 +30,8 @@ Ouvrir l'app une fois avec du réseau suffit pour qu'elle fonctionne ensuite hor
 
 Synchro : chaque modification est mise en file d'attente sur le téléphone et envoyée quand le réseau
 est là ; en cas de conflit sur un même article, la modification la plus récente gagne.
+
+## Pour aller plus loin
+
+- `docs/besoins.md` : vision, demandes, décisions, retours du panel et backlog.
+- `tests/` : scénarios de bout en bout.
