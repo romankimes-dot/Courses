@@ -236,3 +236,9 @@ h3 svg.i { width: 1.1em; height: 1.1em; margin-right: 4px; vertical-align: -.2em
 .rows .row { padding-left: 14px; padding-right: 10px; border-radius: 0; }
 .rows .row + .row { border-top: 1px solid var(--line); }
 .row.on .box, .row.done .box { color: var(--on-accent); }
+
+.split { display: grid; gap: 6px; }
+.split .seg { margin-top: 0; background: var(--card); }
+.split .seg button { padding: 10px 4px; min-height: 44px; }
+.split .seg button.active { background: var(--accent); color: var(--on-accent); }
+.split p { margin: 0; }

@@ -492,10 +492,14 @@ const views = {
           <div class="bar"><strong class="grow">${icon.cart} En courses</strong><button class="ghost" data-a="stopShopping">Arrêter</button></div>
           ${storePicker()}
           ${need.filter(i => !shopOf(i)).length > 3 ? `
-          <div class="seg">
-            <button data-a="setWho" data-v="0" class="${who ? '' : 'active'}">Seul</button>
-            <button data-a="setWho" data-v="1" class="${who === 1 ? 'active' : ''}">À deux ①</button>
-            <button data-a="setWho" data-v="2" class="${who === 2 ? 'active' : ''}">À deux ②</button>
+          <div class="split">
+            <p class="small">${shoppers().some(([n]) => n !== (me || '?')) ? 'Vous êtes deux en magasin : l\'un prend le début du circuit, l\'autre la fin.' : 'À deux en magasin ? Chacun prend une moitié du circuit.'}</p>
+            <div class="seg">
+              <button data-a="setWho" data-v="0" class="${who ? '' : 'active'}">Tout le magasin</button>
+              <button data-a="setWho" data-v="1" class="${who === 1 ? 'active' : ''}">Début</button>
+              <button data-a="setWho" data-v="2" class="${who === 2 ? 'active' : ''}">Fin</button>
+            </div>
+            ${who ? `<p class="small">${who === 1 ? 'Vous prenez le début' : 'Vous prenez la fin'} : ${groups.length ? groups.map(g => esc(g.aisle.name)).join(', ') : 'rien de plus à prendre'}. ${who === 1 ? 'L\'autre prend la fin.' : 'L\'autre prend le début.'}</p>` : ''}
           </div>` : ''}
           ${mapped ? `<details class="adv"><summary>Plan du magasin</summary>
             <div class="seg">

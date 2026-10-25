@@ -36,7 +36,7 @@ La colonne de droite indique où c'est **aujourd'hui** (les premières demandes 
 | 2 | Étudier le marché des apps de courses/todo collaboratives, s'inspirer de Bring! | Analyse faite : Bring!, Listonic, AnyList, OurGroceries, Keep, Rappels |
 | 3 | **Suggestions selon la fréquence d'achat** (ex. la litière tous les 14 jours revient d'elle-même) | Puces « à racheter » + pré-remplissage (n° 34) |
 | 4 | **Cartographier approximativement le supermarché** ; vue **« canon », en fausse 3D** | Réglages > Plan du magasin (avancé) ; vue isométrique en mode magasin |
-| 5 | **Circuit optimisé** ; **partager la liste en deux** quand on est deux → **deux circuits** | Mode magasin : Seul / À deux ① ② ; Circuit le plus court / Ordre des rayons |
+| 5 | **Circuit optimisé** ; **partager la liste en deux** quand on est deux → **deux circuits** | Mode magasin : Tout le magasin / Début / Fin (explication et rayons de ma part affichés) ; Circuit le plus court / Ordre des rayons |
 | 6 | **Scanner le ticket** ; **suivi des prix**, **panier moyen**, **budget mensuel** | Budget, panier moyen, conso estimée dans Dépenses ; scan mis de côté (n° 29) |
 | 7 | **Le supermarché n'a pas de réseau** : marcher hors-ligne, envoyer au retour du réseau | Service worker + file d'attente de synchro |
 | 8 | **Photo de l'article** liée à la liste | Fiche produit (›), vignette sur la liste |
