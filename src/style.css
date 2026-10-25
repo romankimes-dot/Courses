@@ -181,3 +181,9 @@ details.adv summary { cursor: pointer; color: var(--accent); font-weight: 600; p
 #update { position: fixed; left: 16px; right: 16px; top: calc(64px + env(safe-area-inset-top)); max-width: 600px; margin: 0 auto; background: var(--accent); color: #fff; border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; z-index: 30; }
 #update span { flex: 1; }
 #update button { background: #fff; color: var(--accent); border: 0; font-weight: 700; }
+
+/* Outils sous la liste : boutons égaux, icône au-dessus, libellé court sur une ligne */
+.tools { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.tools button { display: grid; justify-items: center; gap: 4px; padding: 10px 4px; font-size: 14px; white-space: nowrap; color: var(--fg); }
+.tools button svg { color: var(--accent); }
+.tools button[data-a="clearList"] svg { color: #c0392b; }
