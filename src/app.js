@@ -1084,8 +1084,7 @@ const actions = {
   linkNew: ({ r }) => {
     const n = cap(lastPart(linkDraft)), i = { id: uid(), name: n, aisle: guessAisle(n), freq: false, need: false, done: false };
     S.items.push(i);
-    linkTo(recipe(r), i);
-    toast(`${n} créé (${S.aisles.find(a => a.id === i.aisle)?.name || 'Divers'}) : touchez son nom pour changer de rayon`, false);
+    linkTo(recipe(r), i); // pas de bandeau : il masquerait le champ où l'on tape l'ingrédient suivant
   },
   unlink: ({ id, item: itemId }) => { const r = recipe(id); r.items = r.items.filter(x => x !== itemId); },
   delRecipe: ({ id }) => { if (confirm('Supprimer cette recette ?')) { S.recipes = S.recipes.filter(r => r.id !== id); recipeEdit = null; } },
