@@ -94,6 +94,7 @@ function clean(st) {
   // Qui est en courses : un enregistrement par personne (sinon deux « J'y vais » simultanés s'écrasent)
   st.shoppers = Object.fromEntries(Object.entries(st.shoppers || st.settings.shoppers || {}).filter(([n]) => /^[^:]{1,40}$/.test(n)).map(([n, at]) => [n, num0(at)]));
   delete st.settings.shoppers;
+  st.parts = Object.fromEntries(Object.entries(st.parts || {}).filter(([n, p]) => /^[^:]{1,40}$/.test(n) && [0, 1, 2].includes(+p)).map(([n, p]) => [n, +p]));
   st.people = Object.fromEntries(Object.entries(st.people || {}).filter(([n]) => /^[^:]{1,40}$/.test(n)).map(([n, at]) => [n, num0(at)]));
   return st;
 }
@@ -109,6 +110,7 @@ function upgrade(st) {
   st.settings ||= {};
   st.aliases ||= {}; // libellé de ticket normalisé -> id d'article, ou 'ignore'
   st.plan ||= {}; // repas : date -> recettes
+  st.parts ||= {}; // courses à deux : prénom -> moitié choisie (0 tout, 1 début, 2 fin)
   st.people ||= {}; // membres de la liste partagée : prénom -> date d'arrivée
   if (!st.stores) { st.stores = [newStore()]; if (st.map) st.stores[0].map = st.map; }
   delete st.map;
@@ -425,6 +427,12 @@ const shoppingBanner = () => {
   return `<div class="banner">${icon.cart} En courses : ${who}. Ce que vous ajoutez ${others.length > 1 ? 'leur' : 'lui'} arrive.</div>`;
 };
 const mine = i => !i.doneBy || i.doneBy === (me || '?');
+// L'autre personne en courses qui a pris une moitié du magasin : { name, part } ou null
+const otherPart = () => {
+  const o = shoppers().find(([n]) => n !== (me || '?') && [1, 2].includes(S.parts[n]));
+  return o ? { name: o[0], part: S.parts[o[0]] } : null;
+};
+const partName = p => p === 1 ? 'le début' : 'la fin';
 const othersShopping = () => shoppers().some(([n]) => n !== (me || '?'));
 // Ajouté par quelqu'un d'autre depuis le début de mes courses
 const isNew = i => { const at = myShopping(); return at && i.at > at && i.by !== me && !i.done; };
@@ -493,7 +501,7 @@ const views = {
           ${storePicker()}
           ${need.filter(i => !shopOf(i)).length > 3 ? `
           <div class="split">
-            <p class="small">${shoppers().some(([n]) => n !== (me || '?')) ? 'Vous êtes deux en magasin : l\'un prend le début du circuit, l\'autre la fin.' : 'À deux en magasin ? Chacun prend une moitié du circuit.'}</p>
+            <p class="small">${otherPart() ? `${esc(otherPart().name)} a pris ${partName(otherPart().part)} du circuit${who === otherPart().part ? ' : choisissez l\'autre moitié, sinon vous ferez les mêmes rayons.' : '.'}` : shoppers().some(([n]) => n !== (me || '?')) ? 'Vous êtes deux en magasin : l\'un prend le début du circuit, l\'autre la fin.' : 'À deux en magasin ? Chacun prend une moitié du circuit.'}</p>
             <div class="seg">
               <button data-a="setWho" data-v="0" class="${who ? '' : 'active'}">Tout le magasin</button>
               <button data-a="setWho" data-v="1" class="${who === 1 ? 'active' : ''}">Début</button>
@@ -1141,8 +1149,13 @@ const actions = {
   addSug: () => suggestions().forEach(({ i }) => want(i)),
   // Valide la liste : les articles pris alimentent l'historique d'achat
   // Valide la liste : les articles pris alimentent l'historique d'achat, le montant du ticket le budget
-  goShopping: () => { S.shoppers[me || '?'] = Date.now(); tab = 'list'; },
-  stopShopping: () => { delete S.shoppers[me || '?']; },
+  goShopping: () => {
+    S.shoppers[me || '?'] = Date.now(); tab = 'list';
+    const o = otherPart(); // l'autre a déjà pris une moitié : je prends l'autre
+    if (o) { who = o.part === 1 ? 2 : 1; try { localStorage.setItem(K('courses.who'), who); } catch {} }
+    S.parts[me || '?'] = who;
+  },
+  stopShopping: () => { delete S.shoppers[me || '?']; delete S.parts[me || '?']; },
   // Toucher une proposition : l'article va sur la liste, on continue à taper
   pickSuggest: ({ id }) => {
     const i = item(id), parts = quickDraft.split(/[,;]/);
@@ -1249,7 +1262,7 @@ applySize(); },
     S.shops = S.shops.filter(x => x.id !== id);
     S.items.forEach(i => { if (i.aisle === id) i.aisle = fallbackAisle(); });
   },
-  setWho: ({ v }) => { who = +v; try { localStorage.setItem(K('courses.who'), v); } catch {} },
+  setWho: ({ v }) => { who = +v; S.parts[me || '?'] = who; try { localStorage.setItem(K('courses.who'), v); } catch {} },
   paint: ({ c }) => {
     brushOpen = true;
     const m = store().map;
@@ -1417,7 +1430,7 @@ document.addEventListener('submit', e => {
     const { taken, here, where } = myTrip();
     snapshot();
     const learned = where === store()?.name && learnOrder(taken);
-    delete S.shoppers[me || '?'];
+    delete S.shoppers[me || '?']; delete S.parts[me || '?'];
     const now = Date.now();
     taken.forEach(i => {
       i.bought = [...(i.bought || []), now].slice(-HISTORY);
