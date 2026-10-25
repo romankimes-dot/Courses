@@ -205,6 +205,27 @@ function want(i) {
   Object.assign(i, { need: true, done: false, by: me || undefined, at: Date.now() });
   delete i.missing;
 }
+// Nouveaux articles tapés dans le champ : on demande d'abord (fenêtre) s'il faut les mettre sur la liste
+// et/ou en indispensables. newItems = [{ name, qty }] en attente de cette réponse.
+let newItems = [];
+function askNewItems() {
+  const one = newItems.length === 1, names = newItems.map(x => esc(x.name)).join(', ');
+  const onList = tab !== 'catalog', pinned = tab === 'catalog' && catalogPins;
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="overlay sheet-modal">
+      <form id="newItemForm" class="card">
+        <h2>${one ? 'Nouvel article' : `${newItems.length} nouveaux articles`}</h2>
+        <p><strong>${names}</strong></p>
+        ${one ? `<label class="field">Rayon<select name="aisle">${aisleOptions(guessAisle(newItems[0].name))}</select></label>` : ''}
+        <label class="field check"><input type="checkbox" name="need"${onList ? ' checked' : ''}><span>${icon.cart} Ajouter à la liste</span></label>
+        <label class="field check"><input type="checkbox" name="pin"${pinned ? ' checked' : ''}><span>${icon.starOn} Indispensable<br><small>Toujours en haut de la liste quand il en faut.</small></span></label>
+        <button class="primary">${icon.check} Créer</button>
+        <button type="button" class="ghost wide" data-a="cancelNew">Annuler</button>
+      </form>
+    </div>`);
+  document.querySelector('#newItemForm .primary').focus();
+}
+
 function addItem(name, aisle, freq) {
   name = name.trim();
   if (!name) return;
@@ -708,6 +729,7 @@ const storePicker = manage => `
 // Ajout : dès les premières lettres, propositions parmi les articles déjà connus (accents et pluriels ignorés).
 // On cherche sur le dernier article tapé (« lait, tom » -> tom), sans la quantité (« 2 kg tom » -> tom).
 let quickDraft = '', refocusQuick = false;
+const refocusQuickInput = () => app.querySelector('#quick input')?.focus();
 const lastPart = v => v.split(/[,;]/).pop().replace(/^\s*\d+(?:[.,]\d+)?\s*(?:kg|g|l|cl|ml|x|×)?\s+(?:de |d')?/i, '').trim();
 function matches(q) {
   const k = sameKey(q);
@@ -925,13 +947,12 @@ const recipe = id => S.recipes.find(r => r.id === id);
 let undoSnap = null, toastTimer;
 let undoAfter = null;
 function snapshot() { undoSnap = Sync.strings(Sync.records(S)); }
-// Bandeau du bas : un message, et au choix « Annuler » ou une action (ex. mettre en indispensable)
-function toast(msg, undo = true, action = null) {
+// Bandeau du bas : un message, et « Annuler » si l'action se défait
+function toast(msg, undo = true) {
   let el = document.getElementById('toast');
   if (!el) { el = Object.assign(document.createElement('div'), { id: 'toast' }); document.body.append(el); }
   if (undo) undoAfter = Sync.strings(Sync.records(S));
-  el.innerHTML = `<span>${esc(msg)}</span>${undo ? '<button data-a="undo">Annuler</button>'
-    : action ? `<button data-a="${action.a}" data-ids="${action.ids}">${action.label}</button>` : ''}`;
+  el.innerHTML = `<span>${esc(msg)}</span>${undo ? '<button data-a="undo">Annuler</button>' : ''}`;
   el.className = 'show';
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.className = ''; undoSnap = null; }, 6000);
@@ -1026,11 +1047,7 @@ const actions = {
   delItem: ({ id }) => { S.items = S.items.filter(i => i.id !== id); },
   allFreq: () => S.items.forEach(i => { if (i.freq) want(i); }),
   allPins: () => S.items.forEach(i => { if (i.pin) want(i); }),
-  pinIds: ({ ids }) => {
-    const its = ids.split(',').map(item).filter(Boolean);
-    its.forEach(i => { i.pin = true; i.freq = true; });
-    toast(its.length > 1 ? `${its.length} indispensables` : `${its[0].name} : indispensable`, false);
-  },
+  cancelNew: () => { newItems = []; actions.closePhoto(); setTimeout(refocusQuickInput); },
   pin: ({ id }) => { const i = item(id); i.pin = !i.pin || undefined; if (i.pin) i.freq = true; },
   noneNeed: () => {
     if (Sync.config() && !confirm('Vider la liste pour tout le foyer ?')) return;
@@ -1233,22 +1250,37 @@ document.addEventListener('submit', e => {
   const name = f.get('name');
   if (e.target.id === 'quick') { // « lait, œufs, 2 kg tomates »
     quickDraft = '';
-    const already = [], known = new Set(S.items.map(i => i.id));
+    const already = [];
+    newItems = [];
     name.split(/[,;\n]+/).forEach(raw => {
       const m = raw.trim().match(/^(\d+(?:[.,]\d+)?\s*(?:kg|g|l|cl|ml|x|×|paquets?|boîtes?|bouteilles?)?)\s+(?:de |d')?(.+)$/i);
-      const n = m ? m[2] : raw, qty = m ? m[1].trim() : null;
+      const n = (m ? m[2] : raw).trim(), qty = m ? m[1].trim() : null;
+      if (!n) return;
       const ex = findItem(n);
-      if (ex?.need) already.push(`${ex.name}${ex.by ? ` (${ex.by})` : ''}`);
-      addItem(n, null, tab === 'catalog');
-      if (qty) { const i = findItem(n); if (i) i.note = qty; }
+      if (!ex) { if (!newItems.some(x => sameKey(x.name) === sameKey(n))) newItems.push({ name: cap(n), qty }); return; }
+      if (ex.need) already.push(`${ex.name}${ex.by ? ` (${ex.by})` : ''}`);
+      want(ex);
+      if (qty) ex.note = qty;
     });
-    // Article tout juste créé : indispensable d'office (filtre Indispensables de Mes articles) ou proposé
-    const created = S.items.filter(i => !known.has(i.id)), pinNow = tab === 'catalog' && catalogPins;
-    if (pinNow) created.forEach(i => { i.pin = true; i.freq = true; });
+    // Articles inconnus : sur la liste ? indispensables ? (fenêtre de choix)
+    if (newItems.length) { setTimeout(askNewItems); save(); render(); return; }
     if (already.length) setTimeout(() => toast(`Déjà sur la liste : ${already.join(', ')}`, false));
-    else if (created.length && pinNow) setTimeout(() => toast(created.length > 1 ? `${created.length} indispensables créés` : `${created[0].name} : indispensable`, false));
-    else if (created.length) setTimeout(() => toast(created.length > 1 ? `${created.length} articles créés` : `${created[0].name} créé`, false,
-      { a: 'pinIds', ids: created.map(i => i.id).join(','), label: `${icon.star} Indispensable${created.length > 1 ? 's' : ''}` }));
+  }
+  if (e.target.id === 'newItemForm') {
+    const need = f.get('need') === 'on', pin = f.get('pin') === 'on', aisle = f.get('aisle');
+    const created = newItems.filter(x => !findItem(x.name)).map(({ name, qty }) => {
+      const i = { id: uid(), name, aisle: aisle || guessAisle(name), freq: pin || tab === 'catalog', need: false, done: false };
+      if (qty) i.note = qty;
+      if (pin) i.pin = true;
+      S.items.push(i);
+      if (need) want(i);
+      return i;
+    });
+    newItems = [];
+    e.target.closest('.overlay').remove();
+    if (created.length) toast(`${created.length > 1 ? `${created.length} articles créés` : `${created[0].name} créé`}${pin ? ', indispensable' : ''}${need ? ', sur la liste' : ''}`, false);
+    save(); render();
+    return refocusQuickInput();
   }
   if (e.target.id === 'addAisle' && name.trim()) S.aisles.push({ id: uid(), name: name.trim() });
   if (e.target.id === 'addShop' && name.trim()) S.shops.push({ id: uid(), name: name.trim() });

@@ -1,12 +1,12 @@
 // Partage des dépenses : chacun paie ses courses, qui doit quoi, remboursement, dépense à la main
-const { phones, start, share, syncAll } = require('./_outils');
+const { phones, start, share, syncAll, add } = require('./_outils');
 (async () => {
   const { browser, pages: [A, B], errs } = await phones(2);
   await start(A, 'Léo');
   const link = await share(A);
   await B.goto(link); await B.waitForFunction(() => S.items.length > 0);
   await B.fill('#meForm input', 'Tom'); await B.click('#meForm button');
-  await A.fill('#quick input', 'pâtes, bière'); await A.press('#quick input', 'Enter');
+  await add(A, 'pâtes, bière');
   await syncAll(A, B);
   await A.click('main .row:has-text("Pâtes")'); await A.click('[data-a=finish]'); await A.fill('#finishForm input', '30'); await A.click('#finishForm .primary');
   await syncAll(A, B);

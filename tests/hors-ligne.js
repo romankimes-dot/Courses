@@ -1,9 +1,9 @@
 // Hors-ligne : Tom recharge l'app sans réseau, coche ; Léa ajoute ; tout fusionne au retour du réseau
-const { phones, start, share, syncAll, needs } = require('./_outils');
+const { phones, start, share, syncAll, needs, add } = require('./_outils');
 (async () => {
   const { browser, pages: [A, B], errs } = await phones(2);
   await start(A, 'Léa');
-  await A.fill('#quick input', 'pain, lait'); await A.press('#quick input', 'Enter');
+  await add(A, 'pain, lait');
   const link = await share(A);
   await B.goto(link); await B.waitForFunction(() => S.items.some(i => i.need));
   await B.evaluate(() => navigator.serviceWorker.ready);
@@ -15,7 +15,7 @@ const { phones, start, share, syncAll, needs } = require('./_outils');
   await B.click('main .row:has-text("Lait")');
   await B.waitForTimeout(1000);
   const status = await B.textContent('#sync');
-  await A.fill('#quick input', 'kiwi'); await A.press('#quick input', 'Enter');
+  await add(A, 'kiwi');
   await B.context().setOffline(false);
   await B.evaluate(() => dispatchEvent(new Event('online')));
   await syncAll(A, B);

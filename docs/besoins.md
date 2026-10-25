@@ -41,6 +41,7 @@ Synthèse des demandes du propriétaire (fil de conception d'octobre 2026), des 
 | 24 | Voir tous ses articles et en mettre en indispensable sans les ajouter ; proposer « indispensable » à la création | Liste > Articles (Mes articles) |
 | 25 | Pas d'emojis natifs dans l'app (ceux tapés par l'utilisateur restent) | Icônes au trait (`src/icons.js`) |
 | 26 | Indispensables gérés dans Mes articles, plus de puces d'indispensables sur la liste (mais « indispensable » toujours proposé à la création d'un article) ; **liste d'indispensables longue** et **beaucoup de recettes** : rechercher, organiser, rester simple | Mes articles > filtre Indispensables (par rayon, recherche, Tout ajouter) ; Repas > Mes recettes (recherche nom/catégorie/ingrédient, rangées par catégorie) |
+| 28 | À la création d'un article, ne pas forcément l'ajouter à la liste : choisir liste et/ou indispensable | Fenêtre « Nouvel article » : rayon, Ajouter à la liste, Indispensable (Annuler = rien n'est créé) |
 | 27 | Ne pas avoir à rouvrir la liste toutes les 3 secondes (veille de l'iPhone) | Écran gardé allumé tant que la liste est affichée (Wake Lock ; iPhone : iOS 18.4 et +) |
 
 ## 3. Décisions prises

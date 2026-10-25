@@ -1,5 +1,5 @@
 // Rejoindre par le lien : prénom demandé ; accents (cafe = Café), rayon deviné ; ✓ dans le caddie ; pas trouvé
-const { phones, start, share, syncAll } = require('./_outils');
+const { phones, start, share, syncAll, add } = require('./_outils');
 (async () => {
   const { browser, pages: [A, B], errs } = await phones(2);
   await start(A, 'Papa');
@@ -7,7 +7,7 @@ const { phones, start, share, syncAll } = require('./_outils');
   await B.goto(link); await B.waitForFunction(() => S.items.length > 0);
   const meCard = await B.isVisible('#meForm');
   await B.fill('#meForm input', 'Inès'); await B.click('#meForm button');
-  await B.fill('#quick input', 'cereales, cafe, oeufs, kinder bueno'); await B.press('#quick input', 'Enter');
+  await add(B, 'cereales, cafe, oeufs, kinder bueno');
   const adds = await B.evaluate(() => ({ need: S.items.filter(i => i.need).map(i => `${i.name}@${S.aisles.find(a => a.id === i.aisle)?.name}·${i.by}`), count: S.items.length }));
   await syncAll(A, B);
   await A.click('[data-a=goShopping]');

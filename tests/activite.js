@@ -1,5 +1,5 @@
 // Activité (🔔) : ajout par un autre, départ en courses, article pris pour moi
-const { phones, start, share, syncAll } = require('./_outils');
+const { phones, start, share, syncAll, add } = require('./_outils');
 (async () => {
   const { browser, pages: [A, B], errs } = await phones(2);
   await start(A, 'Papa');
@@ -7,7 +7,7 @@ const { phones, start, share, syncAll } = require('./_outils');
   await B.goto(link); await B.waitForFunction(() => S.items.length > 0);
   await B.fill('#meForm input', 'Inès'); await B.click('#meForm button');
   await syncAll(A, B);
-  await B.fill('#quick input', 'céréales'); await B.press('#quick input', 'Enter');
+  await add(B, 'céréales');
   await syncAll(A, B);
   await A.click('[data-a=goShopping]');
   await syncAll(A, B);
