@@ -79,6 +79,7 @@ function clean(st) {
   if (st.settings.listName != null) st.settings.listName = String(st.settings.listName).slice(0, 40);
   st.aliases = Object.fromEntries(Object.entries(st.aliases || {}).filter(([, v]) => v === 'ignore' || ID.test(v)));
   if (st.settings.budget != null) st.settings.budget = num0(st.settings.budget);
+  if (st.settings.split != null) st.settings.split = st.settings.split === true;
   delete st.settings.shopping;
   // Qui est en courses : un enregistrement par personne (sinon deux « J'y vais » simultanés s'écrasent)
   st.shoppers = Object.fromEntries(Object.entries(st.shoppers || st.settings.shoppers || {}).filter(([n]) => /^[^:]{1,40}$/.test(n)).map(([n, at]) => [n, num0(at)]));
@@ -578,7 +579,6 @@ const views = {
           <div class="progress ${sum(month) > budget ? 'over' : ''}"><div style="width:${Math.min(100, 100 * sum(month) / budget)}%"></div></div>
           <small>${sum(month) > budget ? `Budget dépassé de ${euro(sum(month) - budget)}` : `Reste ${euro(budget - sum(month))} sur ${euro(budget)}`}</small>` : ''}
       </div>
-      <button class="primary" data-a="openScan" style="margin:12px 0">${icon.camera} Scanner un ticket</button>
       <form id="budgetForm" class="add">
         <label class="small grow">Budget mensuel (€)</label>
         <input name="name" inputmode="decimal" value="${budget ?? ''}" placeholder="ex. 600" style="flex:0 0 110px">
@@ -601,10 +601,10 @@ const views = {
       <h3>Passages en caisse</h3>
       ${S.trips.slice(-20).reverse().map(t => `
         <div class="row static">
-          <span class="name">${shortDate(t.date)} · ${esc(t.type === 'settle' ? `${t.from} → ${t.to}` : t.place)}${t.n ? ` <small>${t.n} art.</small>` : ''}${t.by && t.type !== 'settle' ? ` <small>· payé par ${esc(t.by)}</small>` : ''}${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
+          <span class="name">${shortDate(t.date)} · ${esc(t.type === 'settle' ? `${t.from} → ${t.to}` : t.place)}${t.n ? ` <small>${t.n} art.</small>` : ''}${S.settings.split && t.by && t.type !== 'settle' ? ` <small>· payé par ${esc(t.by)}</small>` : ''}${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
           <button class="ghost" data-a="editTrip" data-id="${t.id}">${t.total == null ? 'Ajouter €' : euro(t.total)}</button>
           <button class="ghost" data-a="delTrip" data-id="${t.id}" title="Supprimer">${icon.x}</button>
-        </div>`).join('') || '<p class="hint">Le montant est demandé (facultatif) quand vous terminez des courses, ou lu sur le ticket scanné.</p>'}`;
+        </div>`).join('') || '<p class="hint">Le montant est demandé (facultatif) quand vous terminez des courses.</p>'}`;
   },
 
   aisles() {
@@ -614,6 +614,7 @@ const views = {
       <h2>Réglages</h2>
       <h3>Cette liste</h3>
       <label class="field">Nom<input id="listTitle" value="${esc(currentList().name)}" autocomplete="off"></label>
+      <label class="field check"><input type="checkbox" id="split"${S.settings.split ? ' checked' : ''}><span>Partager les dépenses<br><small>Qui a payé quoi, qui doit combien à qui (colocation, courses pour un proche). Décoché : compte joint, on suit juste le budget commun.</small></span></label>
       ${Sync.config() ? `
         <p class="hint">Liste partagée${members().length > 1 ? ` avec ${members().filter(m => m !== me).map(esc).join(', ')}` : ''}. Les modifications faites sans réseau partent dès qu'il revient.</p>
         <div class="bar">
@@ -832,7 +833,7 @@ function render() {
   if (tab !== lastTab) scrollTo(0, 0);
   lastTab = tab;
   // Onglet allumé : la section dont dépend l'écran courant
-  const parent = { catalog: 'list', recipes: 'meals', scan: 'budget', activity: 'list' };
+  const parent = { catalog: 'list', recipes: 'meals', activity: 'list' };
   const section = parent[tab === 'item' ? sheetBack : tab] ?? (tab === 'item' ? sheetBack : tab);
   document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === section));
   document.getElementById('gear')?.classList.toggle('active', tab === 'aisles');
@@ -1340,6 +1341,7 @@ document.addEventListener('submit', e => {
 document.addEventListener('change', async e => {
   if (e.target.id === 'brush') { brush = e.target.value; brushOpen = true; return; }
   if (e.target.id === 'meName') { setMe(e.target.value); return render(); }
+  if (e.target.id === 'split') { S.settings.split = e.target.checked || undefined; save(); return render(); }
   if (e.target.id === 'listTitle' && e.target.value.trim()) { currentList().name = S.settings.listName = e.target.value.trim(); saveLists(); save(); return render(); }
   if (e.target.id === 'rname') { const r = recipe(e.target.dataset.id); if (e.target.value.trim()) r.name = e.target.value.trim(); return save(); }
   if (e.target.id === 'rcat') { const r = recipe(e.target.dataset.id); r.cat = cap(e.target.value.trim().slice(0, 30)) || undefined; return save(); }

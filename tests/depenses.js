@@ -1,4 +1,4 @@
-// Partage des dépenses : chacun paie ses courses, qui doit quoi, remboursement, dépense à la main
+// Compte joint par défaut (pas de « qui doit quoi ») ; option Partager les dépenses : qui doit quoi, remboursement, dépense à la main
 const { phones, start, share, syncAll, add } = require('./_outils');
 (async () => {
   const { browser, pages: [A, B], errs } = await phones(2);
@@ -7,6 +7,11 @@ const { phones, start, share, syncAll, add } = require('./_outils');
   await B.goto(link); await B.waitForFunction(() => S.items.length > 0);
   await B.fill('#meForm input', 'Tom'); await B.click('#meForm button');
   await add(A, 'pâtes, bière');
+  await syncAll(A, B);
+  await A.click('[data-tab=budget]');
+  const joint = { split: await A.isVisible('text=Partage des dépenses'), payer: await A.isVisible('select[name=by]') };
+  await A.click('[data-a=expense]'); const jointPayer = await A.isVisible('#expenseForm select[name=by]'); await A.click('#expenseForm [data-a=expense]');
+  await A.click('#gear'); await A.check('#split'); await A.click('[data-tab=list]');
   await syncAll(A, B);
   await A.click('main .row:has-text("Pâtes")'); await A.click('[data-a=finish]'); await A.fill('#finishForm input', '30'); await A.click('#finishForm .primary');
   await syncAll(A, B);
@@ -20,6 +25,6 @@ const { phones, start, share, syncAll, add } = require('./_outils');
   await A.selectOption('#expenseForm select', 'Tom'); await A.click('#expenseForm button.accent');
   const owe2 = await A.$$eval('.owe .name', e => e.map(x => x.textContent.trim()));
   const hero = (await A.textContent('.hero strong')).trim();
-  console.log(JSON.stringify({ owe, settled, owe2, hero, errs }, null, 1));
+  console.log(JSON.stringify({ joint, jointPayer, splitB: await B.evaluate(() => S.settings.split), owe, settled, owe2, hero, errs }, null, 1));
   await browser.close(); process.exit(0);
 })();

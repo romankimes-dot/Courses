@@ -10,7 +10,6 @@ views.item = () => {
   if (!i) return `${back}<p class="empty">Article introuvable.</p>`;
   const r = rhythm(i), last = i.bought?.at(-1);
   const recipes = S.recipes.filter(rc => rc.items.includes(i.id));
-  const labels = Object.entries(S.aliases).filter(([, v]) => v === i.id).map(([k]) => k);
   return `
     ${back}
     <div class="sheet-head">
@@ -31,16 +30,12 @@ views.item = () => {
       <h3>Prix</h3>
       ${[...i.prices].reverse().map(p => `<div class="row static"><span class="name">${fmtDate(p.d)} <small>${esc(p.at || '')}</small></span><span>${euro(p.p)}</span></div>`).join('')}` : ''}
     ${recipes.length ? `<h3>Dans les recettes</h3><p>${recipes.map(rc => esc(rc.name)).join(' · ')}</p>` : ''}
-    ${labels.length ? `
-      <h3>Libellés de ticket reconnus</h3>
-      ${labels.map(k => `<div class="row static"><code class="name">${esc(k)}</code><button class="ghost" data-a="unalias" data-k="${esc(k)}" title="Oublier">${icon.x}</button></div>`).join('')}` : ''}
     <button class="ghost danger wide" data-a="delItemSheet" data-id="${i.id}">Supprimer l'article</button>`;
 };
 
 Object.assign(actions, {
   openItem: ({ id }) => { if (tab !== 'item') sheetBack = tab; sheetId = id; tab = 'item'; },
   closeItem: () => { tab = sheetBack; },
-  unalias: ({ k }) => { delete S.aliases[k]; },
   delItemSheet: ({ id }) => {
     snapshot();
     const name = item(id).name;

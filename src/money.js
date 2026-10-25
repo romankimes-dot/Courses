@@ -1,4 +1,5 @@
-// Partage des dépenses entre membres de la liste (coloc, couple…) : qui a payé quoi, qui doit combien.
+// Partage des dépenses entre membres de la liste (coloc, courses pour un proche…) : qui a payé quoi, qui doit combien.
+// Option de la liste (S.settings.split) : désactivée, c'est un compte joint, on ne suit que le budget commun.
 // Chaque passage en caisse note qui a payé (t.by) ; on peut ajouter une dépense à la main ;
 // un remboursement est un passage { type: 'settle', from, to, total } qui ne compte pas dans les dépenses.
 
@@ -41,20 +42,21 @@ views.budget = () => {
   const ms = members();
   const { bal } = balances();
   const owed = transfers(bal);
+  const split = !!S.settings.split;
   return `
     ${baseBudget()}
-    <h3>Partage des dépenses</h3>
+    ${split ? `<h3>Partage des dépenses</h3>
     ${ms.length > 1 ? `
       ${ms.map(m => `<div class="row static"><span class="name">${esc(m)}${m === me ? ' <small>(vous)</small>' : ''}</span><span class="${bal[m] < -.005 ? 'warn' : bal[m] > .005 ? 'tag' : ''}">${bal[m] > .005 ? '+' : ''}${euro(bal[m])}</span></div>`).join('')}
       ${owed.length ? owed.map(o => `
         <div class="row static owe"><span class="name">${esc(o.from)} doit ${euro(o.amount)} à ${esc(o.to)}</span><button class="ghost" data-a="settle" data-from="${esc(o.from)}" data-to="${esc(o.to)}" data-amount="${o.amount}">${icon.check} Remboursé</button></div>`).join('')
         : `<p class="hint">${icon.check} Tout le monde est à jour.</p>`}`
-      : `<p class="hint">Quand plusieurs personnes paient (prénom réglé dans les réglages), l'app calcule qui doit combien à qui, à parts égales.</p>`}
+      : `<p class="hint">Quand plusieurs personnes paient (prénom réglé dans les réglages), l'app calcule qui doit combien à qui, à parts égales.</p>`}` : ''}
     ${expenseOpen ? `
       <form id="expenseForm" class="card">
         <label class="field">Montant (€)<input name="amount" inputmode="decimal" required placeholder="ex. 23,50"></label>
         <label class="field">Pour quoi<input name="name" placeholder="ex. Marché, pharmacie" autocomplete="off"></label>
-        <label class="field">Payé par<select name="by">${[...new Set([me || 'Moi', ...ms])].map(m => `<option>${esc(m)}</option>`).join('')}</select></label>
+        ${split ? `<label class="field">Payé par<select name="by">${[...new Set([me || 'Moi', ...ms])].map(m => `<option>${esc(m)}</option>`).join('')}</select></label>` : ''}
         <div class="bar"><button class="accent grow">Ajouter la dépense</button><button type="button" class="ghost" data-a="expense">Annuler</button></div>
       </form>` : `<button class="wide" data-a="expense">${icon.plus} Ajouter une dépense à la main</button>`}`;
 };
@@ -71,6 +73,6 @@ document.addEventListener('submit', e => {
   if (e.target.id !== 'expenseForm') return;
   const f = new FormData(e.target), total = parseEuro(f.get('amount'));
   if (total == null) return;
-  S.trips.push({ id: uid(), date: Date.now(), type: 'expense', total, place: f.get('name').trim() || 'Dépense', n: 0, by: f.get('by'), names: [] });
+  S.trips.push({ id: uid(), date: Date.now(), type: 'expense', total, place: f.get('name').trim() || 'Dépense', n: 0, by: f.get('by') || me || undefined, names: [] });
   expenseOpen = false;
 }, true);
