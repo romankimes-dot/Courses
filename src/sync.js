@@ -25,6 +25,7 @@ const Sync = (() => {
     st.aisles.forEach((a, pos) => { r['aisle:' + a.id] = { ...a, pos }; });
     Object.entries(st.plan || {}).forEach(([d, ids]) => { r['plan:' + d] = ids; });
     Object.entries(st.shoppers || {}).forEach(([n, at]) => { r['shopper:' + n] = at; });
+    Object.entries(st.people || {}).forEach(([n, at]) => { r['member:' + n] = at; });
     return r;
   }
   function fromRecords(r) {
@@ -40,6 +41,7 @@ const Sync = (() => {
       aliases: Object.fromEntries(Object.entries(r).filter(([k]) => k.startsWith('alias:')).map(([k, v]) => [k.slice(6), v])),
       plan: Object.fromEntries(Object.entries(r).filter(([k]) => k.startsWith('plan:')).map(([k, v]) => [k.slice(5), v])),
       shoppers: Object.fromEntries(Object.entries(r).filter(([k]) => k.startsWith('shopper:')).map(([k, v]) => [k.slice(8), v])),
+      people: Object.fromEntries(Object.entries(r).filter(([k]) => k.startsWith('member:')).map(([k, v]) => [k.slice(7), v])),
       ...(r.map && !all('store:').length ? { map: r.map } : {}), // ancien format : plan unique
     };
   }
@@ -80,6 +82,7 @@ const Sync = (() => {
   async function run() {
     if (!cfg) { if (autoFill()) { save(); render(); } return; }
     if (busy) return;
+    if (me && !(S.people ||= {})[me]) { S.people[me] = Date.now(); save(); } // membre de la liste, même sans rien ajouter
     busy = true;
     try {
       const sent = Object.entries(outbox).map(([key, o]) => ({ key, data: o.data, u: o.u }));

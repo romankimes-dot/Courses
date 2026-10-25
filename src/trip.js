@@ -1,4 +1,5 @@
-// Ticket (passage en caisse) : corriger le lieu et le montant, qui a payé et la part perso (dépenses partagées),
+// Ticket (passage en caisse) : corriger le lieu et le montant, qui a payé et les parts hors partage
+// attribuées à une personne (dépenses partagées),
 // et les articles achetés, y compris ceux pris en plus de la liste : ils comptent dans l'historique d'achat
 // (rythme, suggestions, pré-remplissage). Ouvert en touchant un passage dans Dépenses.
 
@@ -25,6 +26,7 @@ views.trip = () => {
     <p>${esc(t.from)} a remboursé ${euro(t.total)} à ${esc(t.to)}.</p>
     <button class="ghost danger wide" data-a="delTrip" data-id="${t.id}">Supprimer ce remboursement</button>`;
   const split = !!S.settings.split, names = t.names || [];
+  const who = [...new Set([t.by, me, ...members(), ...(t.parts || []).map(p => p.by)].filter(Boolean))];
   return `
     ${back}
     <h2>${t.type === 'expense' ? 'Dépense' : 'Ticket'} · ${fmtDate(t.date)}</h2>
@@ -33,8 +35,16 @@ views.trip = () => {
     <label class="field">Montant (€)<input id="tripTotal" inputmode="decimal" value="${amount(t.total)}" placeholder="ex. 42,50" autocomplete="off"></label>
     ${split ? `
       <label class="field">Payé par<select id="tripBy">${[...new Set([t.by, me, ...members()].filter(Boolean))].map(m => `<option${m === t.by ? ' selected' : ''}>${esc(m)}</option>`).join('')}</select></label>
-      <label class="field">Part perso, hors partage (€)<input id="tripOwn" inputmode="decimal" value="${amount(t.own)}" placeholder="ex. 3,20 (des bonbons pour soi)" autocomplete="off"></label>
-      <p class="hint">${t.own && t.total ? `Partagé : ${euro(t.total - Math.min(t.own, t.total))} ; ${euro(t.own)} pour ${esc(t.by || 'le payeur')} seul.` : 'Ce que le payeur a pris pour lui seul ne compte que pour lui.'}</p>` : ''}
+      <h3>Hors partage</h3>
+      ${(t.parts || []).map((p, k) => `
+        <div class="row static part">
+          <input class="qty" data-part-amount="${k}" inputmode="decimal" value="${amount(p.amount)}" placeholder="€" aria-label="Montant">
+          <span>pour</span>
+          <select data-part-by="${k}" aria-label="Pour qui">${who.map(m => `<option${m === p.by ? ' selected' : ''}>${esc(m)}</option>`).join('')}</select>
+          <button class="ghost" data-a="tripPartDel" data-k="${k}" title="Retirer">${icon.x}</button>
+        </div>`).join('')}
+      <button class="wide" data-a="tripPartAdd">${icon.plus} Part pour une seule personne</button>
+      <p class="hint">${partsSum(t) && t.total ? `Partagé entre tous : ${euro(Math.max(0, t.total - partsSum(t)))} ; ${(t.parts || []).filter(p => p.amount).map(p => `${euro(p.amount)} pour ${esc(p.by)}`).join(', ')}.` : 'Ce qu\'une personne a pris pour elle seule ne compte que pour elle.'}</p>` : ''}
     <h3>Articles <small>${names.length}</small></h3>
     ${names.map((n, k) => `
       <div class="row static"><span class="name">${esc(n)}</span><button class="ghost" data-a="tripUnlink" data-k="${k}" title="Retirer du ticket">${icon.x}</button></div>`).join('')}
@@ -64,6 +74,12 @@ Object.assign(actions, {
   openTrip: ({ id }) => { tripId = id; tripDraft = ''; tab = 'trip'; },
   tripPick: ({ id }) => tripBuy(trip(tripId), item(id)),
   tripNew: () => tripBuy(trip(tripId), newItem(lastPart(tripDraft))),
+  tripPartAdd: () => {
+    const t = trip(tripId);
+    t.parts = [...(t.parts || []), { by: me || t.by, amount: null }];
+    refocusSel = `[data-part-amount="${t.parts.length - 1}"]`;
+  },
+  tripPartDel: ({ k }) => { const t = trip(tripId); t.parts.splice(+k, 1); if (!t.parts.length) delete t.parts; },
   tripUnlink: ({ k }) => {
     const t = trip(tripId), [name] = t.names.splice(+k, 1), i = findItem(name);
     t.n = Math.max(0, (t.n || 1) - 1);
@@ -100,7 +116,8 @@ document.addEventListener('change', e => {
     t.date = d;
   }
   else if (el.id === 'tripBy') t.by = el.value;
-  else if (el.id === 'tripOwn') t.own = parseEuro(el.value) || undefined;
+  else if (el.dataset.partAmount) t.parts[+el.dataset.partAmount].amount = parseEuro(el.value);
+  else if (el.dataset.partBy) t.parts[+el.dataset.partBy].by = el.value;
   else return;
   save();
 }, true);

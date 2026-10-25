@@ -43,6 +43,13 @@ const NO_MAP = { cols: 6, rows: 8, cells: {}, entry: null, auto: false };
 // pour qu'un enregistrement malformé ne puisse rien injecter dans la page
 const ID = /^[\w-]{1,40}$/, PHOTO = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/, CELL = /^\d{1,2},\d{1,2}$/;
 const num0 = v => Number.isFinite(+v) ? +v : 0;
+// Parts hors partage d'un ticket [{ by, amount }] ; l'ancien t.own (part perso du payeur) devient une part
+const tripParts = (t, str) => {
+  const ps = Array.isArray(t.parts) ? t.parts : t.own ? [{ by: t.by, amount: t.own }] : [];
+  const out = ps.filter(p => p && typeof p === 'object').map(p => ({ by: str(p.by), amount: p.amount == null ? null : num0(p.amount) }));
+  return out.length ? out : undefined;
+};
+const partsSum = t => (t.parts || []).reduce((s, p) => s + (p.amount || 0), 0);
 function clean(st) {
   const ok = x => x && typeof x === 'object' && ID.test(x.id) && typeof x.name === 'string';
   st.items = st.items.filter(ok);
@@ -63,7 +70,7 @@ function clean(st) {
   st.shops = st.shops.filter(ok);
   const fb = (st.aisles.find(a => a.name === 'Divers') || st.aisles.at(-1))?.id;
   if (fb) st.items.forEach(i => { if (!i.aisle) i.aisle = fb; });
-  st.recipes = st.recipes.filter(ok).map(r => ({ ...r, cat: r.cat ? String(r.cat).slice(0, 30) : undefined, items: (Array.isArray(r.items) ? r.items : []).filter(x => ID.test(x)) }));
+  st.recipes = st.recipes.filter(ok).map(r => ({ ...r, kind: r.kind === 'basket' ? 'basket' : undefined, cat: r.cat ? String(r.cat).slice(0, 30) : undefined, items: (Array.isArray(r.items) ? r.items : []).filter(x => ID.test(x)) }));
   st.stores = st.stores.filter(ok);
   for (const s of st.stores) {
     s.order = Array.isArray(s.order) ? s.order.filter(x => ID.test(x)) : null;
@@ -74,7 +81,7 @@ function clean(st) {
   }
   const str = v => v == null ? undefined : String(v).slice(0, 60);
   st.trips = st.trips.filter(t => t && ID.test(t.id)).map(t => ({ ...t, date: num0(t.date), n: num0(t.n), total: t.total == null ? null : num0(t.total), place: String(t.place || ''),
-    names: Array.isArray(t.names) ? t.names.map(String) : undefined, by: str(t.by), from: str(t.from), to: str(t.to), own: t.own == null ? undefined : num0(t.own), type: ['settle', 'expense'].includes(t.type) ? t.type : undefined }));
+    names: Array.isArray(t.names) ? t.names.map(String) : undefined, by: str(t.by), from: str(t.from), to: str(t.to), parts: tripParts(t, str), type: ['settle', 'expense'].includes(t.type) ? t.type : undefined }));
   st.recipes.forEach(r => { r.qty = Object.fromEntries(Object.entries(r.qty && typeof r.qty === 'object' ? r.qty : {}).filter(([k]) => ID.test(k)).map(([k, v]) => [k, String(v).slice(0, 30)])); });
   const old = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
   st.plan = Object.fromEntries(Object.entries(st.plan || {}).filter(([d, ids]) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= old && Array.isArray(ids)).map(([d, ids]) => [d, ids.filter(x => ID.test(x))]));
@@ -87,6 +94,7 @@ function clean(st) {
   // Qui est en courses : un enregistrement par personne (sinon deux « J'y vais » simultanés s'écrasent)
   st.shoppers = Object.fromEntries(Object.entries(st.shoppers || st.settings.shoppers || {}).filter(([n]) => /^[^:]{1,40}$/.test(n)).map(([n, at]) => [n, num0(at)]));
   delete st.settings.shoppers;
+  st.people = Object.fromEntries(Object.entries(st.people || {}).filter(([n]) => /^[^:]{1,40}$/.test(n)).map(([n, at]) => [n, num0(at)]));
   return st;
 }
 
@@ -101,6 +109,7 @@ function upgrade(st) {
   st.settings ||= {};
   st.aliases ||= {}; // libellé de ticket normalisé -> id d'article, ou 'ignore'
   st.plan ||= {}; // repas : date -> recettes
+  st.people ||= {}; // membres de la liste partagée : prénom -> date d'arrivée
   if (!st.stores) { st.stores = [newStore()]; if (st.map) st.stores[0].map = st.map; }
   delete st.map;
   return clean(st);
@@ -499,6 +508,8 @@ const views = {
       </form>
       <div id="suggest" class="chips suggest">${suggestChips()}</div>
       ${hint && need.length ? `<p class="hint tip">Touchez un article quand il est dans le caddie. Glissez-le vers la gauche pour le retirer. <button class="ghost" data-a="hintDone">OK</button></p>` : ''}
+      ${baskets().length && !shopping ? `
+        <div class="chips">${baskets().filter(r => r.items.length).map(r => `<button class="chip" data-a="addBasket" data-id="${r.id}">${icon.basket} ${esc(r.name)}</button>`).join('')}</div>` : ''}
       ${chips.length && !shopping ? `
         <div class="chips">
           ${chips.slice(0, 12).map(i => `<button class="chip" data-a="toggleNeed" data-id="${i.id}">${icon.again} ${esc(i.name)}</button>`).join('')}
@@ -536,9 +547,11 @@ const views = {
       <button class="ghost back" data-a="go" data-v="list">${icon.back} Liste</button>
       <h2>Mes articles</h2>
       <div class="seg">
-        <button data-a="catalogPins" data-v="" class="${catalogPins ? '' : 'active'}">Tous <small>${S.items.length}</small></button>
+        <button data-a="catalogPins" data-v="" class="${catalogPins || catalogBaskets ? '' : 'active'}">Tous <small>${S.items.length}</small></button>
         <button data-a="catalogPins" data-v="1" class="${catalogPins ? 'active' : ''}">${icon.star} Indispensables <small>${nPins}</small></button>
+        <button data-a="catalogPins" data-v="baskets" class="${catalogBaskets ? 'active' : ''}">${icon.basket} Paniers <small>${baskets().length}</small></button>
       </div>
+      ${catalogBaskets ? basketsPane() : `
       <p class="hint">${catalogEdit ? `Touchez ${icon.star} pour mettre un article en indispensable (toujours en haut de la liste), ${icon.right} pour sa fiche (rayon, photo…).`
         : catalogPins ? `Toujours en haut de la liste quand il en faut. Touchez ce qui manque aujourd'hui.` : `Touchez ce qui manque. ${icon.check} = déjà sur la liste, ${icon.starOn} = indispensable.`}</p>
       <div class="bar">
@@ -549,7 +562,7 @@ const views = {
         <input name="name" value="${esc(quickDraft)}" placeholder="${catalogPins ? 'Chercher ou ajouter un indispensable…' : 'Chercher ou ajouter un article…'}" autocomplete="off" autocapitalize="sentences" required>
         <button class="accent" aria-label="Ajouter">${icon.plus}</button>
       </form>
-      <div id="catalogItems">${catalogItems()}</div>`;
+      <div id="catalogItems">${catalogItems()}</div>`}`;
   },
 
   // Mes recettes : un seul champ pour chercher (nom, catégorie, ingrédient) ou créer ; rangées par catégorie
@@ -616,7 +629,7 @@ const views = {
       <h3>Passages en caisse</h3>
       ${[...S.trips].sort((a, b) => b.date - a.date).slice(0, 20).map(t => `
         <div class="row" data-a="openTrip" data-id="${t.id}">
-          <span class="name">${shortDate(t.date)} · ${esc(t.type === 'settle' ? `${t.from} → ${t.to}` : t.place)}${t.n ? ` <small>${t.n} art.</small>` : ''}${S.settings.split && t.by && t.type !== 'settle' ? ` <small>· payé par ${esc(t.by)}${t.own ? `, ${euro(t.own)} perso` : ''}</small>` : ''}${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
+          <span class="name">${shortDate(t.date)} · ${esc(t.type === 'settle' ? `${t.from} → ${t.to}` : t.place)}${t.n ? ` <small>${t.n} art.</small>` : ''}${S.settings.split && t.by && t.type !== 'settle' ? ` <small>· payé par ${esc(t.by)}${partsSum(t) ? `, ${euro(partsSum(t))} hors partage` : ''}</small>` : ''}${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
           <span>${t.total == null ? '<small>Ajouter €</small>' : euro(t.total)}</span>${icon.right}
         </div>`).join('') || '<p class="hint">Le montant est demandé (facultatif) quand vous terminez des courses.</p>'}
       ${S.trips.length ? '<p class="hint">Touchez un ticket pour corriger le montant ou ajouter des articles pris en plus de la liste.</p>' : ''}`;
@@ -785,11 +798,11 @@ function catalogItems() {
 
 // Recettes rangées par catégorie (« Autres » à la fin), filtrées par ce qu'on tape
 let recipeDraft = '';
-const recipeCats = () => [...new Set(S.recipes.map(r => r.cat).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+const recipeCats = () => [...new Set(cookbook().map(r => r.cat).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 function recipeGroups(q = '') {
   const k = sameKey(q);
   const shown = r => !k || [r.name, r.cat || '', ...r.items.map(id => item(id)?.name || '')].some(t => sameKey(t).includes(k));
-  const rs = S.recipes.filter(r => shown(r) || r.id === recipeEdit).sort((a, b) => a.name.localeCompare(b.name));
+  const rs = cookbook().filter(r => shown(r) || r.id === recipeEdit).sort((a, b) => a.name.localeCompare(b.name));
   return [...recipeCats(), ''].map(cat => ({ cat: cat || 'Autres', rs: rs.filter(r => (r.cat || '') === cat) })).filter(g => g.rs.length);
 }
 function recipeItems() {
@@ -818,7 +831,16 @@ function linkTo(r, i) {
   linkDraft = parts.length ? parts.join(',') + ', ' : '';
   refocusSel = '#link input';
 }
-let catalogEdit = false, catalogPins = false; // « Mes articles » : mode modification, filtre indispensables
+let catalogEdit = false, catalogPins = false, catalogBaskets = false; // « Mes articles » : modification, filtres
+
+// Mes articles > Paniers : des articles achetés ensemble, ajoutés à la liste d'un geste
+const basketsPane = () => `
+  <p class="hint">Un panier regroupe des articles achetés ensemble (bébé, apéro, chat…). « Ajouter à la liste » : on décoche ce qu'on a déjà.</p>
+  <form id="newBasket" class="addtop">
+    <input name="name" placeholder="Nouveau panier (ex. Bébé)" autocomplete="off" autocapitalize="sentences" required>
+    <button class="accent" aria-label="Créer">${icon.plus}</button>
+  </form>
+  ${baskets().map(recipeCard).join('') || '<p class="empty">Aucun panier pour l\'instant.</p>'}`;
 
 let lastTab = null;
 // Liste à l'écran (ou en courses) : écran maintenu allumé, si le téléphone le permet (iPhone : iOS 18.4 et +).
@@ -897,7 +919,7 @@ function recipeCard(r) {
         <input id="rname" data-id="${r.id}" value="${esc(r.name)}" class="grow">
         <button data-a="closeRecipe">OK</button>
       </div>
-      <label class="field">Catégorie<input id="rcat" data-id="${r.id}" list="recipeCats" value="${esc(r.cat || '')}" placeholder="ex. Plats, Desserts, Rapide" autocomplete="off"></label>
+      ${isBasket(r) ? '' : `<label class="field">Catégorie<input id="rcat" data-id="${r.id}" list="recipeCats" value="${esc(r.cat || '')}" placeholder="ex. Plats, Desserts, Rapide" autocomplete="off"></label>`}
       ${its.map(i => `
         <div class="row static">
           <span class="name link" data-a="openItem" data-id="${i.id}">${esc(i.name)}</span>
@@ -905,11 +927,11 @@ function recipeCard(r) {
           <button class="ghost" data-a="unlink" data-id="${r.id}" data-item="${i.id}" title="Retirer">${icon.x}</button>
         </div>`).join('')}
       <form id="link" data-id="${r.id}" class="addtop">
-        <input name="name" value="${esc(linkDraft)}" placeholder="Ajouter un ingrédient…" autocomplete="off" autocapitalize="sentences" required>
+        <input name="name" value="${esc(linkDraft)}" placeholder="${isBasket(r) ? 'Ajouter un article…' : 'Ajouter un ingrédient…'}" autocomplete="off" autocapitalize="sentences" required>
         <button class="accent" aria-label="Ajouter">${icon.plus}</button>
       </form>
       <div id="linkSuggest" class="chips suggest">${linkChips(r)}</div>
-      <button class="ghost" data-a="delRecipe" data-id="${r.id}">Supprimer la recette</button>
+      <button class="ghost" data-a="delRecipe" data-id="${r.id}">Supprimer ${isBasket(r) ? 'le panier' : 'la recette'}</button>
     </section>`;
   if (recipeAdd === r.id) {
     const n = its.filter(i => !recipeSkip.has(i.id)).length;
@@ -988,6 +1010,10 @@ const parseEuro = raw => { const v = parseFloat(String(raw).replace(',', '.').re
 function setStore(id) { storeId = id; try { localStorage.setItem(K('courses.store'), id); } catch {} }
 
 const recipe = id => S.recipes.find(r => r.id === id);
+// Paniers (bébé, apéro, chat…) : même moteur que les recettes (nom + articles), rangés dans Mes articles
+const isBasket = r => r.kind === 'basket';
+const cookbook = () => S.recipes.filter(r => !isBasket(r));
+const baskets = () => S.recipes.filter(isBasket).sort((a, b) => a.name.localeCompare(b.name));
 
 // Annuler : instantané de l'état avant une action destructive, bandeau 6 s
 let undoSnap = null, toastTimer;
@@ -1074,8 +1100,10 @@ const actions = {
   startRecipe: ({ id }) => { recipeAdd = id; recipeEdit = null; recipeSkip = new Set(); },
   toggleSkip: ({ id }) => { recipeSkip.has(id) ? recipeSkip.delete(id) : recipeSkip.add(id); },
   confirmRecipe: ({ id }) => {
-    recipe(id).items.map(item).filter(i => i && !recipeSkip.has(i.id)).forEach(want);
+    const r = recipe(id), its = r.items.map(item).filter(i => i && !i.need && !recipeSkip.has(i.id));
+    its.forEach(i => { want(i); if (r.qty?.[i.id] && !i.note) i.note = r.qty[i.id]; });
     recipeAdd = null;
+    if (isBasket(r)) toast(`${r.name} : ${its.length} article${its.length > 1 ? 's' : ''} ajouté${its.length > 1 ? 's' : ''}`, false);
   },
   cancelRecipe: () => { recipeAdd = null; },
   editRecipe: ({ id }) => { recipeEdit = id; recipeAdd = null; linkDraft = ''; },
@@ -1087,7 +1115,7 @@ const actions = {
     linkTo(recipe(r), i); // pas de bandeau : il masquerait le champ où l'on tape l'ingrédient suivant
   },
   unlink: ({ id, item: itemId }) => { const r = recipe(id); r.items = r.items.filter(x => x !== itemId); },
-  delRecipe: ({ id }) => { if (confirm('Supprimer cette recette ?')) { S.recipes = S.recipes.filter(r => r.id !== id); recipeEdit = null; } },
+  delRecipe: ({ id }) => { if (confirm(isBasket(recipe(id)) ? 'Supprimer ce panier ?' : 'Supprimer cette recette ?')) { S.recipes = S.recipes.filter(r => r.id !== id); recipeEdit = null; } },
   toggleNeed: ({ id }) => { const i = item(id); if (i.need) drop(i); else want(i); },
   toggleDone: ({ id }) => {
     const i = item(id);
@@ -1131,7 +1159,14 @@ const actions = {
   },
   hintDone: () => { try { localStorage.setItem('courses.hint', '1'); } catch {} },
   catalogEdit: () => { catalogEdit = !catalogEdit; },
-  catalogPins: ({ v }) => { catalogPins = !!v; },
+  catalogPins: ({ v }) => { catalogPins = v === '1'; catalogBaskets = v === 'baskets'; },
+  // Puce d'un panier sur la liste : tout son contenu d'un toucher (Annuler possible)
+  addBasket: ({ id }) => {
+    snapshot();
+    const r = recipe(id), its = r.items.map(item).filter(i => i && !i.need);
+    its.forEach(i => { want(i); if (r.qty?.[i.id] && !i.note) i.note = r.qty[i.id]; });
+    toast(its.length ? `${r.name} : ${its.length} article${its.length > 1 ? 's' : ''} ajouté${its.length > 1 ? 's' : ''}` : `${r.name} : tout est déjà sur la liste`, !!its.length);
+  },
   shareList: async () => {
     const groups = [...byAisle(i => i.need), ...byAisle(i => i.need, S.shops)];
     const text = `${currentList().name}\n` + groups.map(g => `\n${g.aisle.name}\n` + g.items.map(i => `• ${i.name}${i.note ? ` (${i.note})` : ''}`).join('\n')).join('\n');
@@ -1332,8 +1367,13 @@ document.addEventListener('submit', e => {
   }
   if (e.target.id === 'addAisle' && name.trim()) S.aisles.push({ id: uid(), name: name.trim() });
   if (e.target.id === 'addShop' && name.trim()) S.shops.push({ id: uid(), name: name.trim() });
+  if (e.target.id === 'newBasket' && name.trim()) {
+    let r = baskets().find(x => sameKey(x.name) === sameKey(name));
+    if (!r) S.recipes.push(r = { id: uid(), name: cap(name.trim()), kind: 'basket', items: [] });
+    recipeEdit = r.id; recipeAdd = null; linkDraft = '';
+  }
   if (e.target.id === 'newRecipe' && name.trim()) {
-    let r = S.recipes.find(x => sameKey(x.name) === sameKey(name));
+    let r = cookbook().find(x => sameKey(x.name) === sameKey(name));
     if (!r) S.recipes.push(r = { id: uid(), name: cap(name.trim()), items: [] });
     recipeEdit = r.id; recipeAdd = null; recipeDraft = '';
     tab = 'recipes';
@@ -1383,7 +1423,7 @@ document.addEventListener('submit', e => {
   if (e.target.id === 'share') Sync.create(f.get('url').trim().replace(/\/+$/, ''), f.get('key').trim());
   save();
   render();
-  app.querySelector(e.target.id === 'newRecipe' ? '#link input' : `#${e.target.id} input`)?.focus();
+  app.querySelector(['newRecipe', 'newBasket'].includes(e.target.id) ? '#link input' : `#${e.target.id} input`)?.focus();
 });
 
 document.addEventListener('change', async e => {

@@ -29,7 +29,7 @@ views.item = () => {
     ${i.prices?.length ? `
       <h3>Prix</h3>
       ${[...i.prices].reverse().map(p => `<div class="row static"><span class="name">${fmtDate(p.d)} <small>${esc(p.at || '')}</small></span><span>${euro(p.p)}</span></div>`).join('')}` : ''}
-    ${recipes.length ? `<h3>Dans les recettes</h3><p>${recipes.map(rc => esc(rc.name)).join(' · ')}</p>` : ''}
+    ${recipes.length ? `<h3>Dans les recettes et paniers</h3><p>${recipes.map(rc => esc(rc.name)).join(' · ')}</p>` : ''}
     <button class="ghost danger wide" data-a="delItemSheet" data-id="${i.id}">Supprimer l'article</button>`;
 };
 

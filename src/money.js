@@ -2,19 +2,22 @@
 // Option de la liste (S.settings.split) : désactivée, c'est un compte joint, on ne suit que le budget commun.
 // Chaque passage en caisse note qui a payé (t.by) ; on peut ajouter une dépense à la main ;
 // un remboursement est un passage { type: 'settle', from, to, total } qui ne compte pas dans les dépenses ;
-// t.own = part perso du payeur (ex. ses bonbons) : hors partage.
+// t.parts = parts hors partage [{ by, amount }] (ex. les bonbons de l'un) : chacune ne compte que pour sa personne.
 
-// Membres : ceux qui ont payé, ajouté ou coché quelque chose, plus moi
-const members = () => [...new Set([me, ...S.trips.flatMap(t => [t.by, t.from, t.to]), ...S.items.flatMap(i => [i.by, i.lastBy])]
+// Membres : ceux qui ont rejoint la liste, payé, ajouté ou coché quelque chose, plus moi
+const members = () => [...new Set([me, ...Object.keys(S.people || {}), ...S.trips.flatMap(t => [t.by, t.from, t.to]), ...S.items.flatMap(i => [i.by, i.lastBy])]
   .filter(n => n && n !== '?'))].sort((a, b) => a.localeCompare(b));
 
 // Soldes à parts égales : positif = on lui doit, négatif = il doit
 function balances() {
   const ms = members(), bal = Object.fromEntries(ms.map(m => [m, 0]));
   const spent = S.trips.filter(t => t.type !== 'settle' && t.total && t.by && t.by in bal);
-  const shared = t => t.total - Math.min(t.own || 0, t.total);
+  const shared = t => Math.max(0, t.total - partsSum(t));
   const total = spent.reduce((s, t) => s + shared(t), 0);
-  for (const t of spent) bal[t.by] += shared(t);
+  for (const t of spent) {
+    bal[t.by] += t.total;
+    for (const p of t.parts || []) if (p.by in bal) bal[p.by] -= p.amount || 0; else bal[t.by] -= p.amount || 0;
+  }
   for (const m of ms) bal[m] -= total / ms.length;
   for (const t of S.trips.filter(t => t.type === 'settle')) {
     if (t.from in bal) bal[t.from] += t.total;

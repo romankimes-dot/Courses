@@ -1,4 +1,4 @@
-// Ticket modifiable : montant, part perso hors partage (mode dépenses partagées), articles ajoutés après coup
+// Ticket modifiable : montant, parts hors partage attribuées à une personne (mode dépenses partagées), articles ajoutés après coup
 // (ils comptent dans l'historique d'achat) ; pré-remplissage de la liste selon les habitudes d'achat
 const { phones, start, share, syncAll, add, needs } = require('./_outils');
 (async () => {
@@ -12,9 +12,10 @@ const { phones, start, share, syncAll, add, needs } = require('./_outils');
   await syncAll(A, B);
   await A.click('main .row:has-text("Pâtes")'); await A.click('[data-a=finish]'); await A.fill('#finishForm input', '30'); await A.click('#finishForm .primary');
   await syncAll(A, B);
-  // Ticket : part perso de 5 € (bonbons), articles pris en plus de la liste
+  // Ticket : 5 € pour Léo seul (bonbons), 2 € pour Tom seul ; articles pris en plus de la liste
   await A.click('[data-tab=budget]'); await A.click('[data-a=openTrip]');
-  await A.fill('#tripOwn', '5'); await A.press('#tripOwn', 'Tab');
+  await A.click('[data-a=tripPartAdd]'); await A.fill('[data-part-amount="0"]', '5'); await A.press('[data-part-amount="0"]', 'Tab');
+  await A.click('[data-a=tripPartAdd]'); await A.fill('[data-part-amount="1"]', '2'); await A.selectOption('[data-part-by="1"]', 'Tom');
   await A.type('#tripAdd input', 'lai');
   const chips = await A.$$eval('#tripSuggest .chip', e => e.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
   await A.click('#tripSuggest [data-a=tripPick]');
@@ -22,7 +23,7 @@ const { phones, start, share, syncAll, add, needs } = require('./_outils');
   await A.fill('#tripTotal', '32,40'); await A.press('#tripTotal', 'Tab');
   await A.fill('#tripDate', await A.evaluate(() => dayKey(new Date(Date.now() - 2 * DAY)))); await A.press('#tripDate', 'Tab');
   const dateMoved = await A.evaluate(() => { const t = S.trips[0]; return findItem('lait').bought.at(-1) === t.date && Date.now() - t.date > DAY; });
-  const ticket = await A.evaluate(() => { const t = S.trips[0]; return { total: t.total, own: t.own, names: t.names, n: t.n }; });
+  const ticket = await A.evaluate(() => { const t = S.trips[0]; return { total: t.total, parts: t.parts.map(p => `${p.amount} ${p.by}`), names: t.names, n: t.n }; });
   const history = await A.evaluate(() => ({ lait: findItem('lait').bought?.length, laitOnList: findItem('lait').need, bonbons: findItem('bonbons').bought?.length }));
   await A.click('[data-a=tripUnlink][data-k="2"]');
   const afterUnlink = await A.evaluate(() => ({ names: S.trips[0].names, bonbons: findItem('bonbons').bought?.length || 0 }));
@@ -31,7 +32,7 @@ const { phones, start, share, syncAll, add, needs } = require('./_outils');
   const owe = await B.$$eval('.owe .name', e => e.map(x => x.textContent.trim()));
   // Compte joint : pas de part perso
   await A.click('#gear'); await A.uncheck('#split'); await A.click('[data-tab=budget]'); await A.click('[data-a=openTrip]');
-  const jointOwn = await A.isVisible('#tripOwn');
+  const jointOwn = await A.isVisible('[data-a=tripPartAdd]');
   // Pré-remplissage : la litière (tous les 14 j, dernier achat il y a 15 j) revient d'elle-même
   await A.evaluate(() => { const i = findItem('litière') || (addItem('Litière'), findItem('litière')); i.need = false; i.bought = [Date.now() - 43 * DAY, Date.now() - 29 * DAY, Date.now() - 15 * DAY]; save(); });
   await A.click('#gear'); const autofillDefault = await A.isChecked('#autofill'); await A.click('[data-tab=list]');

@@ -56,7 +56,7 @@ views.meals = () => {
   const missing = [...needs].filter(([i]) => !i.need).length;
   return `
     <h2>Repas de la semaine</h2>
-    ${S.recipes.length ? '' : `<p class="hint">Créez une recette (ses ingrédients et quantités), puis posez-la sur un jour : un geste mettra tout sur la liste.</p>
+    ${cookbook().length ? '' : `<p class="hint">Créez une recette (ses ingrédients et quantités), puis posez-la sur un jour : un geste mettra tout sur la liste.</p>
       <form id="newRecipe" class="addtop">
         <input name="name" placeholder="Nom de la recette (ex. Curry)" autocomplete="off" autocapitalize="sentences" required>
         <button class="accent" aria-label="Créer">${icon.plus}</button>
@@ -69,13 +69,13 @@ views.meals = () => {
           <strong>${k ? d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }) : 'Aujourd\'hui'}</strong>
           <div class="chips">
             ${planned.map(r => `<button class="chip on" data-a="unplan" data-v="${key}" data-id="${r.id}" title="Retirer">${esc(r.name)} ${icon.x}</button>`).join('')}
-            ${S.recipes.length ? `<select data-plan="${key}" aria-label="Ajouter un repas"><option value="">+ repas</option>${options}</select>` : ''}
+            ${cookbook().length ? `<select data-plan="${key}" aria-label="Ajouter un repas"><option value="">+ repas</option>${options}</select>` : ''}
           </div>
         </div>`;
       }).join('')}
     </div>
     ${needs.size ? `<button class="primary" data-a="weekReview" ${missing ? '' : 'disabled'}>${icon.cart} Mettre les ingrédients sur la liste${missing ? ` (${missing})` : ' : déjà fait'}</button>` : ''}
-    ${S.recipes.length ? `<button class="wide" data-a="go" data-v="recipes">${icon.meals} Mes recettes <small>${S.recipes.length}</small></button>` : ''}`;
+    ${cookbook().length ? `<button class="wide" data-a="go" data-v="recipes">${icon.meals} Mes recettes <small>${cookbook().length}</small></button>` : ''}`;
 };
 
 Object.assign(actions, {
