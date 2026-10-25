@@ -49,6 +49,7 @@ Synthèse des demandes du propriétaire (fil de conception d'octobre 2026), des 
 | 33 | Tous modes : **ajouter des articles au ticket après coup** (pris en plus de la liste) | Fiche Ticket > Articles : propositions dès les premières lettres ou création ; comptent dans l'historique d'achat |
 | 34 | Suggestions selon l'historique et les habitudes ; **pré-remplir la liste si on le souhaite** | Puces « à racheter » (rythme moyen entre achats, dès 2 achats) + option Réglages > Cette liste > « Pré-remplir la liste », **active par défaut** (marqué « suggéré » ; retiré, il attend le prochain cycle) |
 | 35 | Dépense à la main : indiquer la date d'achat | Champ Date d'achat (dépense à la main et fiche Ticket) ; passages triés par date |
+| 36 | **Paniers préenregistrés** (ex. Bébé : Danonino, couches, tomates cerises, pompotes) | Liste > Articles > Paniers (même moteur que les recettes, sans catégorie) ; puce par panier sur la liste : tout ajouter d'un toucher (Annuler) |
 | 27 | Ne pas avoir à rouvrir la liste toutes les 3 secondes (veille de l'iPhone) | Écran gardé allumé tant que la liste est affichée (Wake Lock ; iPhone : iOS 18.4 et +) |
 
 ## 3. Décisions prises
