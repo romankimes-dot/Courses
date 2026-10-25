@@ -11,18 +11,26 @@
 </head>
 <body>
   <header>
-    <h1>Courses <span id="sync"></span></h1>
+    <div class="title-wrap">
+      <button id="listName" class="ghost" data-a="lists" aria-label="Changer de liste">🏠 Maison ▾</button>
+      <span id="sync"></span>
+    </div>
+    <button id="bell" class="ghost" data-a="go" data-v="activity" aria-label="Activité">🔔</button>
     <button id="gear" class="ghost" data-a="go" data-v="aisles" aria-label="Réglages">⚙️</button>
   </header>
   <main id="app"></main>
   <nav class="tabbar">
     <button data-tab="list"><span>📝</span>Liste</button>
-    <button data-tab="shop"><span>🛒</span>Courses</button>
-    <button data-tab="budget"><span>💶</span>Budget</button>
+    <button data-tab="meals"><span>🍽️</span>Repas</button>
+    <button data-tab="budget"><span>💶</span>Dépenses</button>
   </nav>
   <input type="file" id="photo" accept="image/*" capture="environment" hidden>
   <input type="file" id="ticket" accept="image/*" hidden>
+  <script src="src/lists.js"></script>
   <script src="src/app.js"></script>
+  <script src="src/feed.js"></script>
+  <script src="src/meals.js"></script>
+  <script src="src/money.js"></script>
   <script src="src/scan.js"></script>
   <script src="src/sheet.js"></script>
   <script src="src/sync.js"></script>

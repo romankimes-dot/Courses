@@ -146,3 +146,30 @@ details.adv summary { cursor: pointer; color: var(--accent); font-weight: 600; p
 .sheet-modal .card { background: var(--bg); width: min(560px, 100%); margin: 0 auto; padding: 16px; display: grid; gap: 8px; }
 :root[data-size="large"] body { zoom: 1.15; }
 :root[data-size="xl"] body { zoom: 1.32; }
+
+/* ---------- Refonte : une seule liste ---------- */
+.title-wrap { display: flex; align-items: baseline; gap: 6px; min-width: 0; flex: 1; }
+#listName { font: 700 19px/1.2 system-ui, sans-serif; color: var(--fg); padding: 4px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 62vw; }
+#bell { position: relative; font-size: 19px; padding: 4px 8px; }
+#bell[data-count]:not([data-count=""])::after { content: attr(data-count); position: absolute; top: -2px; right: 0; background: #c0392b; color: #fff; font: 700 11px/16px system-ui; min-width: 16px; height: 16px; border-radius: 8px; text-align: center; padding: 0 3px; }
+.addtop { display: flex; gap: 8px; margin: 4px 0 8px; }
+.addtop input { flex: 1; min-width: 0; font-size: 16px; padding: 12px 14px; border-radius: 24px; }
+.addtop button { width: 48px; height: 48px; border-radius: 50%; font-size: 24px; padding: 0; flex: none; }
+.tip { background: var(--card); border-radius: 10px; padding: 8px 10px; display: flex; gap: 8px; align-items: center; }
+.center { text-align: center; }
+.actions { display: grid; gap: 8px; margin: 16px 0 8px; }
+.actions .primary { margin: 0; }
+.actions .primary small { opacity: .8; font-weight: 400; }
+.card.shopping { background: var(--accent-soft); border: 0; display: grid; gap: 8px; }
+.card.shopping .bar { margin: 0; }
+.chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--fg); }
+.row.removing { background: #fbe3e1; }
+.row[data-swipe] { transition: transform .15s; touch-action: pan-y; }
+.list-row { width: 100%; text-align: left; border: 0; background: none; font-size: 17px; }
+.list-row.on { background: var(--accent-soft); }
+.week { display: grid; gap: 6px; margin: 8px 0 12px; }
+.day { background: var(--card); border-radius: 10px; padding: 8px 10px; display: grid; gap: 6px; }
+.day.today { outline: 2px solid var(--accent-soft); }
+.day select { border-radius: 16px; padding: 4px 8px; font-size: 14px; }
+.qty { width: 80px; flex: none; }
+.owe { background: var(--card); border-radius: 8px; }

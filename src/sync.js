@@ -5,14 +5,14 @@
 // (seq) pour que chaque appareil ne récupère que ce qu'il n'a pas encore vu.
 
 const Sync = (() => {
-  const CFG = 'courses.sync', OUT = 'courses.outbox', SNAP = 'courses.snap', SEQ = 'courses.seq';
+  const CFG = K('courses.sync'), OUT = K('courses.outbox'), SNAP = K('courses.snap'), SEQ = K('courses.seq'), SEEN = K('courses.seen');
   const get = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
   const put = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
   let cfg = get(CFG, null), outbox = get(OUT, {}), seq = get(SEQ, 0), snap, state = '', busy = false;
   // Dernière date de version reçue du serveur, par enregistrement : si l'horloge de ce téléphone
   // retarde, ses modifications sont quand même datées après et ne sont pas ignorées
-  let seen = get('courses.seen', {});
+  let seen = get(SEEN, {});
 
   function records(st) {
     const r = { settings: st.settings };
@@ -23,6 +23,8 @@ const Sync = (() => {
     st.trips.forEach(x => { r['trip:' + x.id] = x; });
     Object.entries(st.aliases).forEach(([k, v]) => { r['alias:' + k] = v; });
     st.aisles.forEach((a, pos) => { r['aisle:' + a.id] = { ...a, pos }; });
+    Object.entries(st.plan || {}).forEach(([d, ids]) => { r['plan:' + d] = ids; });
+    Object.entries(st.shoppers || {}).forEach(([n, at]) => { r['shopper:' + n] = at; });
     return r;
   }
   function fromRecords(r) {
@@ -36,6 +38,8 @@ const Sync = (() => {
       trips: all('trip:').sort((a, b) => a.date - b.date),
       settings: r.settings || {},
       aliases: Object.fromEntries(Object.entries(r).filter(([k]) => k.startsWith('alias:')).map(([k, v]) => [k.slice(6), v])),
+      plan: Object.fromEntries(Object.entries(r).filter(([k]) => k.startsWith('plan:')).map(([k, v]) => [k.slice(5), v])),
+      shoppers: Object.fromEntries(Object.entries(r).filter(([k]) => k.startsWith('shopper:')).map(([k, v]) => [k.slice(8), v])),
       ...(r.map && !all('store:').length ? { map: r.map } : {}), // ancien format : plan unique
     };
   }
@@ -86,6 +90,7 @@ const Sync = (() => {
       const rows = await rpc('pull', { h: cfg.code, since: seq });
       if (rows.length) {
         const cur = records(S);
+        const prev = Object.fromEntries(rows.map(row => [row.key, cur[row.key]]));
         let touched = false;
         for (const row of rows) {
           seq = Math.max(seq, row.seq);
@@ -96,12 +101,15 @@ const Sync = (() => {
           touched = true;
         }
         put(SEQ, seq);
-        put('courses.seen', seen);
+        put(SEEN, seen);
         if (touched) {
           S = upgrade(fromRecords(cur));
           snap = strings(records(S));
           dedupe(S); // ses fusions partent au prochain envoi
           save();
+          noteActivity(prev, rows);
+          const ln = S.settings.listName;
+          if (ln && !currentList().name.startsWith(ln)) { currentList().name = ln; saveLists(); }
           // Ne pas casser une saisie en cours ; le champ d'ajout rapide vide garde le focus
           const el = document.activeElement;
           if (!el?.matches('input:not([type=checkbox]), select') || (el.closest('#quick') && !el.value)) {
@@ -131,8 +139,10 @@ const Sync = (() => {
   }
 
   function connect(c) {
-    cfg = c;
+    cfg = { url: c.url, key: c.key, code: c.code };
     put(CFG, cfg);
+    currentList().code = c.code;
+    saveLists();
     seq = 0;
     put(SEQ, 0);
   }
@@ -170,6 +180,7 @@ const Sync = (() => {
     create(url, key) {
       const code = Array.from(crypto.getRandomValues(new Uint8Array(18)), b => b.toString(16).padStart(2, '0')).join('');
       connect({ url, key, code });
+      S.settings.listName = currentList().name;
       snap = {};
       changed();
       render();
@@ -177,9 +188,10 @@ const Sync = (() => {
     // Rejoint une liste existante : la liste locale est remplacée par celle du serveur
     join(c) {
       connect(c);
+      if (c.name && !currentList().name.startsWith(c.name)) { currentList().name = c.name; saveLists(); }
       outbox = {};
       put(OUT, outbox);
-      S = { aisles: [], items: [], recipes: [], shops: [], stores: [], trips: [], settings: {}, aliases: {} };
+      S = { aisles: [], items: [], recipes: [], shops: [], stores: [], trips: [], settings: {}, aliases: {}, plan: {} };
       snap = strings(records(S));
       save();
       render();
@@ -192,15 +204,31 @@ const Sync = (() => {
       status();
       render();
     },
-    inviteLink: () => `${location.origin}${location.pathname}#join=${btoa(JSON.stringify(cfg))}`,
+    // Le lien porte l'accès et le nom de la liste (UTF-8 en base64)
+    inviteLink: () => `${location.origin}${location.pathname}#join=${btoa(unescape(encodeURIComponent(JSON.stringify({ ...cfg, name: currentList().name, by: me || undefined }))))}`,
+    decode(link) {
+      const m = String(link).match(/#join=([^\s]+)/);
+      try { const c = m && JSON.parse(decodeURIComponent(escape(atob(m[1])))); return c?.code ? c : null; } catch { return null; }
+    },
+    // Rejoindre : la liste déjà connue s'ouvre ; une liste vide de ce téléphone est utilisée ;
+    // sinon une nouvelle liste est créée (on ne remplace jamais une liste qui a déjà servi)
+    joinLink(c) {
+      const known = lists.find(l => l.code === c.code);
+      if (known) { if (known.id !== LIST) switchList(known.id); return; }
+      if (!cfg && !hasOwnData()) return this.join(c);
+      const base = c.name || 'Liste partagée';
+      const l = newList(lists.some(x => x.name === base) && c.by ? `${base} · ${c.by}` : base);
+      lput('courses.pendingJoin:' + l.id, c);
+      switchList(l.id);
+    },
     init() {
-      const m = location.hash.match(/^#join=(.+)$/);
-      if (m) {
+      const pending = lget('courses.pendingJoin:' + LIST, null);
+      if (pending) { try { localStorage.removeItem('courses.pendingJoin:' + LIST); } catch {} return this.join(pending); }
+      if (location.hash.startsWith('#join=')) {
+        const c = this.decode(location.hash);
         history.replaceState(null, '', location.pathname);
-        try {
-          const c = JSON.parse(atob(m[1]));
-          if (c.code !== cfg?.code && confirm('Rejoindre la liste partagée ? La liste de ce téléphone sera remplacée.')) return this.join(c);
-        } catch { alert('Lien d\'invitation invalide'); }
+        if (!c) alert('Lien d\'invitation invalide');
+        else if (c.code !== cfg?.code) return this.joinLink(c);
       }
       status();
       run();
@@ -212,5 +240,6 @@ if (!welcomed && !Sync.config() && !location.hash.startsWith('#join=')) tab = 'w
 render();
 Sync.init();
 addEventListener('online', Sync.run);
+addEventListener('hashchange', () => { if (location.hash.startsWith('#join=')) Sync.init(); }); // lien ouvert app déjà affichée
 document.addEventListener('visibilitychange', () => { if (!document.hidden) Sync.run(); });
 setInterval(() => { if (!document.hidden) Sync.run(); }, 8000);
