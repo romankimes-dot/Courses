@@ -27,11 +27,14 @@
   <main>
     <div class="hero">
       <div class="wrap">
+        <div class="hero-top">
+        <canvas id="hero3d" aria-hidden="true"></canvas>
         <h1>On n'oublie<br>plus le lait.</h1>
         <p class="sub">La liste de courses partagée du foyer. Chacun ajoute depuis son téléphone ; au magasin, tout est rangé par rayon, même sans réseau.</p>
         <div class="actions">
           <a class="btn primary" href="installer.html">Installer Courses</a>
           <a class="btn line" href="../">Essayer dans le navigateur</a>
+        </div>
         </div>
         <div class="demo" id="demo" aria-label="Démonstration : deux téléphones partagent la même liste">
           <div><div class="who"><span class="av" style="background:#1f5fcc">L</span>Téléphone de Léa</div><div class="phone"><div class="screen" data-me="Léa"></div></div></div>
@@ -39,6 +42,7 @@
         </div>
         <p class="demo-hint">Touchez un article chez Léa : il passe dans son caddie, et Hugo le voit aussitôt.</p>
       </div>
+      <div class="shelf" aria-hidden="true"><div class="track"><figure><img src="img/p/tomato.png" alt="" width="160" height="160" loading="lazy"><figcaption>Tomates</figcaption></figure><figure><img src="img/p/banana.png" alt="" width="160" height="160" loading="lazy"><figcaption>Bananes</figcaption></figure><figure><img src="img/p/loaf-baguette.png" alt="" width="160" height="160" loading="lazy"><figcaption>Baguette</figcaption></figure><figure><img src="img/p/carton.png" alt="" width="160" height="160" loading="lazy"><figcaption>Lait</figcaption></figure><figure><img src="img/p/cheese.png" alt="" width="160" height="160" loading="lazy"><figcaption>Fromage</figcaption></figure><figure><img src="img/p/egg.png" alt="" width="160" height="160" loading="lazy"><figcaption>Œufs</figcaption></figure><figure><img src="img/p/strawberry.png" alt="" width="160" height="160" loading="lazy"><figcaption>Fraises</figcaption></figure><figure><img src="img/p/avocado.png" alt="" width="160" height="160" loading="lazy"><figcaption>Avocats</figcaption></figure><figure><img src="img/p/apple.png" alt="" width="160" height="160" loading="lazy"><figcaption>Pommes</figcaption></figure><figure><img src="img/p/lemon.png" alt="" width="160" height="160" loading="lazy"><figcaption>Citrons</figcaption></figure><figure><img src="img/p/carrot.png" alt="" width="160" height="160" loading="lazy"><figcaption>Carottes</figcaption></figure><figure><img src="img/p/croissant.png" alt="" width="160" height="160" loading="lazy"><figcaption>Croissants</figcaption></figure><figure><img src="img/p/broccoli.png" alt="" width="160" height="160" loading="lazy"><figcaption>Brocoli</figcaption></figure><figure><img src="img/p/grapes.png" alt="" width="160" height="160" loading="lazy"><figcaption>Raisin</figcaption></figure><figure><img src="img/p/pear.png" alt="" width="160" height="160" loading="lazy"><figcaption>Poires</figcaption></figure><figure><img src="img/p/orange.png" alt="" width="160" height="160" loading="lazy"><figcaption>Oranges</figcaption></figure><figure><img src="img/p/tomato.png" alt="" width="160" height="160" loading="lazy"><figcaption>Tomates</figcaption></figure><figure><img src="img/p/banana.png" alt="" width="160" height="160" loading="lazy"><figcaption>Bananes</figcaption></figure><figure><img src="img/p/loaf-baguette.png" alt="" width="160" height="160" loading="lazy"><figcaption>Baguette</figcaption></figure><figure><img src="img/p/carton.png" alt="" width="160" height="160" loading="lazy"><figcaption>Lait</figcaption></figure><figure><img src="img/p/cheese.png" alt="" width="160" height="160" loading="lazy"><figcaption>Fromage</figcaption></figure><figure><img src="img/p/egg.png" alt="" width="160" height="160" loading="lazy"><figcaption>Œufs</figcaption></figure><figure><img src="img/p/strawberry.png" alt="" width="160" height="160" loading="lazy"><figcaption>Fraises</figcaption></figure><figure><img src="img/p/avocado.png" alt="" width="160" height="160" loading="lazy"><figcaption>Avocats</figcaption></figure><figure><img src="img/p/apple.png" alt="" width="160" height="160" loading="lazy"><figcaption>Pommes</figcaption></figure><figure><img src="img/p/lemon.png" alt="" width="160" height="160" loading="lazy"><figcaption>Citrons</figcaption></figure><figure><img src="img/p/carrot.png" alt="" width="160" height="160" loading="lazy"><figcaption>Carottes</figcaption></figure><figure><img src="img/p/croissant.png" alt="" width="160" height="160" loading="lazy"><figcaption>Croissants</figcaption></figure><figure><img src="img/p/broccoli.png" alt="" width="160" height="160" loading="lazy"><figcaption>Brocoli</figcaption></figure><figure><img src="img/p/grapes.png" alt="" width="160" height="160" loading="lazy"><figcaption>Raisin</figcaption></figure><figure><img src="img/p/pear.png" alt="" width="160" height="160" loading="lazy"><figcaption>Poires</figcaption></figure><figure><img src="img/p/orange.png" alt="" width="160" height="160" loading="lazy"><figcaption>Oranges</figcaption></figure></div></div>
     </div>
 
     <section class="store" id="magasin">
@@ -124,13 +128,14 @@
           <div class="tile">
             <div><h3>Ce qui revient</h3><p>Ce que vous rachetez souvent réapparaît quand c'est le moment.</p></div>
             <div class="ui mini-rows">
-              <div><span>Litière <small>tous les 14 jours</small></span><em>suggéré</em></div>
-              <div><span>Café <small>toutes les 3 semaines</small></span><em>suggéré</em></div>
+              <div><span><img src="img/p/carton.png" alt="">Lait <small>chaque semaine</small></span><em>suggéré</em></div>
+              <div><span><img src="img/p/banana.png" alt="">Bananes <small>tous les 5 jours</small></span><em>suggéré</em></div>
+              <div><span><img src="img/p/cheese.png" alt="">Fromage <small>tous les 10 jours</small></span><em>suggéré</em></div>
             </div>
           </div>
           <div class="tile">
             <div><h3>Paniers</h3><p>Les articles qui vont ensemble, ajoutés d'un toucher.</p></div>
-            <div class="ui chips-ui"><span class="on">+ Bébé</span><span>+ Apéro</span><span>+ Petit-déj</span><span>+ Ménage</span></div>
+            <div class="ui chips-ui"><span class="on"><img src="img/p/croissant.png" alt="">Petit-déj</span><span><img src="img/p/cheese.png" alt="">Apéro</span><span><img src="img/p/apple.png" alt="">Goûter</span><span><img src="img/p/broccoli.png" alt="">Légumes</span></div>
           </div>
           <div class="tile w2">
             <div><h3>Qui fait quoi</h3><p>On voit qui a ajouté quoi, qui part en courses, et ce qui a été pris pour vous.</p></div>
@@ -169,7 +174,7 @@
               <a class="btn line" href="../">Ouvrir dans le navigateur</a>
             </div>
           </div>
-          <div class="qr"><img src="img/qr.svg" alt="QR code vers Courses" width="172" height="172">Visez avec l'appareil photo du téléphone</div>
+          <canvas id="bag3d" class="bag3d" aria-hidden="true"></canvas>
         </div>
       </div>
     </div>
@@ -178,11 +183,13 @@
   <footer>
     <div class="wrap">
       <span>Courses</span>
-      <span><a href="installer.html">Installer</a> · <a href="cgu.html">Conditions et confidentialité</a></span>
+      <span><a href="installer.html">Installer</a> · <a href="cgu.html">Conditions et confidentialité</a> · Modèles 3D : <a href="https://kenney.nl">Kenney</a> (CC0)</span>
     </div>
   </footer>
 
   <script src="../src/icons.js"></script>
   <script src="site.js"></script>
+  <script type="importmap">{ "imports": { "three": "./vendor/three/build/three.module.min.js" } }</script>
+  <script type="module" src="3d.js"></script>
 </body>
 </html>
