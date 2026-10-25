@@ -1,6 +1,5 @@
-// Site de présentation : démo des deux téléphones, état réseau de la grille, onglets de la page d'installation
+// Site de présentation : démo des deux téléphones, déroulé qui suit le défilement, état réseau de la grille, onglets de la page d'installation
 
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ---------- Démo : la même liste sur deux téléphones ----------
@@ -83,15 +82,28 @@ if (demo) {
   });
   drawAll();
   // La démo ne tourne que lorsqu'elle est visible
-  if (!reduced) new IntersectionObserver(([e]) => {
+  new IntersectionObserver(([e]) => {
     if (e.isIntersecting && !timer) next();
     if (!e.isIntersecting && timer) { clearTimeout(timer); timer = null; }
   }).observe(demo);
 }
 
+// ---------- Déroulé : l'écran du téléphone suit l'étape lue ----------
+const steps = document.querySelectorAll('.flow .step');
+if (steps.length) {
+  const shots = document.querySelectorAll('.flow-phone img');
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    const k = [...steps].indexOf(e.target);
+    steps.forEach((s, j) => s.classList.toggle('on', j === k));
+    shots.forEach((s, j) => s.classList.toggle('on', j === k));
+  }), { rootMargin: '-45% 0px -45% 0px' });
+  steps.forEach(s => io.observe(s));
+}
+
 // ---------- Grille : « Hors ligne » puis « À jour » ----------
 const net = document.getElementById('netStatus');
-if (net && !reduced) {
+if (net) {
   let ok = false;
   setInterval(() => {
     ok = !ok;

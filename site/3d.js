@@ -1,11 +1,11 @@
 // Produits en 3D (modèles Kenney Food Kit, CC0) : ils flottent autour du titre et tombent dans le sac en bas de page.
-// Rendu seulement quand la scène est visible ; mouvement réduit = image fixe.
+// Rendu seulement quand la scène est visible ; « réduire les animations » = mouvement doux (pas de chute, flottement lent).
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/three/jsm/loaders/GLTFLoader.js';
 import { RoomEnvironment } from './vendor/three/jsm/environments/RoomEnvironment.js';
 import { RoundedBoxGeometry } from './vendor/three/jsm/geometries/RoundedBoxGeometry.js';
 
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const loader = new GLTFLoader();
 const cache = {};
 
@@ -101,10 +101,11 @@ async function hero(canvas) {
   const tick = (t, dt) => {
     const since = t - t0;
     for (const it of items) {
-      const a = reduced ? 1 : Math.min(1, Math.max(0, (since - it.delay) / 1.1));
+      const a = calm ? 1 : Math.min(1, Math.max(0, (since - it.delay) / 1.1));
       const drop = (1 - ease(a)) * 6;
-      it.g.position.set(it.home.x, it.home.y + drop + (reduced ? 0 : Math.sin(t * .9 + it.phase) * .15) - scrollY * .004 * (1 + it.p[3] * .3), it.home.z);
-      if (!reduced) { it.g.rotation.y += it.spin * dt; it.g.rotation.x = .35 + Math.sin(t * .6 + it.phase) * .12; }
+      it.g.position.set(it.home.x, it.home.y + drop + Math.sin(t * (calm ? .5 : .9) + it.phase) * (calm ? .1 : .15) - scrollY * .004 * (1 + it.p[3] * .3), it.home.z);
+      it.g.rotation.y += it.spin * dt * (calm ? .4 : 1);
+      it.g.rotation.x = .35 + Math.sin(t * .6 + it.phase) * (calm ? .06 : .12);
     }
     s.camera.position.x += (mouse.x * 1.2 - s.camera.position.x) * .05;
     s.camera.position.y += (-mouse.y * .8 - s.camera.position.y) * .05;
@@ -112,7 +113,7 @@ async function hero(canvas) {
   };
   tick(performance.now() / 1000, 0);
   s.renderer.render(s.scene, s.camera);
-  if (!reduced) animate(canvas, s, tick);
+  animate(canvas, s, tick);
 }
 
 // ---------- En bas : les courses tombent dans le panier ----------
@@ -163,9 +164,10 @@ async function bag(canvas) {
     b.add(g); // les produits suivent le panier quand il pivote
     pile.push({ g, slot, v: 0, rest: false, spin: new THREE.Vector3(1 + Math.random() * 3, 1 + Math.random() * 3, 0), lean: new THREE.Euler((Math.random() - .5) * .8, Math.random() * 6, (Math.random() - .5) * .8) });
   };
-  if (reduced) {
+  // Mouvement doux : panier déjà rempli, qui oscille lentement
+  if (calm) {
     SLOTS.forEach(sl => { drop(sl); const p = pile.at(-1); p.g.position.y = sl[1]; p.g.rotation.copy(p.lean); });
-    s.renderer.render(s.scene, s.camera);
+    animate(canvas, s, t => { b.rotation.y = Math.sin(t * .3) * .14 - .1; });
     return;
   }
   const tick = (t, dt) => {
