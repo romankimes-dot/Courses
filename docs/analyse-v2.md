@@ -186,7 +186,43 @@ l'écran d'accueil des deux téléphones. 2) Deux semaines de vraies courses ave
 compter qui ajoute. 3) Si ≥ 2 contributeurs à la maison seulement : distribuer gratuitement à 50 foyers avec un lien allégé (code
 seul), une limite de taille côté SQL et un compteur « 2e contributeur » calculé depuis la table `records` ; vendre après, pas avant.
 
-## 5. Suite proposée
+## 5. Business plan et modèle retenu (piste du propriétaire, 25 octobre 2026)
+
+Hypothèses (ordres de grandeur, non vérifiés) : prix 2,99 € TTC ≈ 2,49 € HT, commission des stores 15 % → **≈ 2,10 € net par vente**.
+
+| Scénario | Ventes par an | Revenu net (avant cotisations) |
+|---|---|---|
+| Prudent (bouche-à-oreille, un store) | 100 | ≈ 210 € |
+| Réaliste (test à 50 foyers réussi) | 500 | ≈ 1 050 € |
+| Optimiste | 2 000 | ≈ 4 200 € |
+
+Une seule app sans acquisition rapporte peu : le revenu annexe visé vient du portefeuille de 2 ou 3 apps et de l'expérience acquise.
+
+Dépenses : Google Play 25 $ une fois (équilibre à ≈ 20 ventes) ; Apple 99 $/an (≈ 45 ventes/an pour l'amortir) ; domaine ≈ 15 €/an ;
+adresse publique DSA : 0 € (adresse perso) ou 120 à 360 €/an (domiciliation) ; Supabase 0 € puis 25 $/mois (≈ 130 ventes/an) ;
+INPI 190 € (facultatif) ; textes légaux 0 € (rédigés par le propriétaire, expert-comptable).
+
+**Statut** : pas de société. Micro-entrepreneur (cotisations ≈ 26 %, plafond 77 700 €), « Simple App » déclaré comme nom commercial ;
+les stores affichent le nom légal et l'adresse. Société (SASU/EURL) quand une deuxième app existe ou que le revenu le justifie.
+À vérifier : TVA intracommunautaire sur les ventes via Apple et Google, BNC ou BIC, compatibilité avec l'activité d'expert-comptable.
+
+**Modèle retenu pour étude : gratuit en solo, déblocage « Foyer » pour collaborer**
+- Gratuit : 1 utilisateur, 100 % local, sans serveur, donc aucune panne possible. Un téléchargement gratuit est bien plus fréquent qu'un achat.
+- Payant : déblocage unique de la collaboration (3,99 à 4,99 €), payé par le créateur de la liste ; la personne invitée rejoint gratuitement
+  (un couple ne paie pas deux fois, chaque invitation fait de la publicité). Le coût serveur n'existe que pour les foyers qui collaborent.
+- Pas d'abonnement pour l'instant (support continu), **pas de publicités** (contredisent « sans pub », consentement RGPD, formulaires
+  plus lourds, revenu faible), **pas d'anglais** avant le test à deux (dictionnaire de rayons à refaire par langue).
+- Conséquences techniques : achat intégré (Play Billing via TWA ; StoreKit sur iPhone) ; un drapeau « débloqué » enregistré sur la liste
+  et vérifié côté serveur, sans compte utilisateur. Règles d'achat intégré, TVA et fraude à vérifier avant de s'y engager.
+
+**Principe « zéro entretien »** (le propriétaire ne veut ni mises à jour à répétition ni surveillance de serveur) :
+- Android seulement, via TWA : l'app chargée est le site, donc les évolutions passent par GitHub sans mise à jour de store ; rebuild d'environ
+  1 h par an si Google exige une version d'Android plus récente (à vérifier).
+- iPhone : version web installée sur l'écran d'accueil ; pas d'App Store (compte annuel, Xcode, Mac, refus possibles = la vraie charge).
+- Supabase géré (aucun serveur à soi), plafond de dépense activé, contrôle de santé automatique (GitHub Actions, e-mail seulement en cas de panne).
+- Fiche : « application terminée, correctifs de sécurité seulement » ; CGU : « service tant que l'application est commercialisée ».
+
+## 6. Suite proposée
 
 1. **Semaine 1, pour le foyer** : points 1, 2, 4, 4b (mémoire pleine, tickets par id, « Remboursé » confirmé, invitation à
    installer sur l'écran d'accueil), tests avec assertions. Puis gel.
