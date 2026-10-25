@@ -10,8 +10,8 @@ Trois onglets, trois moments :
   toujours en haut, basiques et recettes, envoi de la liste par message, « J'y vais » visible par les autres.
 - **🛒 Courses** (pendant) : magasin, ordre des rayons (appris selon l'ordre où l'on coche), cases en grand,
   articles cochés rayés dans « Dans le panier » en bas, commerces, plan et circuit (avancé), mode à deux.
-- **💶 Budget** (après) : dépensé ce mois, scan de ticket gratuit avec page de validation qui apprend,
-  prix suivis, conso estimée.
+- **💶 Dépenses** (après) : dépensé ce mois, budget mensuel, conso estimée ; partage des dépenses
+  (qui doit quoi) en option, désactivé pour un compte joint.
 - **⚙️ Réglages** : prénom, apparence (auto/clair/sombre), magasins, rayons, plan, commerces, partage.
 
 Fiche produit (›) : rayon, précision, indispensable, photo, historique de prix. « Annuler » après une suppression.

@@ -42,6 +42,8 @@ Synthèse des demandes du propriétaire (fil de conception d'octobre 2026), des 
 | 25 | Pas d'emojis natifs dans l'app (ceux tapés par l'utilisateur restent) | Icônes au trait (`src/icons.js`) |
 | 26 | Indispensables gérés dans Mes articles, plus de puces d'indispensables sur la liste (mais « indispensable » toujours proposé à la création d'un article) ; **liste d'indispensables longue** et **beaucoup de recettes** : rechercher, organiser, rester simple | Mes articles > filtre Indispensables (par rayon, recherche, Tout ajouter) ; Repas > Mes recettes (recherche nom/catégorie/ingrédient, rangées par catégorie) |
 | 28 | À la création d'un article, ne pas forcément l'ajouter à la liste : choisir liste et/ou indispensable | Fenêtre « Nouvel article » : rayon, Ajouter à la liste, Indispensable (Annuler = rien n'est créé) |
+| 29 | Le scan a lu le ticket sans reconnaître les articles ni le bon total : « soit à améliorer clairement, soit à mettre de côté » | **Mis de côté** : scan retiré de l'app (`src/scan.js` reste dans l'historique Git). Le montant se saisit en terminant les courses |
+| 30 | « Je ne veux pas être en mode Tricount » : Raphaëlle et moi avons un compte joint | Partage des dépenses devenu une **option de la liste** (Réglages > Cette liste), désactivée par défaut : on suit juste le budget commun |
 | 27 | Ne pas avoir à rouvrir la liste toutes les 3 secondes (veille de l'iPhone) | Écran gardé allumé tant que la liste est affichée (Wake Lock ; iPhone : iOS 18.4 et +) |
 
 ## 3. Décisions prises
@@ -51,11 +53,11 @@ Synthèse des demandes du propriétaire (fil de conception d'octobre 2026), des 
 - **Partage sans comptes** : Supabase (projet `lxvtsxjsjyeyppybfrqx`, région Paris), une liste = un code secret long dans le lien d'invitation ; table accessible seulement via les fonctions `push`/`pull` (`supabase/schema.sql`). Toute donnée reçue est nettoyée (`clean()` dans `src/app.js`).
 - **Parcours (v3, octobre 2026)** : la v2 avait deux écrans pour la même liste (Liste et Courses) avec deux gestes différents, les basiques cachés et 4 barres empilées : ressenti de régression. Désormais **une seule liste**, utilisée avant et pendant les courses, **un seul geste** : toucher = dans le caddie (rayé, en bas), glisser à gauche = retirer (avec Annuler), › = fiche. « J'y vais » passe la même liste en mode magasin (choix du magasin, à deux, plan replié). Onglets : **Liste / Repas / Dépenses** ; en-tête : sélecteur de listes, 🔔 activité, ⚙️ réglages. Le plan du magasin et les chiffres détaillés restent repliés (« avancé »).
 - **Plusieurs listes** : chacune a son stockage sur le téléphone (clés suffixées, `src/lists.js`), son code de partage, ses membres et ses dépenses. Ouvrir un lien d'invitation n'écrase jamais une liste déjà utilisée : une nouvelle liste est créée.
-- **Dépenses partagées** : chaque passage en caisse note qui a payé ; parts égales entre membres ; remboursements suggérés ; dépense saisie à la main.
+- **Dépenses** : par défaut, compte joint (budget commun seulement). Option « Partager les dépenses » par liste : qui a payé, parts égales, remboursements suggérés.
 - **Repas** : recettes avec quantités, posées sur les 7 prochains jours ; un geste met les ingrédients sur la liste (quantités cumulées, on décoche ce qu'on a).
 - **Notifications** : fil d'activité 🔔 (ajouts des autres, départ en courses, articles pris pour moi, pas trouvés, dépenses) + notification du téléphone si autorisée, **tant que l'app est ouverte ou en arrière-plan**. App complètement fermée : nécessite un service push côté serveur (non fait).
 - **Prénom par téléphone**, affiché sur les ajouts ; « J'y vais » visible par les autres ; chacun ne termine que son propre panier.
-- **Scan gratuit** (Tesseract.js) + page de validation qui apprend ; pas d'abonnement.
+- **Scan de ticket** : essayé (Tesseract.js gratuit), résultat décevant sur un vrai ticket, mis de côté. À reprendre seulement avec une vraie piste (photos de tickets réels, ou API payante).
 
 ## 4. Retours du panel (octobre 2026)
 
@@ -75,5 +77,5 @@ Demandés par plusieurs personas, à arbitrer par le propriétaire :
 4. ~~Menus de la semaine~~ : fait. Reste : nombre de personnes / portions, mémoire « j'en ai déjà ».
 5. Notifications : fil d'activité et notifications app ouverte faits. Reste : **push app fermée** (Supabase Edge Function + Web Push, clés VAPID).
 6. **Synchro plus fine** : fusion champ par champ (aujourd'hui l'article entier), contrôles côté serveur (dates dans le futur, taille), photos hors de la synchro (Supabase Storage).
-7. **Scan** : reconnaître le magasin depuis l'en-tête du ticket, ne pas remplacer en silence un montant saisi, essayer l'API Claude si l'OCR gratuit déçoit sur de vraies photos.
+7. **Scan (mis de côté)** : s'il revient, reconnaître le magasin depuis l'en-tête du ticket, ne pas remplacer en silence un montant saisi, essayer l'API Claude si l'OCR gratuit déçoit sur de vraies photos.
 8. Divers : ordre des rayons par glisser-déposer, dictée vocale, raccourci écran d'accueil vers l'ajout, cibles tactiles de 44 px partout, dévoiler les fonctions avancées avec l'usage (budget après 3 courses…).

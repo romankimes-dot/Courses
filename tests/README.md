@@ -19,7 +19,7 @@ Un dossier optionnel en argument reçoit les captures d'écran.
 | `liste-unique.js` | ajout multiple et quantités, glisser pour retirer + Annuler, J'y vais, caddie, terminer |
 | `plusieurs-listes.js` | créer et changer de liste, rejoindre un lien sans écraser sa liste |
 | `repas.js` | recette avec quantités, posée sur deux jours, ingrédients cumulés ajoutés |
-| `depenses.js` | qui doit quoi, remboursement, dépense à la main |
+| `depenses.js` | compte joint par défaut, option partage : qui doit quoi, remboursement, dépense à la main |
 | `activite.js` | fil d'activité : ajout d'un autre, départ en courses, article pris pour moi |
 | `parcours-a-deux.js` | accueil, rejoindre, ajout multiple, « J'y vais », « nouveau » pendant les courses, terminer, annuler, budget |
 | `hors-ligne.js` | ajout et coche hors-ligne, rechargement sans réseau, fusion au retour du réseau |
