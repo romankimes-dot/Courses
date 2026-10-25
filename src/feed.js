@@ -30,6 +30,7 @@ function noteActivity(prev, rows) {
       const name = key.slice(8);
       if (others(name) && n !== o && Date.now() - n < 36e5) texts.push(`${name} part faire les courses : ajoutez vite !`);
     }
+    if (key.startsWith('member:') && !o && others(key.slice(7))) texts.push(`${key.slice(7)} a rejoint la liste`);
     if (key.startsWith('trip:') && !o && others(n.by)) {
       texts.push(n.type === 'settle' ? `${n.from} a remboursé ${euro(n.total)} à ${n.to}`
         : n.type === 'expense' ? `${n.by} a ajouté une dépense : ${n.place} ${euro(n.total || 0)}`

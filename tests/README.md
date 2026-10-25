@@ -19,7 +19,7 @@ Un dossier optionnel en argument reçoit les captures d'écran.
 | `liste-unique.js` | ajout multiple et quantités, glisser pour retirer + Annuler, J'y vais, caddie, terminer |
 | `plusieurs-listes.js` | créer et changer de liste, rejoindre un lien sans écraser sa liste |
 | `repas.js` | recette avec quantités, posée sur deux jours, ingrédients cumulés ajoutés |
-| `tickets-et-suggestions.js` | ticket modifié (montant, part perso, articles ajoutés après coup), pré-remplissage de la liste et refus |
+| `tickets-et-suggestions.js` | ticket modifié (montant, parts hors partage attribuées à un membre, articles ajoutés après coup), pré-remplissage de la liste et refus |
 | `paniers.js` | paniers créés dans Mes articles, ajoutés en décochant ou d'un toucher depuis la liste (Annuler) |
 | `depenses.js` | compte joint par défaut, option partage : qui doit quoi, remboursement, dépense à la main |
 | `activite.js` | fil d'activité : ajout d'un autre, départ en courses, article pris pour moi |

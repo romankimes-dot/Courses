@@ -43,6 +43,13 @@ const NO_MAP = { cols: 6, rows: 8, cells: {}, entry: null, auto: false };
 // pour qu'un enregistrement malformé ne puisse rien injecter dans la page
 const ID = /^[\w-]{1,40}$/, PHOTO = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/, CELL = /^\d{1,2},\d{1,2}$/;
 const num0 = v => Number.isFinite(+v) ? +v : 0;
+// Parts hors partage d'un ticket [{ by, amount }] ; l'ancien t.own (part perso du payeur) devient une part
+const tripParts = (t, str) => {
+  const ps = Array.isArray(t.parts) ? t.parts : t.own ? [{ by: t.by, amount: t.own }] : [];
+  const out = ps.filter(p => p && typeof p === 'object').map(p => ({ by: str(p.by), amount: p.amount == null ? null : num0(p.amount) }));
+  return out.length ? out : undefined;
+};
+const partsSum = t => (t.parts || []).reduce((s, p) => s + (p.amount || 0), 0);
 function clean(st) {
   const ok = x => x && typeof x === 'object' && ID.test(x.id) && typeof x.name === 'string';
   st.items = st.items.filter(ok);
@@ -74,7 +81,7 @@ function clean(st) {
   }
   const str = v => v == null ? undefined : String(v).slice(0, 60);
   st.trips = st.trips.filter(t => t && ID.test(t.id)).map(t => ({ ...t, date: num0(t.date), n: num0(t.n), total: t.total == null ? null : num0(t.total), place: String(t.place || ''),
-    names: Array.isArray(t.names) ? t.names.map(String) : undefined, by: str(t.by), from: str(t.from), to: str(t.to), own: t.own == null ? undefined : num0(t.own), type: ['settle', 'expense'].includes(t.type) ? t.type : undefined }));
+    names: Array.isArray(t.names) ? t.names.map(String) : undefined, by: str(t.by), from: str(t.from), to: str(t.to), parts: tripParts(t, str), type: ['settle', 'expense'].includes(t.type) ? t.type : undefined }));
   st.recipes.forEach(r => { r.qty = Object.fromEntries(Object.entries(r.qty && typeof r.qty === 'object' ? r.qty : {}).filter(([k]) => ID.test(k)).map(([k, v]) => [k, String(v).slice(0, 30)])); });
   const old = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
   st.plan = Object.fromEntries(Object.entries(st.plan || {}).filter(([d, ids]) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= old && Array.isArray(ids)).map(([d, ids]) => [d, ids.filter(x => ID.test(x))]));
@@ -87,6 +94,7 @@ function clean(st) {
   // Qui est en courses : un enregistrement par personne (sinon deux « J'y vais » simultanés s'écrasent)
   st.shoppers = Object.fromEntries(Object.entries(st.shoppers || st.settings.shoppers || {}).filter(([n]) => /^[^:]{1,40}$/.test(n)).map(([n, at]) => [n, num0(at)]));
   delete st.settings.shoppers;
+  st.people = Object.fromEntries(Object.entries(st.people || {}).filter(([n]) => /^[^:]{1,40}$/.test(n)).map(([n, at]) => [n, num0(at)]));
   return st;
 }
 
@@ -101,6 +109,7 @@ function upgrade(st) {
   st.settings ||= {};
   st.aliases ||= {}; // libellé de ticket normalisé -> id d'article, ou 'ignore'
   st.plan ||= {}; // repas : date -> recettes
+  st.people ||= {}; // membres de la liste partagée : prénom -> date d'arrivée
   if (!st.stores) { st.stores = [newStore()]; if (st.map) st.stores[0].map = st.map; }
   delete st.map;
   return clean(st);
@@ -620,7 +629,7 @@ const views = {
       <h3>Passages en caisse</h3>
       ${[...S.trips].sort((a, b) => b.date - a.date).slice(0, 20).map(t => `
         <div class="row" data-a="openTrip" data-id="${t.id}">
-          <span class="name">${shortDate(t.date)} · ${esc(t.type === 'settle' ? `${t.from} → ${t.to}` : t.place)}${t.n ? ` <small>${t.n} art.</small>` : ''}${S.settings.split && t.by && t.type !== 'settle' ? ` <small>· payé par ${esc(t.by)}${t.own ? `, ${euro(t.own)} perso` : ''}</small>` : ''}${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
+          <span class="name">${shortDate(t.date)} · ${esc(t.type === 'settle' ? `${t.from} → ${t.to}` : t.place)}${t.n ? ` <small>${t.n} art.</small>` : ''}${S.settings.split && t.by && t.type !== 'settle' ? ` <small>· payé par ${esc(t.by)}${partsSum(t) ? `, ${euro(partsSum(t))} hors partage` : ''}</small>` : ''}${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
           <span>${t.total == null ? '<small>Ajouter €</small>' : euro(t.total)}</span>${icon.right}
         </div>`).join('') || '<p class="hint">Le montant est demandé (facultatif) quand vous terminez des courses.</p>'}
       ${S.trips.length ? '<p class="hint">Touchez un ticket pour corriger le montant ou ajouter des articles pris en plus de la liste.</p>' : ''}`;

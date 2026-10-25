@@ -173,6 +173,8 @@ details.adv summary { cursor: pointer; color: var(--accent); font-weight: 600; p
 .day.today { outline: 2px solid var(--accent-soft); }
 .day select { border-radius: 16px; padding: 4px 8px; font-size: 14px; }
 .qty { width: 80px; flex: none; }
+.part select { flex: 1; min-width: 0; }
+.part > span { color: var(--muted); }
 .owe { background: var(--card); border-radius: 8px; }
 
 .suggest { margin: -2px 0 8px; }
