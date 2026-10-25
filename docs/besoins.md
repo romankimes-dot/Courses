@@ -118,6 +118,9 @@ au moins un article par semaine (objectif ≥ 2 par foyer).
 
 ## 7. À décider / à faire (backlog)
 
+**Voir d'abord `docs/analyse-v2.md`** (25 octobre 2026) : seconde phase de tests à six voix, constats priorisés et décisions à prendre ;
+elle précise et remplace en partie cette liste.
+
 1. **Ce qu'on partage** : lecture seule ; **révoquer un accès** (changer le code de la liste).
 2. Dépenses partagées : parts inégales globales (ex. 60/40), exclure quelqu'un d'une dépense.
 3. Repas : nombre de personnes / portions, mémoire « j'en ai déjà ».

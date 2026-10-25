@@ -16,7 +16,8 @@ de 600 mots max au même format (verdict ; constats Bloquant / Important / Mineu
 | 1 | 5 personas testeurs (Playwright, 2 à 3 téléphones) | léger | 19 | 99 k |
 | 1 | Marketeur (4 recherches web max) | standard | 8 | 81 k |
 | 1 | Éditeur « Simple App » (8 recherches web max) | standard | 12 | 77 k |
-| 2 | Contradicteur (les 4 rapports + 2 vérifications) | standard | voir §4.6 | voir §4.6 |
+| 2 | Contradicteur (les 4 rapports + 2 vérifications) | standard | 5 | 75 k |
+| | **Total agents** | | 82 | **≈ 575 k** |
 
 Le chef d'orchestre n'a lu aucun fichier source : il a rédigé les briefs, relayé les rapports et écrit cette synthèse.
 
@@ -44,32 +45,37 @@ Gravité : B = bloquant, I = important, M = mineur. Effort : F = quelques heures
 |---|---|---|---|---|---|
 | 1 | Mémoire pleine : `seq` écrit avant `save()`, lignes perdues au rechargement ; photos `data:` en localStorage (quota ~5 Mo, `snap` double le volume) | Dev | B | M | F |
 | 2 | Tickets par nom (`trips.names`) : renommage casse ticket ↔ historique ; suppression laisse ligne fantôme et quantité orpheline ; `delItem` du catalogue ne nettoie rien | Testeurs, Dev | B | M | F |
-| 3 | Fusion par enregistrement entier : « Terminer » chez A pendant une précision hors-ligne chez B → article de retour, achat perdu ; idem `settings` et `plan` | Dev | I | É | F |
-| 4 | « Remboursé » possible par n'importe quel membre, sans confirmation | Testeurs | I | F | F |
-| 5 | Cibles tactiles < 44 px (›, OK, ☆, ×, cloche, réglages, puces) ; en très grand texte à 320 px, barres de réglages, filtres et en-tête débordent | UX, Testeurs | B | M | T |
+| 3 | Fusion par enregistrement entier : « Terminer » chez A pendant une précision hors-ligne chez B → article de retour, achat perdu ; idem `settings` et `plan`. *Contradicteur : conflit rare, ne pas construire un CRDT maison ; à revoir seulement si le cas se produit en usage réel* | Dev | I | É | — |
+| 4 | « Remboursé » possible par n'importe quel membre, sans confirmation. *Contradicteur : dans le modèle de confiance du foyer ; une confirmation suffit* | Testeurs | M | F | F |
+| 4b | Sur iPhone, Safari efface le stockage d'un site **non installé** après 7 jours sans visite : inviter à installer sur l'écran d'accueil, et le dire à qui rejoint | Contradicteur | B | F | F |
+| 5 | Cibles tactiles < 44 px (›, OK, ☆, ×, cloche, réglages, puces) ; en très grand texte à 320 px, barres de réglages, filtres et en-tête débordent. *Une journée de CSS* | UX, Testeurs | I | M | T |
 | 6 | Retirer un article sans glisser : seulement via › puis la fiche | Testeurs, UX | I | F | T |
 | 7 | Jargon développeur dans Réglages (« Serveur de partage », clé publique, plan avancé) | UX | I | F | T |
 | 8 | Paniers invisibles tant qu'aucun n'existe ; 12 gestes pour en créer un ; pas de « Enregistrer comme panier » depuis la liste | UX | I | M | T |
 | 9 | Repas : sept « + repas » identiques sans explication après la première recette ; pas de retour après l'ajout des ingrédients | UX | I | F | T |
-| 10 | Libellés de validation incohérents (OK / Terminé / Terminer / Créer / Ajouter) ; qui rejoint voit prénom, astuce, puis « Invitez le foyer » | UX | I | F | T |
-| 11 | Serveur : `push` sans plafond (taille, lignes, débit) avec clé publique ; `u` géant rend un enregistrement inécrasable ; le lien d'invitation transporte url et clé | Dev | I | M | V |
-| 12 | Pas de révocation d'accès (changer le code de la liste) ; sans compte, changer de téléphone sans son lien = tout perdre | Dev, Marketeur | B | M | V |
-| 13 | Dépôt et GitHub Pages publics : l'app est déjà gratuite ; politique de confidentialité absente ; manifest sans PNG 192/512 | Marketeur, Dev, Éditeur | B | F | V |
+| 10 | **Parcours de qui rejoint** (prénom, astuce, puis « Invitez le foyer » : trois bandeaux, « Sans réseau » affiché quelques secondes) : *le vrai bloquant UX selon le contradicteur* ; libellés de validation incohérents (OK / Terminé / Terminer / Créer / Ajouter) | UX, Testeurs | B | F | T |
+| 11 | Serveur : `push` sans plafond (taille, lignes, débit) avec clé publique ; le lien d'invitation transporte url et clé (lien = code seul). *Le `u` géant est dans le modèle de confiance : écrêter côté serveur quand on touche au SQL* | Dev | I | M | T |
+| 12 | Pas de révocation d'accès (changer le code de la liste) ni d'effacement d'un foyer à la demande ; continuité du service (Supabase gratuit au nom d'un particulier) non pensée. *« Changer de téléphone = tout perdre » est infirmé : Exporter/Importer existent, le lien se régénère* | Dev, Marketeur, Contradicteur | B | M | V |
+| 12b | Mesurer le risque n° 1 (outil d'une seule personne) : compteur « 2e contributeur » calculé depuis la table `records` ; le rythme d'achat ne se voit qu'après 4 à 6 semaines, donc un test à 50 foyers doit durer 8 semaines | Contradicteur | I | F | T |
+| 13 | Dépôt et GitHub Pages publics : l'app est déjà gratuite, et le lien d'invitation pointe sur cet hébergement (domaine propre nécessaire avant de fermer la version web) ; politique de confidentialité absente ; manifest sans PNG 192/512 ; activer le partage familial des stores pour ne pas faire payer deux fois un couple | Marketeur, Dev, Éditeur, Contradicteur | B | F | V |
 | 14 | Nom « Courses » introuvable en store (candidats : Cabas, Pense-Courses, Mes Rayons, Panier Commun ; « Nos Courses » pris) | Marketeur | B | F | V |
 | 15 | Aucun test n'asserte ni ne tourne en CI : toute régression passe en silence | Dev | I | M | V |
 | 16 | Mineurs : « Sans réseau » affiché à l'arrivée par lien ; puce « à racheter » sans motif ; « 3 bouteille » ; « Annuler » qui masque la barre d'onglets à 320 px ; état vide « Indispensables » peu guidant | Testeurs, UX | M | F | T |
 
 ## 3. Décisions à prendre
 
-1. **Corriger les 4 pertes de données (points 1 à 4) maintenant**, même sans projet de vente : elles touchent le foyer.
-   Recommandé : oui ; ordre 1, 2, 4, puis 3 (le plus long).
-2. **Ouvrir le chantier « vendable »** (points 5 à 15) ou rester une app personnelle ? Il représente plusieurs semaines ;
-   le marketeur conseille un test à 50 foyers avant toute fiche payante (go : ≥ 50 % de foyers actifs en S4, dont ≥ 50 %
-   à deux contributeurs, ≥ 10 payants).
-3. **Le nom** : choisir avant toute fiche ou page publique.
-4. **Simple App** : statut (micro-entrepreneur sous son nom, ou société pour afficher la marque), adresse publique
-   (domiciliation), sort de la version web (vitrine + démo, dépôt privé). Voir §4.5.
-5. **Les tests** : passer les scénarios en vrais tests (assertions + GitHub Actions) avant le chantier vendable.
+1. **Corriger maintenant ce qui touche le foyer** : points 1 (mémoire pleine), 2 (tickets par id), 4b (installer sur l'écran
+   d'accueil) et 4 (confirmation « Remboursé ») : deux à trois jours. Recommandé : oui, puis **geler** le développement.
+2. **Deux semaines de vraies courses avec Raphaëlle, sans rien développer** (son test « à froid » était déjà prévu) : compter
+   qui ajoute. C'est la réponse à la seule question qui compte : l'app est-elle l'outil d'une personne ou du foyer ?
+3. **Ensuite seulement, le chantier « distribuable »** (points 5 à 15), puis un test **gratuit** à 50 foyers sur 8 semaines,
+   avec le compteur « 2e contributeur » côté serveur ; vendre après un go (≥ 50 % de foyers actifs en S8, dont ≥ 50 % à deux
+   contributeurs), pas avant.
+4. **Le nom** : choisir avant toute page publique.
+5. **Simple App** : statut (micro-entrepreneur sous son nom, ou société pour afficher la marque), adresse publique
+   (domiciliation), sort de la version web (vitrine + démo, dépôt privé, domaine propre). Voir §4.5.
+6. **Ne pas construire** : comptes utilisateurs, fusion champ par champ, notifications app fermée, scan par API (§4.6).
+7. **Les tests** : passer les scénarios en vrais tests (assertions + GitHub Actions) avant le chantier distribuable.
 
 ## 4. Rapports condensés
 
@@ -146,11 +152,47 @@ Vendable à un petit nombre de foyers si l'on vend ce que Bring! ne vend pas. Te
 
 ### 4.6 Contradicteur
 
-*En cours : section ajoutée à la réception du rapport.*
+*La thèse « déjà optimale pour mon usage »* : vraie pour l'auteur, fausse pour un acheteur. Le verdict repose sur N = 1,
+le concepteur ; le produit vendu est un produit de couple dont le second membre n'a pas encore tranché (test « à froid » prévu).
+
+*Ce que personne n'a dit.*
+- Une app de foyer vendue à l'unité se paie deux fois (deux comptes store) sauf partage familial activé ; et le lien d'invitation
+  pointe sur l'hébergement web public : « version non publique » et « inviter le foyer » se contredisent sans domaine propre.
+- Le différenciateur n° 1 (rythme d'achat) n'apparaît qu'après deux achats validés par article, soit 4 à 6 semaines : un test
+  à 50 foyers mesuré en S4 montre à peine la fonction phare.
+- Sur iPhone, Safari efface le stockage d'un site **non installé sur l'écran d'accueil** après 7 jours sans visite : « tout sur le
+  téléphone » devient « tout perdu en silence » pour qui n'a pas installé.
+- Le vrai risque nommé par l'expert du panel (outil d'une seule personne, objectif ≥ 2 contributeurs) n'est repris par aucun
+  rapport, et personne ne dit comment le mesurer.
+- Vendre, c'est devenir responsable de traitement de 50 foyers (prénoms, habitudes, photos) sur un projet Supabase gratuit au nom
+  d'un particulier, maintenu éveillé par un ping : continuité si le hobby s'arrête, effacement à la demande, non chiffrés.
+
+*Surestimé.* « Changer de téléphone = tout perdre » (Exporter/Importer existent, le lien se régénère depuis tout téléphone membre,
+le serveur garde tout) ; « Remboursé » par n'importe qui et le `u` géant (la menace est un membre du foyer, qui peut déjà tout
+vider : cohérent avec le modèle de confiance, la rotation du code suffit) ; cibles tactiles en « bloquant » (une journée de CSS ;
+le vrai bloquant UX est le parcours de qui rejoint).
+
+*Vérifié.* Perte de données au quota : **confirmée** (séquence écrite avant la sauvegarde). « Tout perdre sans son lien » :
+**infirmé en partie** (export JSON complet, import, lien recalculé à la demande).
+
+*À ne pas construire.* Des comptes utilisateurs (tuent « sans compte », alourdissent le RGPD, n'apportent rien que l'export et la
+rotation du code ne donnent) ; la fusion champ par champ (un CRDT maison pour un conflit rare : corriger d'abord l'ordre
+sauvegarde/séquence) ; notifications app fermée et scan par API (coût serveur qu'un achat unique à 2,99 € ne couvre pas).
+
+*Le risque unique.* Que l'app reste l'outil d'une seule personne : tout ce qui a été jugé « optimal » l'a été par celui qui l'a construite.
+
+*Une semaine, dans l'ordre.* 1) Inverser sauvegarde/séquence, afficher « stockage plein » au lieu de « À jour », installer l'app sur
+l'écran d'accueil des deux téléphones. 2) Deux semaines de vraies courses avec Raphaëlle en test à froid, sans rien développer :
+compter qui ajoute. 3) Si ≥ 2 contributeurs à la maison seulement : distribuer gratuitement à 50 foyers avec un lien allégé (code
+seul), une limite de taille côté SQL et un compteur « 2e contributeur » calculé depuis la table `records` ; vendre après, pas avant.
 
 ## 5. Suite proposée
 
-1. **Semaine 1, pour le foyer** : points 1, 2, 4 (mémoire pleine, tickets par id, « Remboursé » confirmé), tests avec assertions.
-2. **Ensuite, si le chantier vendable est ouvert** : point 3 (fusion champ par champ), puis 5 à 10 (accessibilité, réglages, paniers, repas, libellés), puis 11 à 15 (serveur, révocation, sauvegarde du lien, dépôt privé, confidentialité, nom, CI).
-3. **En parallèle, décisions Simple App** : statut, nom, adresse, version web.
-4. **Puis** : test à 50 foyers sur Android, et seulement après un go, Apple.
+1. **Semaine 1, pour le foyer** : points 1, 2, 4, 4b (mémoire pleine, tickets par id, « Remboursé » confirmé, invitation à
+   installer sur l'écran d'accueil), tests avec assertions. Puis gel.
+2. **Semaines 2 et 3** : usage réel à deux, sans développement. Décision à la fin : foyer ou personne seule.
+3. **Si foyer** : chantier distribuable dans l'ordre 10 (qui rejoint), 5 à 9 (accessibilité, réglages, paniers, repas), 11 (lien
+   = code seul, plafonds SQL), 12 et 12b (révocation, effacement, compteur), 13 à 15 (dépôt privé, domaine, confidentialité,
+   nom, manifest, CI).
+4. **En parallèle, décisions Simple App** : statut, nom, adresse, version web.
+5. **Puis** : test gratuit à 50 foyers sur Android pendant 8 semaines ; après un go, prix à 2,99 € et Apple.
