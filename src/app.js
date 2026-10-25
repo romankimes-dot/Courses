@@ -166,7 +166,7 @@ function orderedAisles() {
   return [...S.aisles].sort((a, b) => pos(a) - pos(b));
 }
 let photoFor = null; // article auquel lier la photo en cours
-let brush = null, brushOpen = false; // brushOpen : garder le plan déplié pendant qu'on le dessine // pinceau de l'éditeur de plan : id de rayon, 'entry' ou '' (gomme)
+let brush = null; // pinceau de l'éditeur de plan : id de rayon, 'entry' ou '' (gomme)
 const app = document.getElementById('app');
 
 // Groupes par rayon (ou par commerce avec list = S.shops) ; un article d'un commerce a aisle = id du commerce
@@ -509,7 +509,7 @@ const views = {
             </div>
             ${who ? `<p class="small">${who === 1 ? 'Vous prenez le début' : 'Vous prenez la fin'} : ${groups.length ? groups.map(g => esc(g.aisle.name)).join(', ') : 'rien de plus à prendre'}. ${who === 1 ? 'L\'autre prend la fin.' : 'L\'autre prend le début.'}</p>` : ''}
           </div>` : ''}
-          ${mapped ? `<details class="adv"><summary>Plan du magasin</summary>
+          ${mapped ? `<details class="adv" data-k="shopMap"><summary>Plan du magasin</summary>
             <div class="seg">
               <button data-a="setAuto" data-v="1" class="${M().auto ? 'active' : ''}">Circuit le plus court</button>
               <button data-a="setAuto" data-v="" class="${M().auto ? '' : 'active'}">Ordre des rayons</button>
@@ -632,7 +632,7 @@ const views = {
         <button>OK</button>
       </form>
       ${moneyTop()}
-      <details class="adv"><summary>Plus de chiffres et budget mensuel</summary>
+      <details class="adv" data-k="figures"><summary>Plus de chiffres et budget mensuel</summary>
       <div class="tiles">
         ${tile('Ce mois-ci', sum(month), `${month.length} passage${month.length > 1 ? 's' : ''}`)}
         ${tile('Mois dernier', sum(prev), `${prev.length} passage${prev.length > 1 ? 's' : ''}`)}
@@ -675,7 +675,7 @@ const views = {
           <button class="ghost" data-a="leave">Ne plus partager</button>
         </div>` : `
         <button class="accent wide" data-a="shareNow">${icon.send} Partager cette liste</button>
-        <details class="adv"><summary>Serveur de partage</summary>
+        <details class="adv" data-k="server"><summary>Serveur de partage</summary>
         <form id="share" class="add">
           <input name="url" placeholder="https://xxxx.supabase.co" value="${SUPA_URL}" required>
           <input name="key" placeholder="Clé publique (publishable)" value="${SUPA_KEY}" required>
@@ -706,7 +706,7 @@ const views = {
         : `<button class="wide" data-a="askNotify">${icon.bell} Activer les notifications</button>`) : '<p class="hint">Ce navigateur ne gère pas les notifications. Sur iPhone : ajoutez l\'app à l\'écran d\'accueil.</p>'}
       <h3>Magasins et rayons</h3>
       ${storePicker(true)}
-      <details class="adv"><summary>Rayons (${list.length})</summary>
+      <details class="adv" data-k="aisles"><summary>Rayons (${list.length})</summary>
       <p class="hint">${st ? `Ordre des rayons chez ${esc(st.name)}${M().auto && Object.keys(M().cells).length ? ' (le plan prime pour les rayons placés)' : ''}.` : 'Ordre générique, utilisé dans les magasins non cartographiés.'}</p>
       ${list.map((a, k) => `
         <div class="row static">
@@ -722,7 +722,7 @@ const views = {
         <button>Ajouter</button>
       </form>
       </details>
-      <details class="adv"><summary>Commerces (${S.shops.length})</summary>
+      <details class="adv" data-k="shops"><summary>Commerces (${S.shops.length})</summary>
       <p class="hint">Boulangerie, boucher, marché… : leurs articles ont leur propre liste en courses.</p>
       ${S.shops.map(sh => `
         <div class="row static">
@@ -735,27 +735,27 @@ const views = {
         <button>Ajouter</button>
       </form>
       </details>
-      <details class="adv"${brushOpen ? ' open' : ''}><summary>Plan du magasin et circuit (avancé)</summary>
+      <details class="adv" data-k="plan"><summary>Plan du magasin et circuit</summary>
       ${st ? `
-      <p class="hint">Plan de ${esc(st.name)}. Choisissez un rayon, puis touchez les cases où il se trouve. Approximatif suffit.</p>
-      <div class="bar">
-        <select id="brush">
-          <option value="entry"${brush === 'entry' ? ' selected' : ''}>Entrée du magasin</option>
-          ${S.aisles.map(a => `<option value="${a.id}"${a.id === brush ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
-          <option value=""${brush === '' ? ' selected' : ''}>Gomme</option>
-        </select>
-        <span class="small">Largeur</span>
-        <button class="ghost" data-a="size" data-dim="cols" data-d="-1">−</button>${st.map.cols}<button class="ghost" data-a="size" data-dim="cols" data-d="1">+</button>
-        <span class="small">Hauteur</span>
-        <button class="ghost" data-a="size" data-dim="rows" data-d="-1">−</button>${st.map.rows}<button class="ghost" data-a="size" data-dim="rows" data-d="1">+</button>
+      <p class="hint">Plan de ${esc(st.name)}, approximatif. Choisissez l'entrée ou un rayon, puis touchez ou glissez sur les cases.</p>
+      <div class="palette">
+        <button data-a="setBrush" data-v="entry" class="${brush === 'entry' ? 'on' : ''}">${icon.door} Entrée</button>
+        ${S.aisles.map(a => `<button data-a="setBrush" data-v="${a.id}" class="${a.id === brush ? 'on' : ''}"><span class="dot" style="background:${aisleColor(a.id)}"></span>${esc(a.name)}</button>`).join('')}
+        <button data-a="setBrush" data-v="" class="${brush === '' ? 'on' : ''}">${icon.x} Gomme</button>
       </div>
-      <div class="grid" style="grid-template-columns:repeat(${st.map.cols},1fr)">
+      <div class="grid" id="planGrid" style="grid-template-columns:repeat(${st.map.cols},1fr)">
         ${Array.from({ length: st.map.rows * st.map.cols }, (_, n) => {
-          const c = `${n % st.map.cols},${Math.floor(n / st.map.cols)}`, id = st.map.cells[c];
-          const k = S.aisles.findIndex(a => a.id === id);
-          return `<div class="cell" data-a="paint" data-c="${c}"${id ? ` style="background:${aisleColor(id)}"` : ''}>${st.map.entry === c ? icon.door : k >= 0 ? k + 1 : ''}</div>`;
+          const c = `${n % st.map.cols},${Math.floor(n / st.map.cols)}`;
+          return `<div class="cell" data-c="${c}"${cellStyle(st.map, c)}>${cellLabel(st.map, c)}</div>`;
         }).join('')}
       </div>
+      <div class="bar sizes">
+        <span class="small">Largeur</span>
+        <button class="ghost" data-a="size" data-dim="cols" data-d="-1" aria-label="Moins large">−</button><b>${st.map.cols}</b><button class="ghost" data-a="size" data-dim="cols" data-d="1" aria-label="Plus large">+</button>
+        <span class="small">Profondeur</span>
+        <button class="ghost" data-a="size" data-dim="rows" data-d="-1" aria-label="Moins profond">−</button><b>${st.map.rows}</b><button class="ghost" data-a="size" data-dim="rows" data-d="1" aria-label="Plus profond">+</button>
+      </div>
+      ${Object.keys(st.map.cells).length ? `<p class="small">Aperçu</p>${mapSvg(route(S.aisles.map(a => a.id).filter(id => Object.values(st.map.cells).includes(id))).map(id => ({ aisle: S.aisles.find(a => a.id === id), items: [{}] })))}` : ''}
       <label class="small"><input type="checkbox" id="auto"${st.map.auto ? ' checked' : ''}> Calculer le circuit le plus court à partir du plan (entrée puis rayons, puis caisses)</label>`
       : '<p class="hint">Magasin non cartographié : choisissez ou créez un magasin pour dessiner son plan.</p>'}
       </details>
@@ -910,7 +910,10 @@ function render() {
     return;
   }
   if (brush === null || (brush && brush !== 'entry' && !S.aisles.some(a => a.id === brush))) brush = S.aisles[0].id;
+  // Les panneaux dépliés le restent quand l'écran se redessine (sinon chaque modification les refermait)
+  const open = tab === lastTab ? new Set([...app.querySelectorAll('details[data-k][open]')].map(d => d.dataset.k)) : new Set();
   app.innerHTML = views[tab]();
+  app.querySelectorAll('details[data-k]').forEach(d => { if (open.has(d.dataset.k)) d.open = true; });
   if (refocusSel) {
     const l = app.querySelector(refocusSel);
     refocusSel = null;
@@ -1080,6 +1083,39 @@ function finishWelcome(next) {
   welcomed = true;
   tab = next;
 }
+
+// Éditeur de plan : une case, la couleur de son rayon (légende = palette), la porte pour l'entrée.
+// Pas de numéro : l'ordre du circuit se lit dans l'aperçu.
+const cellStyle = (m, c) => m.cells[c] ? ` style="background:${aisleColor(m.cells[c])}"` : '';
+const cellLabel = (m, c) => m.entry === c ? icon.door : '';
+
+// Peindre en glissant : le premier toucher décide (poser le rayon ou effacer), les cases suivent le doigt.
+// Les cases sont mises à jour sur place pendant le geste ; on enregistre et on redessine au lâcher.
+let painting = null;
+function paintCell(el) {
+  const m = store().map, c = el.dataset.c;
+  if (brush === 'entry') { if (painting.first) m.entry = m.entry === c ? null : c; }
+  else if (painting.erase) delete m.cells[c];
+  else m.cells[c] = brush;
+  painting.first = false;
+  el.outerHTML = `<div class="cell" data-c="${c}"${cellStyle(m, c)}>${cellLabel(m, c)}</div>`;
+}
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest('#planGrid .cell');
+  if (!el) return;
+  e.preventDefault();
+  const m = store().map;
+  painting = { first: true, erase: !brush || (brush !== 'entry' && m.cells[el.dataset.c] === brush), last: el.dataset.c };
+  paintCell(el);
+});
+document.addEventListener('pointermove', e => {
+  if (!painting) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('#planGrid .cell');
+  if (el && el.dataset.c !== painting.last && brush !== 'entry') { painting.last = el.dataset.c; paintCell(el); }
+});
+const endPaint = () => { if (!painting) return; painting = null; save(); render(); };
+document.addEventListener('pointerup', endPaint);
+document.addEventListener('pointercancel', endPaint);
 
 // ---------- Actions ----------
 
@@ -1336,13 +1372,7 @@ applySize(); },
     S.items.forEach(i => { if (i.aisle === id) i.aisle = fallbackAisle(); });
   },
   setWho: ({ v }) => { who = +v; S.parts[me || '?'] = who; try { localStorage.setItem(K('courses.who'), v); } catch {} },
-  paint: ({ c }) => {
-    brushOpen = true;
-    const m = store().map;
-    if (brush === 'entry') m.entry = m.entry === c ? null : c;
-    else if (!brush || m.cells[c] === brush) delete m.cells[c];
-    else m.cells[c] = brush;
-  },
+  setBrush: ({ v }) => { brush = v; },
   size: ({ dim, d }) => {
     const m = store().map;
     m[dim] = Math.min(20, Math.max(2, m[dim] + +d));
@@ -1534,7 +1564,6 @@ document.addEventListener('submit', e => {
 });
 
 document.addEventListener('change', async e => {
-  if (e.target.id === 'brush') { brush = e.target.value; brushOpen = true; return; }
   if (e.target.id === 'meName') { setMe(e.target.value); return render(); }
   if (e.target.id === 'autofill') { S.settings.autofill = e.target.checked; autoFill(); save(); return render(); }
   if (e.target.id === 'split') { S.settings.split = e.target.checked || undefined; save(); return render(); }
