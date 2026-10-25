@@ -44,14 +44,13 @@ function transfers(bal) {
 let expenseOpen = false;
 // « AAAA-MM-JJ » -> horodatage : maintenant si c'est aujourd'hui, sinon midi ce jour-là
 const dayTime = d => !d || d === dayKey(new Date()) ? Date.now() : new Date(`${d}T12:00`).getTime() || Date.now();
-const baseBudget = views.budget;
-views.budget = () => {
+// Bloc du haut de Dépenses : partage (soldes, remboursements) puis dépense à la main, au-dessus de la liste des tickets
+const moneyTop = () => {
   const ms = members();
   const { bal } = balances();
   const owed = transfers(bal);
   const split = !!S.settings.split;
   return `
-    ${baseBudget()}
     ${split ? `<h3>Partage des dépenses</h3>
     ${ms.length > 1 ? `
       ${ms.map(m => `<div class="row static"><span class="name">${esc(m)}${m === me ? ' <small>(vous)</small>' : ''}</span><span class="${bal[m] < -.005 ? 'warn' : bal[m] > .005 ? 'tag' : ''}">${bal[m] > .005 ? '+' : ''}${euro(bal[m])}</span></div>`).join('')}
