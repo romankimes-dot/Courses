@@ -188,12 +188,12 @@ const findItem = name => S.items.find(i => sameKey(i.name) === sameKey(name));
 // Rayon deviné pour un nouvel article : d'abord un article proche déjà classé (même premier mot),
 // puis des mots-clés courants, sinon Divers
 const AISLE_WORDS = {
-  'fruits': 'banane pomme poire orange citron fraise raisin kiwi melon peche abricot clementine mangue ananas avocat tomate salade carotte oignon ail echalote pomme de terre patate courgette aubergine poivron concombre champignon poireau brocoli chou epinard haricot vert legume fruit herbe persil basilic radis betterave thym ciboulette potiron courge citrouille herbes coriandre menthe',
+  'fruits': 'banane pomme poire orange citron fraise raisin kiwi melon peche abricot clementine mangue ananas avocat tomate salade carotte oignon ail echalote pomme de terre patate courgette aubergine poivron concombre champignon poireau brocoli chou epinard haricot vert legume fruit herbe persil basilic radis betterave thym ciboulette potiron courge citrouille herbes coriandre menthe navet endive mais cerise aneth',
   'boulangerie': 'pain baguette brioche croissant viennoiserie pain de mie biscotte',
   'cremerie': 'lait yaourt yogourt fromage beurre creme oeuf babybel danonino danone petit suisse kiri vache qui rit emmental comte mozzarella feta skyr fromage blanc compote lait parmesan gruyere reblochon cheddar raclette chevre',
-  'boucherie': 'poulet boeuf veau porc agneau dinde jambon lardon saucisse steak viande hache saumon cabillaud poisson crevette thon frais chorizo merguez escalope filet',
-  'epicerie salee': 'pates riz semoule farine huile vinaigre sel poivre epice curry sauce ketchup mayonnaise moutarde conserve thon sardine lentille pois chiche haricot bouillon soupe chips cracker quinoa nouille pesto olive gnocchi coquillette tortilla wrap',
-  'epicerie sucree': 'sucre chocolat cereale biscuit gateau confiture miel nutella cafe the tisane cacao bonbon gouter madeleine compote levure flocon avoine',
+  'boucherie': 'poulet boeuf veau porc agneau dinde jambon lardon saucisse steak viande hache saumon cabillaud poisson crevette thon frais chorizo merguez escalope filet confit canard moule colin dorade saucisson cabillaud',
+  'epicerie salee': 'pates riz semoule farine huile vinaigre sel poivre epice curry sauce ketchup mayonnaise moutarde conserve thon sardine lentille pois chiche haricot bouillon soupe chips cracker quinoa nouille pesto olive gnocchi coquillette tortilla wrap lasagne bechamel cumin chapelure cornichon sesame noix',
+  'epicerie sucree': 'sucre chocolat cereale biscuit gateau confiture miel nutella cafe the tisane cacao bonbon gouter madeleine compote levure flocon avoine vanille cannelle gelatine granola mascarpone',
   'boissons': 'eau jus soda coca biere vin sirop limonade boisson',
   'surgeles': 'surgele glace frite pizza surgelee poelee nugget',
   'hygiene': 'shampoing gel douche savon dentifrice brosse a dents deodorant papier toilette mouchoir coton couche lingette rasoir creme solaire serviette hygienique tampon',
@@ -201,7 +201,7 @@ const AISLE_WORDS = {
 };
 const AISLE_PHRASES = { 'lait de coco': 'epicerie salee', 'creme solaire': 'hygiene', 'pomme de terre': 'fruits', 'papier toilette': 'hygiene', 'liquide vaisselle': 'entretien', 'creme fraiche': 'cremerie',
   'pate brisee': 'cremerie', 'pate feuilletee': 'cremerie', 'pate a pizza': 'cremerie', 'coulis de tomate': 'epicerie salee', 'concass': 'epicerie salee',
-  'haricots rouges': 'epicerie salee', 'poisson pane': 'surgeles', 'erable': 'epicerie sucree' };
+  'haricots rouges': 'epicerie salee', 'poisson pane': 'surgeles', 'pate sablee': 'cremerie', 'confit de canard': 'boucherie', 'erable': 'epicerie sucree' };
 const aisleByKey = key => S.aisles.find(a => plain(a.name).startsWith(key.split(' ')[0]) && (key.split(' ').length < 2 || plain(a.name).includes(key.split(' ')[1])));
 function guessAisle(name) {
   const n = plain(name), first = n.split(/\s+/)[0];
@@ -607,6 +607,10 @@ const views = {
     const perDay = recent.length ? sum(recent) / span : null;
     const projection = perDay == null ? null : sum(month) + perDay * (days - day);
     const budget = S.settings.budget;
+    // Comparatif au même jour du mois dernier (un mois en cours ne se compare pas à un mois entier)
+    const cut = new Date(y, m - 1, Math.min(day, new Date(y, m, 0).getDate()) + 1).getTime();
+    const prevSame = paid.filter(t => t.date >= prevStart && t.date < cut);
+    const diff = sum(month) - sum(prevSame), pct = sum(prevSame) ? Math.round(diff / sum(prevSame) * 100) : null;
     const byPlace = Object.entries(month.reduce((o, t) => ({ ...o, [t.place]: (o[t.place] || 0) + t.total }), {})).sort((a, b) => b[1] - a[1]);
     // Conso estimée : prix connu × fréquence d'achat (rythme), ramenée à 30 jours
     const tracked = S.items.map(i => ({ i, r: rhythm(i), p: lastPrice(i) })).filter(x => x.r && x.p != null);
@@ -627,9 +631,12 @@ const views = {
         <input name="name" inputmode="decimal" value="${budget ?? ''}" placeholder="ex. 600" style="flex:0 0 110px">
         <button>OK</button>
       </form>
-
+      ${moneyTop()}
       <details class="adv"><summary>Plus de chiffres et budget mensuel</summary>
       <div class="tiles">
+        ${tile('Ce mois-ci', sum(month), `${month.length} passage${month.length > 1 ? 's' : ''}`)}
+        ${tile('Mois dernier', sum(prev), `${prev.length} passage${prev.length > 1 ? 's' : ''}`)}
+        ${tile('Au même jour le mois dernier', sum(prevSame), !prevSame.length && !month.length ? '' : pct == null ? 'pas de comparaison' : `<span class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? '+' : diff < 0 ? '−' : ''}${euro(Math.abs(diff))} (${pct > 0 ? '+' : pct < 0 ? '−' : ''}${Math.abs(pct)} %)</span> ce mois-ci`)}
         ${tile('Fin de mois (estim.)', projection, 'au rythme des 3 derniers mois')}
         ${tile('Panier moyen', avg, '3 derniers mois')}
         ${tracked.length ? tile('Conso estimée / mois', monthlyUse, `${tracked.length} produit${tracked.length > 1 ? 's' : ''} suivi${tracked.length > 1 ? 's' : ''} (prix × fréquence)`) : ''}
@@ -641,12 +648,13 @@ const views = {
         return `<div class="row" data-a="openItem" data-id="${i.id}"><span class="name">${esc(i.name)} <small>${esc(i.prices.at(-1).at || '')}</small></span>${diff ? `<small class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? icon.up : icon.dn} ${Math.abs(diff)} %</small>` : ''}<span>${euro(b)}</span></div>`;
       }).join('')}` : ''}
       </details>
-      <h3>Passages en caisse</h3>
-      ${[...S.trips].sort((a, b) => b.date - a.date).slice(0, 20).map(t => `
+      <h3>Passages en caisse <small>${S.trips.length}</small></h3>
+      ${[...S.trips].sort((a, b) => b.date - a.date).slice(0, tripsShown).map(t => `
         <div class="row" data-a="openTrip" data-id="${t.id}">
           <span class="name">${shortDate(t.date)} · ${esc(t.type === 'settle' ? `${t.from} → ${t.to}` : t.place)}${t.n ? ` <small>${t.n} art.</small>` : ''}${S.settings.split && t.by && t.type !== 'settle' ? ` <small>· payé par ${esc(t.by)}${partsSum(t) ? `, ${euro(partsSum(t))} hors partage` : ''}</small>` : ''}${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
           <span>${t.total == null ? '<small>Ajouter €</small>' : euro(t.total)}</span>${icon.right}
         </div>`).join('') || '<p class="hint">Le montant est demandé (facultatif) quand vous terminez des courses.</p>'}
+      ${S.trips.length > tripsShown ? `<button class="wide" data-a="moreTrips">Voir les passages plus anciens (${S.trips.length - tripsShown})</button>` : ''}
       ${S.trips.length ? '<p class="hint">Touchez un ticket pour corriger le montant ou ajouter des articles pris en plus de la liste.</p>' : ''}`;
   },
 
@@ -845,6 +853,7 @@ function linkTo(r, i) {
   linkDraft = parts.length ? parts.join(',') + ', ' : '';
   refocusSel = '#link input';
 }
+let tripsShown = 20; // passages en caisse affichés dans Dépenses
 let catalogEdit = false, catalogPins = false, catalogBaskets = false; // « Mes articles » : modification, filtres
 
 // Mes articles > Paniers : des articles achetés ensemble, ajoutés à la liste d'un geste
@@ -1177,6 +1186,7 @@ const actions = {
   },
   hintDone: () => { try { localStorage.setItem('courses.hint', '1'); } catch {} },
   catalogEdit: () => { catalogEdit = !catalogEdit; },
+  moreTrips: () => { tripsShown += 20; },
   catalogPins: ({ v }) => { catalogPins = v === '1'; catalogBaskets = v === 'baskets'; },
   // Puce d'un panier sur la liste : fenêtre où l'on décoche ce qu'on a déjà, puis ajout (Annuler possible)
   addBasket: ({ id }) => {

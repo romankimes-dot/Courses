@@ -73,6 +73,8 @@ La colonne de droite indique où c'est **aujourd'hui** (les premières demandes 
 | 40 | Repas : un calendrier du mois en cases plutôt qu'une liste de jours | Repas : calendrier mensuel (mois précédent/suivant), toucher une case = ses repas et « + repas » |
 | 41 | Toucher le nom pour modifier, sans icône dédiée | Recettes et paniers (nom = modifier), Mes articles en mode Modifier (nom = fiche) ; icônes ✎ et › retirées |
 | 42 | « Vert et blanc, ça fait très Cookidoo » : chercher un visuel qui plaît et repose, sans le style habituel de Claude | Recherche (couleur préférée, Pantone 2026, apps réelles) puis maquettes : retenu **Bleu calme** (fond Cloud Dancer #F0EEE9, bleu #1F5FCC), police **Lexend** (fournie, hors-ligne), **cartes par rayon** ; icônes au trait inchangées ; mode sombre bleu nuit |
+| 43 | Dépenses : dépense à la main au-dessus de la liste (des dizaines de tickets) ; dans les chiffres, une case du mois en cours avec comparatif du mois dernier | Dépenses : partage et « Ajouter une dépense » au-dessus des tickets ; tickets par 20 avec « Voir les plus anciens » ; chiffres : Ce mois-ci, Mois dernier, Au même jour le mois dernier (écart en € et %) |
+| 44 | **Un max de recettes** dans les idées, avec filtre par type en boutons | Idées de recettes : 130 recettes, 10 types (Plats, Rapide, Végétarien, Poisson, Salades, Soupes, Enfants, Desserts, Petit-déjeuner, Apéro), boutons avec compteurs, combinés à la recherche |
 | 37 | Mode partagé : **attribuer une part à un participant** (modifiable) | Fiche Ticket > Hors partage : « X € pour [membre] », plusieurs parts |
 
 ## 4. Décisions prises
