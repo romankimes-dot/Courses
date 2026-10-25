@@ -140,7 +140,7 @@ function applyTheme() {
   if (theme === 'auto') delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = theme;
   const dark = theme === 'dark' || (theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
-  document.querySelector('meta[name=theme-color]')?.setAttribute('content', dark ? '#121413' : '#2f7d4f');
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content', dark ? '#16181c' : '#f0eee9');
 }
 applyTheme();
 let size = '';
@@ -519,7 +519,7 @@ const views = {
       ${sections.map(g => `
         <section>
           <h3>${g.num ? `<span class="num" style="background:${aisleColor(g.aisle.id)}">${g.num}</span>` : ''}${g.aisle.icon || ''}${esc(g.aisle.name)}</h3>
-          ${g.items.map(itemRow).join('')}
+          <div class="rows">${g.items.map(itemRow).join('')}</div>
         </section>`).join('')}
       ${!need.length ? `
         <div class="empty-state">
@@ -529,7 +529,7 @@ const views = {
       ${cart.length ? `
         <section class="basket">
           <h3>${icon.basket} Dans le caddie · ${cart.length}</h3>
-          ${cart.map(itemRow).join('')}
+          <div class="rows">${cart.map(itemRow).join('')}</div>
         </section>` : ''}
       <div class="actions">
         ${myCart.length ? `<button class="primary" data-a="finish">${icon.check} Terminer les courses (${myCart.length})</button>`

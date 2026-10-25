@@ -72,6 +72,7 @@ La colonne de droite indique où c'est **aujourd'hui** (les premières demandes 
 | 39 | Puce d'un panier sur la liste : décocher ce qu'on a déjà, comme dans la vue panier | Fenêtre du panier avec cases (déjà sur la liste grisé), puis Ajouter (Annuler possible) |
 | 40 | Repas : un calendrier du mois en cases plutôt qu'une liste de jours | Repas : calendrier mensuel (mois précédent/suivant), toucher une case = ses repas et « + repas » |
 | 41 | Toucher le nom pour modifier, sans icône dédiée | Recettes et paniers (nom = modifier), Mes articles en mode Modifier (nom = fiche) ; icônes ✎ et › retirées |
+| 42 | « Vert et blanc, ça fait très Cookidoo » : chercher un visuel qui plaît et repose, sans le style habituel de Claude | Recherche (couleur préférée, Pantone 2026, apps réelles) puis maquettes : retenu **Bleu calme** (fond Cloud Dancer #F0EEE9, bleu #1F5FCC), police **Lexend** (fournie, hors-ligne), **cartes par rayon** ; icônes au trait inchangées ; mode sombre bleu nuit |
 | 37 | Mode partagé : **attribuer une part à un participant** (modifiable) | Fiche Ticket > Hors partage : « X € pour [membre] », plusieurs parts |
 
 ## 4. Décisions prises
