@@ -173,3 +173,7 @@ details.adv summary { cursor: pointer; color: var(--accent); font-weight: 600; p
 .day select { border-radius: 16px; padding: 4px 8px; font-size: 14px; }
 .qty { width: 80px; flex: none; }
 .owe { background: var(--card); border-radius: 8px; }
+
+.suggest { margin: -2px 0 8px; }
+.suggest:empty { display: none; }
+.suggest .chip small { color: var(--muted); margin-left: 2px; }

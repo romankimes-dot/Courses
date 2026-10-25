@@ -12,6 +12,7 @@ Un dossier optionnel en argument reçoit les captures d'écran.
 
 | Fichier | Vérifie |
 |---|---|
+| `propositions-et-vider.js` | propositions dès les premières lettres, quantité gardée, vider la liste + Annuler |
 | `liste-unique.js` | ajout multiple et quantités, glisser pour retirer + Annuler, J'y vais, caddie, terminer |
 | `plusieurs-listes.js` | créer et changer de liste, rejoindre un lien sans écraser sa liste |
 | `repas.js` | recette avec quantités, posée sur deux jours, ingrédients cumulés ajoutés |
