@@ -78,7 +78,8 @@ const Sync = (() => {
   }
 
   async function run() {
-    if (!cfg || busy) return;
+    if (!cfg) { if (autoFill()) { save(); render(); } return; }
+    if (busy) return;
     busy = true;
     try {
       const sent = Object.entries(outbox).map(([key, o]) => ({ key, data: o.data, u: o.u }));
@@ -120,6 +121,7 @@ const Sync = (() => {
         }
       }
       state = 'ok';
+      if (autoFill()) { save(); if (!document.activeElement?.matches('input:not([type=checkbox]), select')) render(); }
     } catch (e) {
       state = navigator.onLine === false ? 'off' : 'err';
     } finally {

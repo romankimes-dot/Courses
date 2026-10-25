@@ -56,6 +56,8 @@ function clean(st) {
     if (i.alt != null) i.alt = String(i.alt);
     if (i.lastBy != null) i.lastBy = String(i.lastBy);
     if (i.missing) i.missing = { by: String(i.missing.by || ''), at: num0(i.missing.at) };
+    i.auto = i.auto === true || undefined;
+    i.snooze = i.snooze == null ? undefined : num0(i.snooze);
   }
   st.aisles = st.aisles.filter(ok);
   st.shops = st.shops.filter(ok);
@@ -72,7 +74,7 @@ function clean(st) {
   }
   const str = v => v == null ? undefined : String(v).slice(0, 60);
   st.trips = st.trips.filter(t => t && ID.test(t.id)).map(t => ({ ...t, date: num0(t.date), n: num0(t.n), total: t.total == null ? null : num0(t.total), place: String(t.place || ''),
-    names: Array.isArray(t.names) ? t.names.map(String) : undefined, by: str(t.by), from: str(t.from), to: str(t.to), type: ['settle', 'expense'].includes(t.type) ? t.type : undefined }));
+    names: Array.isArray(t.names) ? t.names.map(String) : undefined, by: str(t.by), from: str(t.from), to: str(t.to), own: t.own == null ? undefined : num0(t.own), type: ['settle', 'expense'].includes(t.type) ? t.type : undefined }));
   st.recipes.forEach(r => { r.qty = Object.fromEntries(Object.entries(r.qty && typeof r.qty === 'object' ? r.qty : {}).filter(([k]) => ID.test(k)).map(([k, v]) => [k, String(v).slice(0, 30)])); });
   const old = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
   st.plan = Object.fromEntries(Object.entries(st.plan || {}).filter(([d, ids]) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= old && Array.isArray(ids)).map(([d, ids]) => [d, ids.filter(x => ID.test(x))]));
@@ -80,6 +82,7 @@ function clean(st) {
   st.aliases = Object.fromEntries(Object.entries(st.aliases || {}).filter(([, v]) => v === 'ignore' || ID.test(v)));
   if (st.settings.budget != null) st.settings.budget = num0(st.settings.budget);
   if (st.settings.split != null) st.settings.split = st.settings.split === true;
+  if (st.settings.autofill != null) st.settings.autofill = st.settings.autofill === true;
   delete st.settings.shopping;
   // Qui est en courses : un enregistrement par personne (sinon deux « J'y vais » simultanés s'écrasent)
   st.shoppers = Object.fromEntries(Object.entries(st.shoppers || st.settings.shoppers || {}).filter(([n]) => /^[^:]{1,40}$/.test(n)).map(([n, at]) => [n, num0(at)]));
@@ -204,7 +207,13 @@ function guessAisle(name) {
 function want(i) {
   if (i.need) return;
   Object.assign(i, { need: true, done: false, by: me || undefined, at: Date.now() });
-  delete i.missing;
+  delete i.missing; delete i.auto; delete i.snooze;
+}
+// Retirer de la liste ; une suggestion automatique refusée attend le prochain cycle d'achat
+function drop(i) {
+  if (i.auto) i.snooze = Date.now();
+  delete i.auto;
+  i.need = false; i.done = false;
 }
 // Nouveaux articles tapés dans le champ : on demande d'abord (fenêtre) s'il faut les mettre sur la liste
 // et/ou en indispensables. newItems = [{ name, qty }] en attente de cette réponse.
@@ -254,8 +263,15 @@ function rhythm(i) {
 const suggestions = () => S.items
   .filter(i => !i.need)
   .map(i => ({ i, r: rhythm(i) }))
-  .filter(x => x.r && x.r.due >= 0.8)
+  .filter(x => x.r && x.r.due >= 0.8 && !(x.i.snooze && Date.now() - x.i.snooze < x.r.every * DAY))
   .sort((a, b) => b.r.due - a.r.due);
+// Pré-remplissage (option de la liste) : ce qui arrive à échéance revient sur la liste, marqué « suggéré »
+function autoFill() {
+  if (!S.settings.autofill || myShopping()) return false;
+  const due = suggestions().filter(x => x.r.due >= 1);
+  due.forEach(({ i }) => { want(i); i.auto = true; delete i.by; });
+  return due.length > 0;
+}
 const rhythmLabel = r => `tous les ~${Math.round(r.every)} j · il y a ${Math.round(r.since)} j`;
 
 // ---------- Plan et circuit ----------
@@ -410,7 +426,7 @@ const shortDate = t => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric',
 const itemRow = i => `
   <div class="row big ${i.done ? 'done' : ''} ${isNew(i) ? 'new' : ''}" data-a="toggleDone" data-id="${i.id}" data-swipe="${i.id}">
     <span class="box"></span>
-    <span class="name">${esc(i.name)}${noteOf(i)}${i.done ? (mine(i) ? '' : ` <small>· pris par ${esc(i.doneBy)}</small>`) : byOf(i)}${isNew(i) ? ' <small class="tag">nouveau</small>' : ''}${i.missing && !i.done ? ` <small class="warn">${icon.alert} pas trouvé le ${shortDate(i.missing.at)}</small>` : ''}${i.alt && !i.done ? `<br><small>si absent : ${esc(i.alt)}</small>` : ''}</span>
+    <span class="name">${esc(i.name)}${noteOf(i)}${i.done ? (mine(i) ? '' : ` <small>· pris par ${esc(i.doneBy)}</small>`) : byOf(i)}${isNew(i) ? ' <small class="tag">nouveau</small>' : ''}${i.auto && !i.done ? ' <small class="tag">suggéré</small>' : ''}${i.missing && !i.done ? ` <small class="warn">${icon.alert} pas trouvé le ${shortDate(i.missing.at)}</small>` : ''}${i.alt && !i.done ? `<br><small>si absent : ${esc(i.alt)}</small>` : ''}</span>
     ${thumb(i)}${more(i)}
   </div>`;
 
@@ -599,11 +615,11 @@ const views = {
       </details>
       <h3>Passages en caisse</h3>
       ${S.trips.slice(-20).reverse().map(t => `
-        <div class="row static">
-          <span class="name">${shortDate(t.date)} · ${esc(t.type === 'settle' ? `${t.from} → ${t.to}` : t.place)}${t.n ? ` <small>${t.n} art.</small>` : ''}${S.settings.split && t.by && t.type !== 'settle' ? ` <small>· payé par ${esc(t.by)}</small>` : ''}${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
-          <button class="ghost" data-a="editTrip" data-id="${t.id}">${t.total == null ? 'Ajouter €' : euro(t.total)}</button>
-          <button class="ghost" data-a="delTrip" data-id="${t.id}" title="Supprimer">${icon.x}</button>
-        </div>`).join('') || '<p class="hint">Le montant est demandé (facultatif) quand vous terminez des courses.</p>'}`;
+        <div class="row" data-a="openTrip" data-id="${t.id}">
+          <span class="name">${shortDate(t.date)} · ${esc(t.type === 'settle' ? `${t.from} → ${t.to}` : t.place)}${t.n ? ` <small>${t.n} art.</small>` : ''}${S.settings.split && t.by && t.type !== 'settle' ? ` <small>· payé par ${esc(t.by)}${t.own ? `, ${euro(t.own)} perso` : ''}</small>` : ''}${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
+          <span>${t.total == null ? '<small>Ajouter €</small>' : euro(t.total)}</span>${icon.right}
+        </div>`).join('') || '<p class="hint">Le montant est demandé (facultatif) quand vous terminez des courses.</p>'}
+      ${S.trips.length ? '<p class="hint">Touchez un ticket pour corriger le montant ou ajouter des articles pris en plus de la liste.</p>' : ''}`;
   },
 
   aisles() {
@@ -613,6 +629,7 @@ const views = {
       <h2>Réglages</h2>
       <h3>Cette liste</h3>
       <label class="field">Nom<input id="listTitle" value="${esc(currentList().name)}" autocomplete="off"></label>
+      <label class="field check"><input type="checkbox" id="autofill"${S.settings.autofill ? ' checked' : ''}><span>Pré-remplir la liste<br><small>Ce qui est acheté régulièrement (au moins 2 achats) revient de lui-même quand c'est le moment, marqué « suggéré ». Retiré, il attend le prochain cycle.</small></span></label>
       <label class="field check"><input type="checkbox" id="split"${S.settings.split ? ' checked' : ''}><span>Partager les dépenses<br><small>Qui a payé quoi, qui doit combien à qui (colocation, courses pour un proche). Décoché : compte joint, on suit juste le budget commun.</small></span></label>
       ${Sync.config() ? `
         <p class="hint">Liste partagée${members().length > 1 ? ` avec ${members().filter(m => m !== me).map(esc).join(', ')}` : ''}. Les modifications faites sans réseau partent dès qu'il revient.</p>
@@ -728,7 +745,7 @@ const storePicker = manage => `
 
 // Ajout : dès les premières lettres, propositions parmi les articles déjà connus (accents et pluriels ignorés).
 // On cherche sur le dernier article tapé (« lait, tom » -> tom), sans la quantité (« 2 kg tom » -> tom).
-let quickDraft = '', refocusQuick = false;
+let quickDraft = '', refocusQuick = false, refocusSel = null; // champ à reprendre après le rendu
 const refocusQuickInput = () => app.querySelector('#quick input')?.focus();
 const lastPart = v => v.split(/[,;]/).pop().replace(/^\s*\d+(?:[.,]\d+)?\s*(?:kg|g|l|cl|ml|x|×)?\s+(?:de |d')?/i, '').trim();
 function matches(q) {
@@ -784,7 +801,7 @@ function recipeItems() {
 
 // Ingrédients d'une recette : on pioche dans les articles existants dès les premières lettres,
 // ou on crée l'article sans quitter la recette (pas mis sur la liste)
-let linkDraft = '', refocusLink = false;
+let linkDraft = '';
 function linkChips(r) {
   const q = lastPart(linkDraft);
   if (!q) return '';
@@ -799,7 +816,7 @@ function linkTo(r, i) {
   if (!r.items.includes(i.id)) r.items.push(i.id);
   const parts = linkDraft.split(/[,;]/); parts.pop();
   linkDraft = parts.length ? parts.join(',') + ', ' : '';
-  refocusLink = true;
+  refocusSel = '#link input';
 }
 let catalogEdit = false, catalogPins = false; // « Mes articles » : mode modification, filtre indispensables
 
@@ -845,9 +862,9 @@ function render() {
   }
   if (brush === null || (brush && brush !== 'entry' && !S.aisles.some(a => a.id === brush))) brush = S.aisles[0].id;
   app.innerHTML = views[tab]();
-  if (refocusLink) {
-    refocusLink = false;
-    const l = app.querySelector('#link input');
+  if (refocusSel) {
+    const l = app.querySelector(refocusSel);
+    refocusSel = null;
     l?.focus();
     l?.setSelectionRange(l.value.length, l.value.length);
   }
@@ -860,7 +877,7 @@ function render() {
   if (tab !== lastTab) scrollTo(0, 0);
   lastTab = tab;
   // Onglet allumé : la section dont dépend l'écran courant
-  const parent = { catalog: 'list', recipes: 'meals', activity: 'list' };
+  const parent = { catalog: 'list', recipes: 'meals', activity: 'list', trip: 'budget' };
   const section = parent[tab === 'item' ? sheetBack : tab] ?? (tab === 'item' ? sheetBack : tab);
   document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === section));
   document.getElementById('gear')?.classList.toggle('active', tab === 'aisles');
@@ -1072,14 +1089,14 @@ const actions = {
   },
   unlink: ({ id, item: itemId }) => { const r = recipe(id); r.items = r.items.filter(x => x !== itemId); },
   delRecipe: ({ id }) => { if (confirm('Supprimer cette recette ?')) { S.recipes = S.recipes.filter(r => r.id !== id); recipeEdit = null; } },
-  toggleNeed: ({ id }) => { const i = item(id); if (i.need) { i.need = false; i.done = false; } else want(i); },
+  toggleNeed: ({ id }) => { const i = item(id); if (i.need) drop(i); else want(i); },
   toggleDone: ({ id }) => {
     const i = item(id);
     i.done = !i.done;
     i.doneAt = i.done ? Date.now() : undefined;
     i.doneBy = i.done ? me || '?' : undefined;
   },
-  unneed: ({ id }) => { snapshot(); const i = item(id); i.need = false; i.done = false; toast(`${i.name} retiré de la liste`); },
+  unneed: ({ id }) => { snapshot(); const i = item(id); drop(i); toast(`${i.name} retiré de la liste`); },
   delItem: ({ id }) => { S.items = S.items.filter(i => i.id !== id); },
   allFreq: () => S.items.forEach(i => { if (i.freq) want(i); }),
   allPins: () => S.items.forEach(i => { if (i.pin) want(i); }),
@@ -1087,7 +1104,7 @@ const actions = {
   pin: ({ id }) => { const i = item(id); i.pin = !i.pin || undefined; if (i.pin) i.freq = true; },
   noneNeed: () => {
     if (Sync.config() && !confirm('Vider la liste pour tout le foyer ?')) return;
-    snapshot(); S.items.forEach(i => { i.need = false; i.done = false; }); toast('Liste vidée');
+    snapshot(); S.items.filter(i => i.need).forEach(drop); toast('Liste vidée');
   },
   addSug: () => suggestions().forEach(({ i }) => want(i)),
   // Valide la liste : les articles pris alimentent l'historique d'achat
@@ -1110,7 +1127,7 @@ const actions = {
   clearList: () => {
     snapshot();
     const n = S.items.filter(i => i.need).length;
-    S.items.forEach(i => { i.need = false; i.done = false; delete i.doneAt; delete i.doneBy; delete i.missing; });
+    S.items.filter(i => i.need).forEach(i => { drop(i); delete i.doneAt; delete i.doneBy; delete i.missing; });
     toast(`Liste vidée (${n} article${n > 1 ? 's' : ''})`);
   },
   hintDone: () => { try { localStorage.setItem('courses.hint', '1'); } catch {} },
@@ -1139,11 +1156,7 @@ const actions = {
       </div>`);
     document.querySelector('#finishForm input').focus();
   },
-  editTrip: ({ id }) => {
-    const t = S.trips.find(x => x.id === id), raw = prompt('Montant du ticket en €', t.total ?? '');
-    if (raw !== null) t.total = parseEuro(raw);
-  },
-  delTrip: ({ id }) => { if (confirm('Supprimer ce passage en caisse ?')) S.trips = S.trips.filter(t => t.id !== id); },
+  delTrip: ({ id }) => { if (confirm('Supprimer ce passage en caisse ?')) { S.trips = S.trips.filter(t => t.id !== id); if (tab === 'trip') tab = 'budget'; } },
   // Déplace un rayon dans l'ordre du magasin courant (ou l'ordre générique)
   move: ({ id, d }) => {
     const list = orderedAisles().map(a => a.id), k = list.indexOf(id), j = k + +d;
@@ -1328,7 +1341,7 @@ document.addEventListener('submit', e => {
   }
   if (e.target.id === 'link') {
     const r = recipe(e.target.dataset.id);
-    linkDraft = ''; refocusLink = true;
+    linkDraft = ''; refocusSel = '#link input';
     for (const raw of name.split(/[,;\n]+/)) {
       const n = cap(raw.trim());
       if (!n) continue;
@@ -1349,7 +1362,7 @@ document.addEventListener('submit', e => {
     taken.forEach(i => {
       i.bought = [...(i.bought || []), now].slice(-HISTORY);
       Object.assign(i, { need: false, done: false, lastBy: me || undefined });
-      delete i.doneAt; delete i.doneBy; delete i.missing;
+      delete i.doneAt; delete i.doneBy; delete i.missing; delete i.auto;
     });
     // « Pas trouvé » seulement si personne d'autre n'est encore en courses
     if (!othersShopping()) S.items.filter(i => i.need && !i.done && here(i)).forEach(i => { i.missing = { by: me || '', at: now }; });
@@ -1377,6 +1390,7 @@ document.addEventListener('submit', e => {
 document.addEventListener('change', async e => {
   if (e.target.id === 'brush') { brush = e.target.value; brushOpen = true; return; }
   if (e.target.id === 'meName') { setMe(e.target.value); return render(); }
+  if (e.target.id === 'autofill') { S.settings.autofill = e.target.checked || undefined; autoFill(); save(); return render(); }
   if (e.target.id === 'split') { S.settings.split = e.target.checked || undefined; save(); return render(); }
   if (e.target.id === 'listTitle' && e.target.value.trim()) { currentList().name = S.settings.listName = e.target.value.trim(); saveLists(); save(); return render(); }
   if (e.target.id === 'rname') { const r = recipe(e.target.dataset.id); if (e.target.value.trim()) r.name = e.target.value.trim(); return save(); }
