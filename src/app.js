@@ -493,7 +493,7 @@ const views = {
           <strong>Votre prénom ?</strong>
           <p class="hint">Il s'affiche sur vos ajouts, pour que tous sachent qui a demandé quoi.</p>
           <div class="add"><input name="name" placeholder="ex. Inès" autocomplete="given-name" required><button class="accent">OK</button></div>
-        </form>` : welcomeInvite()}
+        </form>` : welcomeInvite() || installCard()}
       ${shoppingBanner()}
       ${shopping ? `
         <section class="card shopping">
@@ -697,6 +697,9 @@ const views = {
       <div class="seg">
         ${[['auto', 'Automatique'], ['light', 'Clair'], ['dark', 'Sombre']].map(([v, l]) => `<button data-a="setTheme" data-v="${v}" class="${theme === v ? 'active' : ''}">${l}</button>`).join('')}
       </div>
+      ${installed() ? '' : `<h3>Installer l'app</h3>
+      <p class="hint">Sur l'écran d'accueil, Courses s'ouvre comme une app, en plein écran et sans réseau.</p>
+      ${installSteps()}${installKeep()}`}
       <h3>Notifications</h3>
       ${'Notification' in window ? (Notification.permission === 'granted' ? `<p class="hint">${icon.check} Ce téléphone vous prévient (ajouts, départ en courses, articles pris pour vous) tant que l'app est ouverte ou en arrière-plan.</p>`
         : Notification.permission === 'denied' ? '<p class="hint">Notifications refusées : à réactiver dans les réglages du téléphone.</p>'
@@ -991,6 +994,11 @@ views.welcome = () => `
     <div class="logo">${icon.cart}</div>
     <h2>La liste de courses du foyer</h2>
     <p class="hint">Tout le monde ajoute ce qui manque, la liste marche même sans réseau au magasin.</p>
+    ${ios && !installed() ? `<div class="card invite">
+      <strong>D'abord, installez l'app</strong>
+      <p class="hint">Sur iPhone, l'app installée ne voit pas ce qui est fait dans Safari : installez-la, puis commencez depuis son icône.</p>
+      ${installSteps()}
+    </div>` : ''}
     <label class="field">Votre prénom<input id="welcomeName" value="${esc(me)}" placeholder="ex. Léa" autocomplete="given-name"></label>
     ${welcomeJoin ? `
       <form id="joinForm" class="add">
@@ -1013,6 +1021,52 @@ const welcomeInvite = () => {
       <strong>Invitez le foyer</strong>
       <p class="hint">Envoyez le lien : chacun installe l'app et rejoint la même liste.</p>
       <div class="bar"><button class="accent grow" data-a="invite">${icon.send} Envoyer l'invitation</button><button class="ghost" data-a="inviteDone">Plus tard</button></div>
+    </div>`;
+};
+
+// ---------- Installer sur l'écran d'accueil ----------
+// Installée : icône, plein écran, hors-ligne. Sur iPhone, Safari efface les données d'un site non installé
+// après 7 jours sans visite, et l'app installée a son propre stockage (elle ne voit pas ce qui a été fait dans Safari).
+
+const installed = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const phone = ios || /Android/.test(navigator.userAgent);
+let installPrompt = null; // Android (Chrome, Edge…) : la vraie fenêtre d'installation du navigateur
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; render(); });
+addEventListener('appinstalled', () => { installPrompt = null; render(); });
+// Lien « …/?installer » (page d'installation du site) : montrer le guide même s'il a été repoussé
+if (/[?&]installer\b/.test(location.search)) try { localStorage.removeItem('courses.installLater'); } catch {}
+
+const installSteps = () => installPrompt ? `<button class="accent wide" data-a="install">${icon.addHome} Installer l'app</button>`
+  : ios ? `<ol class="steps">
+      <li>Touchez ${icon.share} <b>Partager</b> (dans Safari récent : d'abord ${icon.dots})</li>
+      <li>Choisissez ${icon.addHome} <b>Sur l'écran d'accueil</b></li>
+      <li>Touchez <b>Ajouter</b> : l'icône Courses apparaît, ouvrez l'app depuis elle</li>
+    </ol>`
+  : `<ol class="steps">
+      <li>Ouvrez le menu ${icon.more} du navigateur</li>
+      <li>Choisissez <b>Installer l'application</b> ou <b>Ajouter à l'écran d'accueil</b></li>
+    </ol>`;
+
+// iPhone : ce qui a été fait dans Safari ne suit pas dans l'app installée ; la liste partagée se rejoint par son lien
+const installKeep = () => !ios || !hasOwnData() ? ''
+  : Sync.config() ? `<p class="hint">L'app installée repart de zéro : gardez le lien de cette liste pour la rejoindre depuis l'app.</p>
+      <button class="wide" data-a="invite">${icon.send} M'envoyer le lien de la liste</button>`
+  : '<p class="hint">L\'app installée repart de zéro : pour y retrouver vos articles, partagez d\'abord cette liste (Réglages), puis rejoignez-la depuis l\'app avec son lien.</p>';
+
+// Carte en haut de la liste (téléphone, pas encore installée) ; « Plus tard » la repousse de 3 jours
+const installCard = () => {
+  if (installed() || (!phone && !installPrompt)) return '';
+  let later = 0;
+  try { later = +localStorage.getItem('courses.installLater') || 0; } catch {}
+  if (Date.now() - later < 3 * 864e5) return '';
+  return `
+    <div class="card invite">
+      <strong>Installer Courses sur ce téléphone</strong>
+      <p class="hint">Une icône sur l'écran d'accueil, en plein écran, même sans réseau${ios ? ' ; et l\'iPhone garde vos données (dans Safari, il les efface après 7 jours sans visite)' : ''}.</p>
+      ${installSteps()}
+      ${installKeep()}
+      <div class="bar"><button class="ghost" data-a="installLater">Plus tard</button></div>
     </div>`;
 };
 
@@ -1089,6 +1143,14 @@ const actions = {
   welcomeJoin: () => { welcomeJoin = true; },
   welcomeBack: () => { welcomeJoin = false; },
   welcomeSolo: () => { finishWelcome('catalog'); toast('Touchez ce qui vous manque !', false); },
+  install: async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = null;
+    render();
+  },
+  installLater: () => { try { localStorage.setItem('courses.installLater', Date.now()); } catch {} },
   inviteDone: () => { try { localStorage.setItem(K('courses.invited'), '1'); } catch {} },
   // Mes listes : changer, créer
   lists: () => {

@@ -33,4 +33,5 @@ Un dossier optionnel en argument reçoit les captures d'écran.
 | `rejoindre-et-pas-trouve.js` | prénom demandé, accents (cafe = Café), rayon deviné, ✓ dans le panier, « pas trouvé » |
 | `moitie-auto.js` | à deux : la 2e personne reçoit l'autre moitié du circuit, avertie si elle prend la même |
 | `courses-a-deux.js` | deux personnes en courses, chacune termine son panier, quantités, « déjà sur la liste » |
+| `installer.js` | installer sur l'écran d'accueil : guide iPhone (accueil, liste, Réglages), bouton natif Android, « Plus tard », lien `?installer`, rien une fois installée |
 | `indispensables-et-panier.js` | ⭐ indispensables, panier en bas, ordre des rayons appris |

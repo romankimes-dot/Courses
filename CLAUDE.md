@@ -18,6 +18,7 @@ retours du panel de test et backlog) **puis `docs/analyse-v2.md`** (revue à six
 - `src/feed.js` : activité 🔔 et notifications ; `src/meals.js` : repas de la semaine ; `src/library.js` : idées de recettes (bibliothèque fournie, adoptées dans Mes recettes) ; `src/money.js` : partage des dépenses (option de liste `S.settings.split`, désactivée = compte joint).
 - `src/sync.js` : synchro par enregistrement (`records()` / `fromRecords()`), file d'attente, fusion des doublons.
 - `src/sheet.js` : fiche produit ; `src/trip.js` : fiche ticket (montant, part perso, articles ajoutés après coup). (Scan de ticket mis de côté : retiré, voir `docs/besoins.md`.)
+- `site/` : site vitrine (`index.html` présentation, `installer.html` guide d'installation ; captures dans `site/img`, réutilise `src/icons.js` et la police). Publié sur `…/Courses/site/`.
 - `sw.js` : cache hors-ligne (incrémenter `CACHE` quand on ajoute un fichier).
 - `supabase/schema.sql` : table `records` + fonctions `push` / `pull` (à exécuter dans le SQL Editor).
 - Toute donnée venant de la synchro ou d'un import passe par `clean()` : garder ce filtre à jour si on ajoute des champs.

@@ -133,6 +133,9 @@ details.adv summary { cursor: pointer; color: var(--accent); font-weight: 600; p
 .welcome .logo { font-size: 56px; }
 .welcome .field { text-align: left; }
 .invite { background: var(--accent-soft); border: 0; }
+.steps { margin: 8px 0; padding-left: 22px; font-size: 14px; display: grid; gap: 6px; }
+.steps svg.i { vertical-align: -.3em; color: var(--accent); }
+.welcome .invite { text-align: left; }
 #toast { position: fixed; left: 16px; right: 16px; bottom: calc(136px + env(safe-area-inset-bottom)); max-width: 600px; margin: 0 auto; background: var(--fg); color: var(--bg); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; z-index: 20; transform: translateY(16px); opacity: 0; visibility: hidden; pointer-events: none; transition: transform .2s, opacity .2s, visibility .2s; }
 #toast.show { transform: none; opacity: 1; visibility: visible; pointer-events: auto; }
 #toast span { flex: 1; }

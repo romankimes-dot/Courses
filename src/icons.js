@@ -28,6 +28,10 @@ const icon = {
   pin: svg('<path d="M12 21s-7-6.4-7-12a7 7 0 0 1 14 0c0 5.6-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>'),
   alert: svg('<path d="M12 4L2.5 20h19z"/><path d="M12 10v4M12 17v.01"/>'),
   again: svg('<path d="M20 12a8 8 0 1 1-2.3-5.7L20 8.5"/><path d="M20 3.5v5h-5"/>'),
+  addHome: svg('<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8.5v7M8.5 12h7"/>'),
+  dots: svg('<circle cx="6" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18" cy="12" r="1.3" fill="currentColor"/>'),
+  more: svg('<circle cx="12" cy="6" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="18" r="1.3" fill="currentColor"/>'),
+  offline: svg('<path d="M3 3l18 18"/><path d="M8.5 6.6A6 6 0 0 1 17.6 10 4 4 0 0 1 20.3 16.4M16.5 19H7a4.5 4.5 0 0 1-1.4-8.8"/>'),
   door: svg('<path d="M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17M4 21h16"/><path d="M14.5 12v.01"/>'),
 };
 
