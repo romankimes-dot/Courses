@@ -1276,4 +1276,13 @@ async function shrink(file, max) {
   return c.toDataURL('image/jpeg', .6);
 }
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+// Nouvelle version installée en arrière-plan : le proposer tout de suite plutôt qu'à la prochaine ouverture
+if ('serviceWorker' in navigator) {
+  const hadVersion = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadVersion) return;
+    const el = Object.assign(document.createElement('div'), { id: 'update', innerHTML: '<span>✨ Nouvelle version de l\'app</span><button onclick="location.reload()">Recharger</button>' });
+    document.body.append(el);
+  });
+}
