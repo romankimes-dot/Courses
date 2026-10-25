@@ -1242,11 +1242,11 @@ document.addEventListener('submit', e => {
       addItem(n, null, tab === 'catalog');
       if (qty) { const i = findItem(n); if (i) i.note = qty; }
     });
-    // Article tout juste créé dans Mes articles : indispensable d'office (filtre Indispensables) ou proposé
-    const created = tab === 'catalog' ? S.items.filter(i => !known.has(i.id)) : [];
-    if (catalogPins) created.forEach(i => { i.pin = true; i.freq = true; });
+    // Article tout juste créé : indispensable d'office (filtre Indispensables de Mes articles) ou proposé
+    const created = S.items.filter(i => !known.has(i.id)), pinNow = tab === 'catalog' && catalogPins;
+    if (pinNow) created.forEach(i => { i.pin = true; i.freq = true; });
     if (already.length) setTimeout(() => toast(`Déjà sur la liste : ${already.join(', ')}`, false));
-    else if (created.length && catalogPins) setTimeout(() => toast(created.length > 1 ? `${created.length} indispensables créés` : `${created[0].name} : indispensable`, false));
+    else if (created.length && pinNow) setTimeout(() => toast(created.length > 1 ? `${created.length} indispensables créés` : `${created[0].name} : indispensable`, false));
     else if (created.length) setTimeout(() => toast(created.length > 1 ? `${created.length} articles créés` : `${created[0].name} créé`, false,
       { a: 'pinIds', ids: created.map(i => i.id).join(','), label: `${icon.star} Indispensable${created.length > 1 ? 's' : ''}` }));
   }

@@ -1,12 +1,14 @@
-// Pas d'emojis natifs dans l'interface ; dans Mes articles, un article tout juste créé devient indispensable
-// d'un toucher (rien de tel depuis la liste), ou d'office avec le filtre Indispensables
+// Pas d'emojis natifs dans l'interface ; un article tout juste créé devient indispensable d'un toucher
+// (depuis la liste ou Mes articles), ou d'office avec le filtre Indispensables
 const { phones, start } = require('./_outils');
 const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}]/u;
 (async () => {
   const { browser, pages: [p], errs } = await phones(1);
   await start(p, 'Roman');
-  await p.fill('#quick input', 'Lait'); await p.press('#quick input', 'Enter');
-  const fromList = await p.$('#toast [data-a=pinIds]').then(b => b && b.isVisible());
+  await p.fill('#quick input', 'Pom pote'); await p.press('#quick input', 'Enter');
+  await p.waitForSelector('#toast [data-a=pinIds]');
+  await p.click('#toast [data-a=pinIds]');
+  const fromList = await p.evaluate(() => findItem('pom pote').pin === true && findItem('pom pote').need);
   await p.click('[data-a=go][data-v=catalog]');
   await p.fill('#quick input', 'Danonino'); await p.press('#quick input', 'Enter');
   await p.waitForSelector('#toast [data-a=pinIds]');
