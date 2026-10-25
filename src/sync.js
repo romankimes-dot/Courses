@@ -134,7 +134,7 @@ const Sync = (() => {
     const n = Object.keys(outbox).length;
     el.textContent = !cfg ? ''
       : state === 'off' || state === 'err' ? `Sans réseau${n ? ` · ${n} modif${n > 1 ? 's' : ''} partira${n > 1 ? 'ont' : ''} plus tard` : ''}`
-      : n ? 'Envoi…' : 'À jour ✓';
+      : n ? 'Envoi…' : 'À jour';
     el.className = state === 'ok' && !n ? 'ok' : '';
   }
 

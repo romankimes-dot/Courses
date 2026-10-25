@@ -47,16 +47,16 @@ views.budget = () => {
     ${ms.length > 1 ? `
       ${ms.map(m => `<div class="row static"><span class="name">${esc(m)}${m === me ? ' <small>(vous)</small>' : ''}</span><span class="${bal[m] < -.005 ? 'warn' : bal[m] > .005 ? 'tag' : ''}">${bal[m] > .005 ? '+' : ''}${euro(bal[m])}</span></div>`).join('')}
       ${owed.length ? owed.map(o => `
-        <div class="row static owe"><span class="name">${esc(o.from)} doit ${euro(o.amount)} à ${esc(o.to)}</span><button class="ghost" data-a="settle" data-from="${esc(o.from)}" data-to="${esc(o.to)}" data-amount="${o.amount}">Remboursé ✓</button></div>`).join('')
-        : '<p class="hint">✓ Tout le monde est à jour.</p>'}`
-      : `<p class="hint">Quand plusieurs personnes paient (prénom réglé dans ⚙️), l'app calcule qui doit combien à qui, à parts égales.</p>`}
+        <div class="row static owe"><span class="name">${esc(o.from)} doit ${euro(o.amount)} à ${esc(o.to)}</span><button class="ghost" data-a="settle" data-from="${esc(o.from)}" data-to="${esc(o.to)}" data-amount="${o.amount}">${icon.check} Remboursé</button></div>`).join('')
+        : `<p class="hint">${icon.check} Tout le monde est à jour.</p>`}`
+      : `<p class="hint">Quand plusieurs personnes paient (prénom réglé dans les réglages), l'app calcule qui doit combien à qui, à parts égales.</p>`}
     ${expenseOpen ? `
       <form id="expenseForm" class="card">
         <label class="field">Montant (€)<input name="amount" inputmode="decimal" required placeholder="ex. 23,50"></label>
         <label class="field">Pour quoi<input name="name" placeholder="ex. Marché, pharmacie" autocomplete="off"></label>
         <label class="field">Payé par<select name="by">${[...new Set([me || 'Moi', ...ms])].map(m => `<option>${esc(m)}</option>`).join('')}</select></label>
         <div class="bar"><button class="accent grow">Ajouter la dépense</button><button type="button" class="ghost" data-a="expense">Annuler</button></div>
-      </form>` : `<button class="wide" data-a="expense">＋ Ajouter une dépense à la main</button>`}`;
+      </form>` : `<button class="wide" data-a="expense">${icon.plus} Ajouter une dépense à la main</button>`}`;
 };
 
 Object.assign(actions, {

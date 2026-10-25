@@ -14,6 +14,7 @@ Un dossier optionnel en argument reçoit les captures d'écran.
 |---|---|
 | `propositions-et-vider.js` | propositions dès les premières lettres, quantité gardée, vider la liste + Annuler |
 | `mes-articles.js` | tous les articles, recherche, ⭐ indispensable sans l'ajouter à la liste |
+| `icones-et-indispensable.js` | aucun emoji natif à l'écran ; nouvel article mis en indispensable d'un toucher |
 | `liste-unique.js` | ajout multiple et quantités, glisser pour retirer + Annuler, J'y vais, caddie, terminer |
 | `plusieurs-listes.js` | créer et changer de liste, rejoindre un lien sans écraser sa liste |
 | `repas.js` | recette avec quantités, posée sur deux jours, ingrédients cumulés ajoutés |

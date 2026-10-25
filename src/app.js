@@ -20,7 +20,7 @@ const DEFAULTS = {
 };
 
 // Commerces hors supermarché (ids fixes : pas de doublons quand deux téléphones les créent)
-const defaultShops = () => [['boulangerie', '🥖 Boulanger'], ['boucherie', '🥩 Boucher'], ['fromager', '🧀 Fromager'], ['caviste', '🍷 Caviste'], ['marché', '🧺 Marché']]
+const defaultShops = () => [['boulangerie', 'Boulanger'], ['boucherie', 'Boucher'], ['fromager', 'Fromager'], ['caviste', 'Caviste'], ['marché', 'Marché']]
   .map(([id, name]) => ({ id: 'shop-' + id, name }));
 
 function seed() {
@@ -91,6 +91,8 @@ function upgrade(st) {
   st.aisles ||= [];
   st.recipes ||= [];
   st.shops ||= defaultShops();
+  const plainDefault = { '🥖 Boulanger': 'Boulanger', '🥖 Boulangerie': 'Boulangerie', '🥩 Boucher': 'Boucher', '🥩 Boucherie': 'Boucherie', '🧀 Fromager': 'Fromager', '🍷 Caviste': 'Caviste', '🧺 Marché': 'Marché' };
+  st.shops.forEach(sh => { if (sh.id?.startsWith('shop-') && plainDefault[sh.name]) sh.name = plainDefault[sh.name]; });
   st.trips ||= [];
   st.settings ||= {};
   st.aliases ||= {}; // libellé de ticket normalisé -> id d'article, ou 'ignore'
@@ -333,7 +335,7 @@ function mapSvg(groups) {
     const [x, y] = cell(entry);
     const [dx, dy] = iso(x + .5, y + .5);
     door = poly([[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]], 'var(--accent)', 'opacity=".35"')
-      + `<text x="${dx}" y="${dy + .15}" font-size=".5" text-anchor="middle">🚪</text>`;
+      + `<text x="${dx}" y="${dy + .12}" font-size=".3" font-weight="700" text-anchor="middle" fill="var(--accent)">Entrée</text>`;
   }
   const stops = groups.map((g, k) => ({ k, c: centroid(g.aisle.id), todo: todo.has(g.aisle.id), id: g.aisle.id })).filter(s => s.c);
   const path = [entryPoint(), ...stops.filter(s => s.todo).map(s => s.c), entryPoint()].filter(Boolean).map(c => iso(...c).join(',')).join(' ');
@@ -362,7 +364,7 @@ const euro = v => v.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR'
 
 const thumb = (i, add) => i.photo
   ? `<img class="thumb" src="${esc(i.photo)}" alt="" data-a="viewPhoto" data-id="${i.id}">`
-  : add ? `<button class="ghost" data-a="photo" data-id="${i.id}" title="Photo">📷</button>` : '';
+  : add ? `<button class="ghost" data-a="photo" data-id="${i.id}" title="Photo">${icon.camera}</button>` : '';
 
 // Qui est en courses en ce moment (« J'y vais », valable 3 h), plusieurs personnes possibles
 const shoppers = () => Object.entries(S.shoppers).filter(([, at]) => Date.now() - at < 3 * 36e5);
@@ -371,29 +373,22 @@ const shoppingBanner = () => {
   const others = shoppers().filter(([n]) => n !== (me || '?'));
   if (!others.length) return '';
   const who = others.map(([n, at]) => { const min = Math.round((Date.now() - at) / 6e4); return `${esc(n === '?' ? 'Quelqu\'un' : n)} (${min < 2 ? 'à l\'instant' : `depuis ${min} min`})`; }).join(', ');
-  return `<div class="banner">🛒 En courses : ${who}. Ce que vous ajoutez ${others.length > 1 ? 'leur' : 'lui'} arrive.</div>`;
+  return `<div class="banner">${icon.cart} En courses : ${who}. Ce que vous ajoutez ${others.length > 1 ? 'leur' : 'lui'} arrive.</div>`;
 };
 const mine = i => !i.doneBy || i.doneBy === (me || '?');
 const othersShopping = () => shoppers().some(([n]) => n !== (me || '?'));
 // Ajouté par quelqu'un d'autre depuis le début de mes courses
 const isNew = i => { const at = myShopping(); return at && i.at > at && i.by !== me && !i.done; };
 const byOf = i => Sync.config() && i.by ? ` <small>· ${esc(i.by)}</small>` : '';
-const more = i => `<button class="ghost more" data-a="openItem" data-id="${i.id}" title="Fiche produit">›</button>`;
+const more = i => `<button class="ghost more" data-a="openItem" data-id="${i.id}" title="Fiche produit">${icon.right}</button>`;
 const noteOf = i => i.note ? ` <small>${esc(i.note)}</small>` : '';
-// Icônes au trait, de la couleur du texte : même taille et même style pour tous les boutons d'outils
-const svg = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
-const icon = {
-  plus: svg('<path d="M12 5v14M5 12h14"/>'),
-  share: svg('<path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>'),
-  trash: svg('<path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>'),
-};
 const shortDate = t => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 
 // Une ligne d'article, la même partout : toucher = dans le caddie (et inversement), › = fiche
 const itemRow = i => `
   <div class="row big ${i.done ? 'done' : ''} ${isNew(i) ? 'new' : ''}" data-a="toggleDone" data-id="${i.id}" data-swipe="${i.id}">
     <span class="box"></span>
-    <span class="name">${esc(i.name)}${noteOf(i)}${i.done ? (mine(i) ? '' : ` <small>· pris par ${esc(i.doneBy)}</small>`) : byOf(i)}${isNew(i) ? ' <small class="tag">nouveau</small>' : ''}${i.missing && !i.done ? ` <small class="warn">⚠ pas trouvé le ${shortDate(i.missing.at)}</small>` : ''}${i.alt && !i.done ? `<br><small>si absent : ${esc(i.alt)}</small>` : ''}</span>
+    <span class="name">${esc(i.name)}${noteOf(i)}${i.done ? (mine(i) ? '' : ` <small>· pris par ${esc(i.doneBy)}</small>`) : byOf(i)}${isNew(i) ? ' <small class="tag">nouveau</small>' : ''}${i.missing && !i.done ? ` <small class="warn">${icon.alert} pas trouvé le ${shortDate(i.missing.at)}</small>` : ''}${i.alt && !i.done ? `<br><small>si absent : ${esc(i.alt)}</small>` : ''}</span>
     ${thumb(i)}${more(i)}
   </div>`;
 
@@ -425,7 +420,7 @@ const views = {
     const { groups, mapped } = shoppingGroups();
     const pinnedTop = shopping ? [] : need.filter(i => i.pin && !i.done);
     const sections = [
-      ...(pinnedTop.length ? [{ aisle: { name: '⭐ Indispensables' }, items: pinnedTop }] : []),
+      ...(pinnedTop.length ? [{ aisle: { name: 'Indispensables', icon: icon.starOn }, items: pinnedTop }] : []),
       ...groups.map((g, k) => ({ ...g, num: shopping && mapped ? k + 1 : 0, items: g.items.filter(i => !i.done && !pinnedTop.includes(i)) })),
       ...byAisle(i => i.need && !i.done, S.shops),
     ].filter(g => g.items.length);
@@ -445,7 +440,7 @@ const views = {
       ${shoppingBanner()}
       ${shopping ? `
         <section class="card shopping">
-          <div class="bar"><strong class="grow">🛒 En courses</strong><button class="ghost" data-a="stopShopping">Arrêter</button></div>
+          <div class="bar"><strong class="grow">${icon.cart} En courses</strong><button class="ghost" data-a="stopShopping">Arrêter</button></div>
           ${storePicker()}
           ${need.filter(i => !shopOf(i)).length > 3 ? `
           <div class="seg">
@@ -462,32 +457,32 @@ const views = {
         </section>` : ''}
       <form id="quick" class="addtop">
         <input name="name" value="${esc(quickDraft)}" placeholder="Ajouter… (lait, œufs, 2 kg tomates)" autocomplete="off" autocapitalize="sentences" required>
-        <button class="accent" aria-label="Ajouter">＋</button>
+        <button class="accent" aria-label="Ajouter">${icon.plus}</button>
       </form>
       <div id="suggest" class="chips suggest">${suggestChips()}</div>
       ${hint && need.length ? `<p class="hint tip">Touchez un article quand il est dans le caddie. Glissez-le vers la gauche pour le retirer. <button class="ghost" data-a="hintDone">OK</button></p>` : ''}
       ${chips.length && !shopping ? `
         <div class="chips">
-          ${chips.slice(0, 12).map(i => `<button class="chip" data-a="toggleNeed" data-id="${i.id}">${i.pin ? '⭐' : '↻'} ${esc(i.name)}</button>`).join('')}
+          ${chips.slice(0, 12).map(i => `<button class="chip" data-a="toggleNeed" data-id="${i.id}">${i.pin ? icon.starOn : icon.again} ${esc(i.name)}</button>`).join('')}
         </div>` : ''}
       ${sections.map(g => `
         <section>
-          <h3>${g.num ? `<span class="num" style="background:${aisleColor(g.aisle.id)}">${g.num}</span>` : ''}${esc(g.aisle.name)}</h3>
+          <h3>${g.num ? `<span class="num" style="background:${aisleColor(g.aisle.id)}">${g.num}</span>` : ''}${g.aisle.icon || ''}${esc(g.aisle.name)}</h3>
           ${g.items.map(itemRow).join('')}
         </section>`).join('')}
       ${!need.length ? `
         <div class="empty-state">
           <p>Rien à acheter pour l'instant.</p>
           <p class="hint">Écrivez ce qu'il manque, touchez une suggestion, ou piochez dans vos articles.${Sync.config() ? ' Tout le monde voit la même liste.' : ''}</p>
-        </div>` : need.every(i => i.done) ? '<p class="hint center">✓ Tout est dans le caddie.</p>' : ''}
+        </div>` : need.every(i => i.done) ? `<p class="hint center">${icon.check} Tout est dans le caddie.</p>` : ''}
       ${cart.length ? `
         <section class="basket">
-          <h3>🧺 Dans le caddie · ${cart.length}</h3>
+          <h3>${icon.basket} Dans le caddie · ${cart.length}</h3>
           ${cart.map(itemRow).join('')}
         </section>` : ''}
       <div class="actions">
-        ${myCart.length ? `<button class="primary" data-a="finish">✓ Terminer les courses (${myCart.length})</button>`
-          : need.length && !shopping ? `<button class="primary" data-a="goShopping">🛒 J'y vais${estimate ? ` <small>≈ ${euro(estimate)}</small>` : ''}</button>` : ''}
+        ${myCart.length ? `<button class="primary" data-a="finish">${icon.check} Terminer les courses (${myCart.length})</button>`
+          : need.length && !shopping ? `<button class="primary" data-a="goShopping">${icon.cart} J'y vais${estimate ? ` <small>≈ ${euro(estimate)}</small>` : ''}</button>` : ''}
         <div class="tools">
           <button data-a="go" data-v="catalog">${icon.plus}Articles</button>
           ${need.length ? `<button data-a="shareList">${icon.share}Envoyer</button><button data-a="clearList">${icon.trash}Vider</button>` : ''}
@@ -498,16 +493,16 @@ const views = {
   // Mes articles : TOUS les articles connus. Toucher = sur la liste ou non ; « Modifier » = ⭐ et fiche.
   catalog() {
     return `
-      <button class="ghost back" data-a="go" data-v="list">← Liste</button>
+      <button class="ghost back" data-a="go" data-v="list">${icon.back} Liste</button>
       <h2>Mes articles</h2>
-      <p class="hint">${catalogEdit ? 'Touchez ☆ pour mettre un article en indispensable (toujours en haut), › pour sa fiche (rayon, photo…).' : 'Touchez ce qui manque. ✓ = déjà sur la liste.'}</p>
+      <p class="hint">${catalogEdit ? `Touchez ${icon.star} pour mettre un article en indispensable (toujours en haut), ${icon.right} pour sa fiche (rayon, photo…).` : `Touchez ce qui manque. ${icon.check} = déjà sur la liste.`}</p>
       <div class="bar">
         ${catalogEdit ? '' : '<button data-a="allFreq">Tout ajouter</button><button data-a="noneNeed">Tout retirer</button>'}
-        <button class="${catalogEdit ? 'accent grow' : 'ghost'}" data-a="catalogEdit">${catalogEdit ? '✓ Terminé' : '✎ Modifier'}</button>
+        <button class="${catalogEdit ? 'accent grow' : 'ghost'}" data-a="catalogEdit">${catalogEdit ? `${icon.check} Terminé` : `${icon.edit} Modifier`}</button>
       </div>
       <form id="quick" class="addtop">
         <input name="name" value="${esc(quickDraft)}" placeholder="Chercher ou ajouter un article…" autocomplete="off" autocapitalize="sentences" required>
-        <button class="accent" aria-label="Ajouter">＋</button>
+        <button class="accent" aria-label="Ajouter">${icon.plus}</button>
       </form>
       <div id="catalogItems">${catalogItems()}</div>`;
   },
@@ -552,7 +547,7 @@ const views = {
           <div class="progress ${sum(month) > budget ? 'over' : ''}"><div style="width:${Math.min(100, 100 * sum(month) / budget)}%"></div></div>
           <small>${sum(month) > budget ? `Budget dépassé de ${euro(sum(month) - budget)}` : `Reste ${euro(budget - sum(month))} sur ${euro(budget)}`}</small>` : ''}
       </div>
-      <button class="primary" data-a="openScan" style="margin:12px 0">📷 Scanner un ticket</button>
+      <button class="primary" data-a="openScan" style="margin:12px 0">${icon.camera} Scanner un ticket</button>
       <form id="budgetForm" class="add">
         <label class="small grow">Budget mensuel (€)</label>
         <input name="name" inputmode="decimal" value="${budget ?? ''}" placeholder="ex. 600" style="flex:0 0 110px">
@@ -569,7 +564,7 @@ const views = {
       ${byPlace.length > 1 ? `<h3>Ce mois par magasin</h3>${byPlace.map(([p, v]) => `<div class="row static"><span class="name">${esc(p)}</span><span>${euro(v)}</span></div>`).join('')}` : ''}
       ${priced.length ? `<h3>Prix suivis</h3>${priced.slice(0, 15).map(i => {
         const [a, b] = [i.prices.at(-2)?.p, i.prices.at(-1).p], diff = a ? Math.round((b - a) / a * 100) : 0;
-        return `<div class="row" data-a="openItem" data-id="${i.id}"><span class="name">${esc(i.name)} <small>${esc(i.prices.at(-1).at || '')}</small></span>${diff ? `<small class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? '↑' : '↓'} ${Math.abs(diff)} %</small>` : ''}<span>${euro(b)}</span></div>`;
+        return `<div class="row" data-a="openItem" data-id="${i.id}"><span class="name">${esc(i.name)} <small>${esc(i.prices.at(-1).at || '')}</small></span>${diff ? `<small class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? icon.up : icon.dn} ${Math.abs(diff)} %</small>` : ''}<span>${euro(b)}</span></div>`;
       }).join('')}` : ''}
       </details>
       <h3>Passages en caisse</h3>
@@ -577,25 +572,25 @@ const views = {
         <div class="row static">
           <span class="name">${shortDate(t.date)} · ${esc(t.type === 'settle' ? `${t.from} → ${t.to}` : t.place)}${t.n ? ` <small>${t.n} art.</small>` : ''}${t.by && t.type !== 'settle' ? ` <small>· payé par ${esc(t.by)}</small>` : ''}${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
           <button class="ghost" data-a="editTrip" data-id="${t.id}">${t.total == null ? 'Ajouter €' : euro(t.total)}</button>
-          <button class="ghost" data-a="delTrip" data-id="${t.id}">×</button>
+          <button class="ghost" data-a="delTrip" data-id="${t.id}" title="Supprimer">${icon.x}</button>
         </div>`).join('') || '<p class="hint">Le montant est demandé (facultatif) quand vous terminez des courses, ou lu sur le ticket scanné.</p>'}`;
   },
 
   aisles() {
     const st = store(), list = orderedAisles();
     return `
-      <button class="ghost back" data-a="go" data-v="${settingsBack}">← Retour</button>
+      <button class="ghost back" data-a="go" data-v="${settingsBack}">${icon.back} Retour</button>
       <h2>Réglages</h2>
       <h3>Cette liste</h3>
       <label class="field">Nom<input id="listTitle" value="${esc(currentList().name)}" autocomplete="off"></label>
       ${Sync.config() ? `
         <p class="hint">Liste partagée${members().length > 1 ? ` avec ${members().filter(m => m !== me).map(esc).join(', ')}` : ''}. Les modifications faites sans réseau partent dès qu'il revient.</p>
         <div class="bar">
-          <button class="accent" data-a="invite">📨 Inviter quelqu'un</button>
+          <button class="accent" data-a="invite">${icon.send} Inviter quelqu'un</button>
           <button data-a="syncNow">Synchroniser</button>
           <button class="ghost" data-a="leave">Ne plus partager</button>
         </div>` : `
-        <button class="accent wide" data-a="shareNow">📨 Partager cette liste</button>
+        <button class="accent wide" data-a="shareNow">${icon.send} Partager cette liste</button>
         <details class="adv"><summary>Serveur de partage</summary>
         <form id="share" class="add">
           <input name="url" placeholder="https://xxxx.supabase.co" value="${SUPA_URL}" required>
@@ -619,9 +614,9 @@ const views = {
         ${[['auto', 'Automatique'], ['light', 'Clair'], ['dark', 'Sombre']].map(([v, l]) => `<button data-a="setTheme" data-v="${v}" class="${theme === v ? 'active' : ''}">${l}</button>`).join('')}
       </div>
       <h3>Notifications</h3>
-      ${'Notification' in window ? (Notification.permission === 'granted' ? '<p class="hint">✓ Ce téléphone vous prévient (ajouts, départ en courses, articles pris pour vous) tant que l\'app est ouverte ou en arrière-plan.</p>'
+      ${'Notification' in window ? (Notification.permission === 'granted' ? `<p class="hint">${icon.check} Ce téléphone vous prévient (ajouts, départ en courses, articles pris pour vous) tant que l'app est ouverte ou en arrière-plan.</p>`
         : Notification.permission === 'denied' ? '<p class="hint">Notifications refusées : à réactiver dans les réglages du téléphone.</p>'
-        : '<button class="wide" data-a="askNotify">🔔 Activer les notifications</button>') : '<p class="hint">Ce navigateur ne gère pas les notifications. Sur iPhone : ajoutez l\'app à l\'écran d\'accueil.</p>'}
+        : `<button class="wide" data-a="askNotify">${icon.bell} Activer les notifications</button>`) : '<p class="hint">Ce navigateur ne gère pas les notifications. Sur iPhone : ajoutez l\'app à l\'écran d\'accueil.</p>'}
       <h3>Magasins et rayons</h3>
       ${storePicker(true)}
       <details class="adv"><summary>Rayons (${list.length})</summary>
@@ -630,10 +625,10 @@ const views = {
         <div class="row static">
           <span class="dot" style="background:${aisleColor(a.id)}"></span>
           <span class="name">${esc(a.name)} <small>${S.items.filter(i => i.aisle === a.id).length}</small></span>
-          <button class="ghost" data-a="move" data-id="${a.id}" data-d="-1" ${k ? '' : 'disabled'}>↑</button>
-          <button class="ghost" data-a="move" data-id="${a.id}" data-d="1" ${k < list.length - 1 ? '' : 'disabled'}>↓</button>
-          <button class="ghost" data-a="rename" data-id="${a.id}">✎</button>
-          <button class="ghost" data-a="delAisle" data-id="${a.id}">×</button>
+          <button class="ghost" data-a="move" data-id="${a.id}" data-d="-1" ${k ? '' : 'disabled'} title="Monter">${icon.up}</button>
+          <button class="ghost" data-a="move" data-id="${a.id}" data-d="1" ${k < list.length - 1 ? '' : 'disabled'} title="Descendre">${icon.dn}</button>
+          <button class="ghost" data-a="rename" data-id="${a.id}" title="Renommer">${icon.edit}</button>
+          <button class="ghost" data-a="delAisle" data-id="${a.id}" title="Supprimer">${icon.x}</button>
         </div>`).join('')}
       <form id="addAisle" class="add">
         <input name="name" placeholder="Nouveau rayon" required>
@@ -645,11 +640,11 @@ const views = {
       ${S.shops.map(sh => `
         <div class="row static">
           <span class="name">${esc(sh.name)} <small>${S.items.filter(i => i.aisle === sh.id).length}</small></span>
-          <button class="ghost" data-a="renameShop" data-id="${sh.id}">✎</button>
-          <button class="ghost" data-a="delShop" data-id="${sh.id}">×</button>
+          <button class="ghost" data-a="renameShop" data-id="${sh.id}" title="Renommer">${icon.edit}</button>
+          <button class="ghost" data-a="delShop" data-id="${sh.id}" title="Supprimer">${icon.x}</button>
         </div>`).join('')}
       <form id="addShop" class="add">
-        <input name="name" placeholder="Nouveau commerce (ex. 🐟 Poissonnier)" required>
+        <input name="name" placeholder="Nouveau commerce (ex. Poissonnier)" required>
         <button>Ajouter</button>
       </form>
       </details>
@@ -658,7 +653,7 @@ const views = {
       <p class="hint">Plan de ${esc(st.name)}. Choisissez un rayon, puis touchez les cases où il se trouve. Approximatif suffit.</p>
       <div class="bar">
         <select id="brush">
-          <option value="entry"${brush === 'entry' ? ' selected' : ''}>🚪 Entrée</option>
+          <option value="entry"${brush === 'entry' ? ' selected' : ''}>Entrée du magasin</option>
           ${S.aisles.map(a => `<option value="${a.id}"${a.id === brush ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
           <option value=""${brush === '' ? ' selected' : ''}>Gomme</option>
         </select>
@@ -671,10 +666,10 @@ const views = {
         ${Array.from({ length: st.map.rows * st.map.cols }, (_, n) => {
           const c = `${n % st.map.cols},${Math.floor(n / st.map.cols)}`, id = st.map.cells[c];
           const k = S.aisles.findIndex(a => a.id === id);
-          return `<div class="cell" data-a="paint" data-c="${c}"${id ? ` style="background:${aisleColor(id)}"` : ''}>${st.map.entry === c ? '🚪' : k >= 0 ? k + 1 : ''}</div>`;
+          return `<div class="cell" data-a="paint" data-c="${c}"${id ? ` style="background:${aisleColor(id)}"` : ''}>${st.map.entry === c ? icon.door : k >= 0 ? k + 1 : ''}</div>`;
         }).join('')}
       </div>
-      <label class="small"><input type="checkbox" id="auto"${st.map.auto ? ' checked' : ''}> Calculer le circuit le plus court à partir du plan (entrée → rayons → caisses)</label>`
+      <label class="small"><input type="checkbox" id="auto"${st.map.auto ? ' checked' : ''}> Calculer le circuit le plus court à partir du plan (entrée puis rayons, puis caisses)</label>`
       : '<p class="hint">Magasin non cartographié : choisissez ou créez un magasin pour dessiner son plan.</p>'}
       </details>
       <h3>Données</h3>
@@ -689,14 +684,15 @@ const views = {
 // Où suis-je ? Chaque supermarché a son ordre de rayons et son plan ; « autre magasin » = ordre générique
 const storePicker = manage => `
   <div class="bar">
+    <span class="pin-ic">${icon.pin}</span>
     <select id="store" class="grow">
-      ${S.stores.map(s => `<option value="${s.id}"${s === store() ? ' selected' : ''}>📍 ${esc(s.name)}</option>`).join('')}
-      <option value="none"${store() ? '' : ' selected'}>📍 Autre magasin (ordre standard)</option>
+      ${S.stores.map(s => `<option value="${s.id}"${s === store() ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}
+      <option value="none"${store() ? '' : ' selected'}>Autre magasin (ordre standard)</option>
     </select>
     ${manage ? `
-      <button class="ghost" data-a="newStore" title="Nouveau magasin">＋</button>
-      ${store() ? `<button class="ghost" data-a="renameStore" title="Renommer">✎</button>
-      <button class="ghost" data-a="delStore" title="Supprimer">×</button>` : ''}` : ''}
+      <button class="ghost" data-a="newStore" title="Nouveau magasin">${icon.plus}</button>
+      ${store() ? `<button class="ghost" data-a="renameStore" title="Renommer">${icon.edit}</button>
+      <button class="ghost" data-a="delStore" title="Supprimer">${icon.x}</button>` : ''}` : ''}
   </div>`;
 
 // Ajout : dès les premières lettres, propositions parmi les articles déjà connus (accents et pluriels ignorés).
@@ -716,26 +712,26 @@ function matches(q) {
 }
 const suggestChips = () => matches(lastPart(quickDraft)).map(i => {
   const where = shopOf(i)?.name || S.aisles.find(a => a.id === i.aisle)?.name || '';
-  return `<button type="button" class="chip ${i.need ? 'on' : ''}" data-a="pickSuggest" data-id="${i.id}">${i.need ? '✓ ' : ''}${esc(i.name)} <small>${esc(where)}</small></button>`;
+  return `<button type="button" class="chip ${i.need ? 'on' : ''}" data-a="pickSuggest" data-id="${i.id}">${i.need ? icon.check : ''}${esc(i.name)} <small>${esc(where)}</small></button>`;
 }).join('');
 
 // Contenu de « Mes articles », filtré par ce qu'on tape dans le champ (recherche)
 function catalogItems() {
   const q = sameKey(lastPart(quickDraft));
   const shown = i => !q || sameKey(i.name).split(' ').some(w => w.startsWith(q)) || sameKey(i.name).includes(q);
-  const chip = i => `<button class="chip ${i.need ? 'on' : ''}" data-a="toggleNeed" data-id="${i.id}">${i.need ? '✓ ' : ''}${esc(i.name)}</button>`;
+  const chip = i => `<button class="chip ${i.need ? 'on' : ''}" data-a="toggleNeed" data-id="${i.id}">${i.need ? icon.check : ''}${esc(i.name)}</button>`;
   const row = i => `
     <div class="row static">
       <span class="name">${esc(i.name)}${noteOf(i)}</span>
-      <button class="ghost star ${i.pin ? 'on' : ''}" data-a="pin" data-id="${i.id}" title="${i.pin ? 'Retirer des indispensables' : 'Mettre en indispensable'}">${i.pin ? '★' : '☆'}</button>
+      <button class="ghost star ${i.pin ? 'on' : ''}" data-a="pin" data-id="${i.id}" title="${i.pin ? 'Retirer des indispensables' : 'Mettre en indispensable'}">${i.pin ? icon.starOn : icon.star}</button>
       ${more(i)}
     </div>`;
   const block = items => catalogEdit ? items.map(row).join('') : `<div class="chips">${items.map(chip).join('')}</div>`;
   const pins = S.items.filter(i => i.pin && shown(i));
   const groups = [...byAisle(i => !i.pin && shown(i)), ...byAisle(i => !i.pin && shown(i), S.shops)];
-  if (!pins.length && !groups.length) return `<p class="hint center">Aucun article « ${esc(lastPart(quickDraft))} » : touchez ＋ pour le créer.</p>`;
+  if (!pins.length && !groups.length) return `<p class="hint center">Aucun article « ${esc(lastPart(quickDraft))} » : touchez + pour le créer.</p>`;
   return `
-    ${pins.length ? `<section class="pins"><h3>⭐ Indispensables</h3>${block(pins)}</section>` : ''}
+    ${pins.length ? `<section class="pins"><h3>${icon.starOn} Indispensables</h3>${block(pins)}</section>` : ''}
     ${groups.map(g => `<section><h3>${esc(g.aisle.name)}</h3>${block(g.items)}</section>`).join('')}`;
 }
 
@@ -786,7 +782,7 @@ function render() {
   document.getElementById('gear')?.classList.toggle('active', tab === 'aisles');
   document.body.classList.toggle('bare', tab === 'welcome');
   const l = currentList(), ln = document.getElementById('listName');
-  if (ln) ln.textContent = `${l.emoji} ${l.name} ▾`;
+  if (ln) ln.innerHTML = `${esc(l.name)}${icon.down}`;
   const unseen = feed().filter(e => !e.seen).length, bell = document.getElementById('bell');
   if (bell) bell.dataset.count = unseen || '';
   keepAwake(!!myShopping());
@@ -804,7 +800,7 @@ function recipeCard(r) {
         <div class="row static">
           <span class="name link" data-a="openItem" data-id="${i.id}">${esc(i.name)}</span>
           <input class="qty" data-rqty="${r.id}:${i.id}" value="${esc(r.qty?.[i.id] || '')}" placeholder="qté" aria-label="Quantité">
-          <button class="ghost" data-a="unlink" data-id="${r.id}" data-item="${i.id}">×</button>
+          <button class="ghost" data-a="unlink" data-id="${r.id}" data-item="${i.id}" title="Retirer">${icon.x}</button>
         </div>`).join('')}
       <form id="link" data-id="${r.id}" class="add">
         <input name="name" list="catalog" placeholder="Lier un article" autocomplete="off" required>
@@ -834,7 +830,7 @@ function recipeCard(r) {
       <div class="bar">
         <strong class="grow">${esc(r.name)}</strong>
         <button data-a="startRecipe" data-id="${r.id}" ${its.length ? '' : 'disabled'}>Ajouter à la liste</button>
-        <button class="ghost" data-a="editRecipe" data-id="${r.id}" title="Modifier">✎</button>
+        <button class="ghost" data-a="editRecipe" data-id="${r.id}" title="Modifier">${icon.edit}</button>
       </div>
       <p class="small">${its.map(i => esc(i.name)).join(' · ') || 'Aucun article lié'}</p>
     </section>`;
@@ -845,7 +841,7 @@ function recipeCard(r) {
 let welcomeJoin = false;
 views.welcome = () => `
   <div class="welcome">
-    <div class="logo">🛒</div>
+    <div class="logo">${icon.cart}</div>
     <h2>La liste de courses du foyer</h2>
     <p class="hint">Tout le monde ajoute ce qui manque, la liste marche même sans réseau au magasin.</p>
     <label class="field">Votre prénom<input id="welcomeName" value="${esc(me)}" placeholder="ex. Léa" autocomplete="given-name"></label>
@@ -854,7 +850,7 @@ views.welcome = () => `
         <input name="name" placeholder="Collez le lien d'invitation reçu" autocomplete="off" required>
         <button class="accent">Rejoindre</button>
       </form>
-      <button class="ghost wide" data-a="welcomeBack">← Retour</button>` : `
+      <button class="ghost wide" data-a="welcomeBack">${icon.back} Retour</button>` : `
       <button class="primary" data-a="welcomeCreate">Créer la liste du foyer</button>
       <button class="wide" data-a="welcomeJoin">J'ai reçu un lien d'invitation</button>
       <button class="ghost wide" data-a="welcomeSolo">Juste pour moi, sans partage</button>`}
@@ -869,7 +865,7 @@ const welcomeInvite = () => {
     <div class="card invite">
       <strong>Invitez le foyer</strong>
       <p class="hint">Envoyez le lien : chacun installe l'app et rejoint la même liste.</p>
-      <div class="bar"><button class="accent grow" data-a="invite">📨 Envoyer l'invitation</button><button class="ghost" data-a="inviteDone">Plus tard</button></div>
+      <div class="bar"><button class="accent grow" data-a="invite">${icon.send} Envoyer l'invitation</button><button class="ghost" data-a="inviteDone">Plus tard</button></div>
     </div>`;
 };
 
@@ -894,11 +890,13 @@ const recipe = id => S.recipes.find(r => r.id === id);
 let undoSnap = null, toastTimer;
 let undoAfter = null;
 function snapshot() { undoSnap = Sync.strings(Sync.records(S)); }
-function toast(msg, undo = true) {
+// Bandeau du bas : un message, et au choix « Annuler » ou une action (ex. mettre en indispensable)
+function toast(msg, undo = true, action = null) {
   let el = document.getElementById('toast');
   if (!el) { el = Object.assign(document.createElement('div'), { id: 'toast' }); document.body.append(el); }
   if (undo) undoAfter = Sync.strings(Sync.records(S));
-  el.innerHTML = `<span>${esc(msg)}</span>${undo ? '<button data-a="undo">Annuler</button>' : ''}`;
+  el.innerHTML = `<span>${esc(msg)}</span>${undo ? '<button data-a="undo">Annuler</button>'
+    : action ? `<button data-a="${action.a}" data-ids="${action.ids}">${action.label}</button>` : ''}`;
   el.className = 'show';
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.className = ''; undoSnap = null; }, 6000);
@@ -948,7 +946,7 @@ const actions = {
       <div class="overlay sheet-modal" data-a="closePhoto">
         <div class="card" data-a="noop">
           <h2>Mes listes</h2>
-          ${lists.map(l => `<button class="row list-row ${l.id === LIST ? 'on' : ''}" data-a="switchList" data-v="${l.id}"><span class="name">${l.emoji} ${esc(l.name)}</span>${l.id === LIST ? '✓' : ''}</button>`).join('')}
+          ${lists.map(l => `<button class="row list-row ${l.id === LIST ? 'on' : ''}" data-a="switchList" data-v="${l.id}"><span class="name">${esc(l.name)}</span>${l.id === LIST ? icon.check : ''}</button>`).join('')}
           <form id="newListForm" class="add">
             <input name="name" placeholder="Nouvelle liste (ex. Pour Maman)" autocomplete="off" required>
             <button class="accent">Créer</button>
@@ -993,6 +991,11 @@ const actions = {
   delItem: ({ id }) => { S.items = S.items.filter(i => i.id !== id); },
   allFreq: () => S.items.forEach(i => { if (i.freq) want(i); }),
   allPins: () => S.items.forEach(i => { if (i.pin) want(i); }),
+  pinIds: ({ ids }) => {
+    const its = ids.split(',').map(item).filter(Boolean);
+    its.forEach(i => { i.pin = true; i.freq = true; });
+    toast(its.length > 1 ? `${its.length} indispensables` : `${its[0].name} : indispensable`, false);
+  },
   pin: ({ id }) => { const i = item(id); i.pin = !i.pin || undefined; if (i.pin) i.freq = true; },
   noneNeed: () => {
     if (Sync.config() && !confirm('Vider la liste pour tout le foyer ?')) return;
@@ -1026,7 +1029,7 @@ const actions = {
   catalogEdit: () => { catalogEdit = !catalogEdit; },
   shareList: async () => {
     const groups = [...byAisle(i => i.need), ...byAisle(i => i.need, S.shops)];
-    const text = '🛒 Courses\n' + groups.map(g => `\n${g.aisle.name}\n` + g.items.map(i => `• ${i.name}${i.note ? ` (${i.note})` : ''}`).join('\n')).join('\n');
+    const text = `${currentList().name}\n` + groups.map(g => `\n${g.aisle.name}\n` + g.items.map(i => `• ${i.name}${i.note ? ` (${i.note})` : ''}`).join('\n')).join('\n');
     try { await navigator.share({ title: 'Courses', text }); }
     catch (e) { if (e.name !== 'AbortError') { await navigator.clipboard?.writeText(text); toast('Liste copiée', false); } }
   },
@@ -1041,7 +1044,7 @@ const actions = {
           <h2>Terminer les courses</h2>
           <p>${taken.length} article${taken.length > 1 ? 's' : ''} pris${left ? `, ${left} pas trouvé${left > 1 ? 's' : ''} : ${left > 1 ? 'ils restent' : 'il reste'} sur la liste et l'auteur le voit.` : '.'}</p>
           <label class="field">Montant du ticket <small>(facultatif)</small><input name="name" inputmode="decimal" placeholder="ex. 42,50" autocomplete="off"></label>
-          <button class="primary">✓ Terminer</button>
+          <button class="primary">${icon.check} Terminer</button>
           <button type="button" class="ghost wide" data-a="closePhoto">Continuer les courses</button>
         </form>
       </div>`);
@@ -1194,7 +1197,7 @@ document.addEventListener('submit', e => {
   const name = f.get('name');
   if (e.target.id === 'quick') { // « lait, œufs, 2 kg tomates »
     quickDraft = '';
-    const already = [];
+    const already = [], known = new Set(S.items.map(i => i.id));
     name.split(/[,;\n]+/).forEach(raw => {
       const m = raw.trim().match(/^(\d+(?:[.,]\d+)?\s*(?:kg|g|l|cl|ml|x|×|paquets?|boîtes?|bouteilles?)?)\s+(?:de |d')?(.+)$/i);
       const n = m ? m[2] : raw, qty = m ? m[1].trim() : null;
@@ -1203,7 +1206,11 @@ document.addEventListener('submit', e => {
       addItem(n, null, tab === 'catalog');
       if (qty) { const i = findItem(n); if (i) i.note = qty; }
     });
+    // Article tout juste créé : proposer d'en faire un indispensable, sans avoir à le rechercher
+    const created = S.items.filter(i => !known.has(i.id));
     if (already.length) setTimeout(() => toast(`Déjà sur la liste : ${already.join(', ')}`, false));
+    else if (created.length) setTimeout(() => toast(created.length > 1 ? `${created.length} articles créés` : `${created[0].name} créé`, false,
+      { a: 'pinIds', ids: created.map(i => i.id).join(','), label: `${icon.star} Indispensable${created.length > 1 ? 's' : ''}` }));
   }
   if (e.target.id === 'addAisle' && name.trim()) S.aisles.push({ id: uid(), name: name.trim() });
   if (e.target.id === 'addShop' && name.trim()) S.shops.push({ id: uid(), name: name.trim() });
@@ -1241,7 +1248,7 @@ document.addEventListener('submit', e => {
     S.trips.push({ id: uid(), date: now, total: parseEuro(name || ''), place: where, n: taken.length, names: taken.map(i => i.name), by: me || undefined });
     tab = 'list';
     save(); render();
-    toast(learned ? `Courses terminées 👍 Ordre des rayons ajusté pour ${store().name}` : 'Courses terminées 👍');
+    toast(learned ? `Courses terminées. Ordre des rayons ajusté pour ${store().name}` : 'Courses terminées');
     return;
   }
   if (e.target.id === 'budgetForm') S.settings.budget = parseEuro(name);
@@ -1304,7 +1311,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {});
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hadVersion) return;
-    const el = Object.assign(document.createElement('div'), { id: 'update', innerHTML: '<span>✨ Nouvelle version de l\'app</span><button onclick="location.reload()">Recharger</button>' });
+    const el = Object.assign(document.createElement('div'), { id: 'update', innerHTML: `${icon.again}<span>Nouvelle version de l'app</span><button onclick="location.reload()">Recharger</button>` });
     document.body.append(el);
   });
 }

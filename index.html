@@ -12,20 +12,21 @@
 <body>
   <header>
     <div class="title-wrap">
-      <button id="listName" class="ghost" data-a="lists" aria-label="Changer de liste">🏠 Maison ▾</button>
+      <button id="listName" class="ghost" data-a="lists" aria-label="Changer de liste">Maison</button>
       <span id="sync"></span>
     </div>
-    <button id="bell" class="ghost" data-a="go" data-v="activity" aria-label="Activité">🔔</button>
-    <button id="gear" class="ghost" data-a="go" data-v="aisles" aria-label="Réglages">⚙️</button>
+    <button id="bell" class="ghost" data-a="go" data-v="activity" aria-label="Activité" data-icon="bell"></button>
+    <button id="gear" class="ghost" data-a="go" data-v="aisles" aria-label="Réglages" data-icon="settings"></button>
   </header>
   <main id="app"></main>
   <nav class="tabbar">
-    <button data-tab="list"><span>📝</span>Liste</button>
-    <button data-tab="meals"><span>🍽️</span>Repas</button>
-    <button data-tab="budget"><span>💶</span>Dépenses</button>
+    <button data-tab="list" data-icon="list">Liste</button>
+    <button data-tab="meals" data-icon="meals">Repas</button>
+    <button data-tab="budget" data-icon="wallet">Dépenses</button>
   </nav>
   <input type="file" id="photo" accept="image/*" capture="environment" hidden>
   <input type="file" id="ticket" accept="image/*" hidden>
+  <script src="src/icons.js"></script>
   <script src="src/lists.js"></script>
   <script src="src/app.js"></script>
   <script src="src/feed.js"></script>

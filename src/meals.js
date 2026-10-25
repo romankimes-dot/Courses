@@ -40,7 +40,7 @@ views.meals = () => {
     const rows = [...needs].filter(([i]) => !i.need);
     const n = rows.filter(([i]) => !weekAdd.has(i.id)).length;
     return `
-      <button class="ghost back" data-a="weekCancel">← Repas</button>
+      <button class="ghost back" data-a="weekCancel">${icon.back} Repas</button>
       <h2>Ingrédients de la semaine</h2>
       <p class="hint">Décochez ce que vous avez déjà.</p>
       ${rows.map(([i, e]) => `
@@ -64,13 +64,13 @@ views.meals = () => {
         <div class="day ${k ? '' : 'today'}">
           <strong>${k ? d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }) : 'Aujourd\'hui'}</strong>
           <div class="chips">
-            ${planned.map(r => `<button class="chip on" data-a="unplan" data-v="${key}" data-id="${r.id}" title="Retirer">${esc(r.name)} ×</button>`).join('')}
-            ${S.recipes.length ? `<select data-plan="${key}" aria-label="Ajouter un repas"><option value="">＋ repas</option>${options}</select>` : ''}
+            ${planned.map(r => `<button class="chip on" data-a="unplan" data-v="${key}" data-id="${r.id}" title="Retirer">${esc(r.name)} ${icon.x}</button>`).join('')}
+            ${S.recipes.length ? `<select data-plan="${key}" aria-label="Ajouter un repas"><option value="">+ repas</option>${options}</select>` : ''}
           </div>
         </div>`;
       }).join('')}
     </div>
-    ${needs.size ? `<button class="primary" data-a="weekReview" ${missing ? '' : 'disabled'}>🛒 Mettre les ingrédients sur la liste${missing ? ` (${missing})` : ' : déjà fait ✓'}</button>` : ''}
+    ${needs.size ? `<button class="primary" data-a="weekReview" ${missing ? '' : 'disabled'}>${icon.cart} Mettre les ingrédients sur la liste${missing ? ` (${missing})` : ' : déjà fait'}</button>` : ''}
     ${S.recipes.length ? book : ''}`;
 };
 
@@ -86,7 +86,7 @@ Object.assign(actions, {
       if (e.qty.length && !i.note) i.note = sumQty(e.qty);
     }
     weekAdd = null;
-    toast('Ingrédients ajoutés à la liste 👍', false);
+    toast('Ingrédients ajoutés à la liste', false);
   },
 });
 
