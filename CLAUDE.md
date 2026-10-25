@@ -15,7 +15,7 @@ retours du panel de test et backlog) **puis `docs/analyse-v2.md`** (revue à six
 - `index.html` : coquille ; en-tête (sélecteur de listes, 🔔, ⚙️) ; onglets Liste / Repas / Dépenses.
 - `src/lists.js` : plusieurs listes ; `K(nom)` donne la clé de stockage de la liste courante (à utiliser pour tout stockage propre à une liste).
 - `src/app.js` : état `S`, vues (`views.*`), actions (`actions.*`, déclenchées par `data-a`), rendu `render()`. La liste unique : `views.list` (un seul geste, toucher = caddie) ; `views.catalog` = Mes articles (indispensables, paniers = recettes `kind: 'basket'`) ; `views.recipes` = Mes recettes.
-- `src/feed.js` : activité 🔔 et notifications ; `src/meals.js` : repas de la semaine ; `src/money.js` : partage des dépenses (option de liste `S.settings.split`, désactivée = compte joint).
+- `src/feed.js` : activité 🔔 et notifications ; `src/meals.js` : repas de la semaine ; `src/library.js` : idées de recettes (bibliothèque fournie, adoptées dans Mes recettes) ; `src/money.js` : partage des dépenses (option de liste `S.settings.split`, désactivée = compte joint).
 - `src/sync.js` : synchro par enregistrement (`records()` / `fromRecords()`), file d'attente, fusion des doublons.
 - `src/sheet.js` : fiche produit ; `src/trip.js` : fiche ticket (montant, part perso, articles ajoutés après coup). (Scan de ticket mis de côté : retiré, voir `docs/besoins.md`.)
 - `sw.js` : cache hors-ligne (incrémenter `CACHE` quand on ajoute un fichier).
