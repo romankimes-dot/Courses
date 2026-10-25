@@ -244,3 +244,8 @@ h3 svg.i { width: 1.1em; height: 1.1em; margin-right: 4px; vertical-align: -.2em
 .split p { margin: 0; }
 .tile .up { color: #c0392b; font-weight: 600; }
 .tile .down { color: var(--accent); font-weight: 600; }
+
+.chips.filters { position: sticky; top: 56px; z-index: 1; background: var(--bg); padding: 6px 0; margin: 0 -2px; }
+.chips.filters .chip { min-height: 40px; padding: 8px 14px; }
+.chips.filters .chip.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.chips.filters .chip.on small { color: inherit; opacity: .8; }

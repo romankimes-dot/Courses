@@ -188,12 +188,12 @@ const findItem = name => S.items.find(i => sameKey(i.name) === sameKey(name));
 // Rayon deviné pour un nouvel article : d'abord un article proche déjà classé (même premier mot),
 // puis des mots-clés courants, sinon Divers
 const AISLE_WORDS = {
-  'fruits': 'banane pomme poire orange citron fraise raisin kiwi melon peche abricot clementine mangue ananas avocat tomate salade carotte oignon ail echalote pomme de terre patate courgette aubergine poivron concombre champignon poireau brocoli chou epinard haricot vert legume fruit herbe persil basilic radis betterave thym ciboulette potiron courge citrouille herbes coriandre menthe',
+  'fruits': 'banane pomme poire orange citron fraise raisin kiwi melon peche abricot clementine mangue ananas avocat tomate salade carotte oignon ail echalote pomme de terre patate courgette aubergine poivron concombre champignon poireau brocoli chou epinard haricot vert legume fruit herbe persil basilic radis betterave thym ciboulette potiron courge citrouille herbes coriandre menthe navet endive mais cerise aneth',
   'boulangerie': 'pain baguette brioche croissant viennoiserie pain de mie biscotte',
   'cremerie': 'lait yaourt yogourt fromage beurre creme oeuf babybel danonino danone petit suisse kiri vache qui rit emmental comte mozzarella feta skyr fromage blanc compote lait parmesan gruyere reblochon cheddar raclette chevre',
-  'boucherie': 'poulet boeuf veau porc agneau dinde jambon lardon saucisse steak viande hache saumon cabillaud poisson crevette thon frais chorizo merguez escalope filet',
-  'epicerie salee': 'pates riz semoule farine huile vinaigre sel poivre epice curry sauce ketchup mayonnaise moutarde conserve thon sardine lentille pois chiche haricot bouillon soupe chips cracker quinoa nouille pesto olive gnocchi coquillette tortilla wrap',
-  'epicerie sucree': 'sucre chocolat cereale biscuit gateau confiture miel nutella cafe the tisane cacao bonbon gouter madeleine compote levure flocon avoine',
+  'boucherie': 'poulet boeuf veau porc agneau dinde jambon lardon saucisse steak viande hache saumon cabillaud poisson crevette thon frais chorizo merguez escalope filet confit canard moule colin dorade saucisson cabillaud',
+  'epicerie salee': 'pates riz semoule farine huile vinaigre sel poivre epice curry sauce ketchup mayonnaise moutarde conserve thon sardine lentille pois chiche haricot bouillon soupe chips cracker quinoa nouille pesto olive gnocchi coquillette tortilla wrap lasagne bechamel cumin chapelure cornichon sesame noix',
+  'epicerie sucree': 'sucre chocolat cereale biscuit gateau confiture miel nutella cafe the tisane cacao bonbon gouter madeleine compote levure flocon avoine vanille cannelle gelatine granola mascarpone',
   'boissons': 'eau jus soda coca biere vin sirop limonade boisson',
   'surgeles': 'surgele glace frite pizza surgelee poelee nugget',
   'hygiene': 'shampoing gel douche savon dentifrice brosse a dents deodorant papier toilette mouchoir coton couche lingette rasoir creme solaire serviette hygienique tampon',
@@ -201,7 +201,7 @@ const AISLE_WORDS = {
 };
 const AISLE_PHRASES = { 'lait de coco': 'epicerie salee', 'creme solaire': 'hygiene', 'pomme de terre': 'fruits', 'papier toilette': 'hygiene', 'liquide vaisselle': 'entretien', 'creme fraiche': 'cremerie',
   'pate brisee': 'cremerie', 'pate feuilletee': 'cremerie', 'pate a pizza': 'cremerie', 'coulis de tomate': 'epicerie salee', 'concass': 'epicerie salee',
-  'haricots rouges': 'epicerie salee', 'poisson pane': 'surgeles', 'erable': 'epicerie sucree' };
+  'haricots rouges': 'epicerie salee', 'poisson pane': 'surgeles', 'pate sablee': 'cremerie', 'confit de canard': 'boucherie', 'erable': 'epicerie sucree' };
 const aisleByKey = key => S.aisles.find(a => plain(a.name).startsWith(key.split(' ')[0]) && (key.split(' ').length < 2 || plain(a.name).includes(key.split(' ')[1])));
 function guessAisle(name) {
   const n = plain(name), first = n.split(/\s+/)[0];
