@@ -186,18 +186,20 @@ const findItem = name => S.items.find(i => sameKey(i.name) === sameKey(name));
 // Rayon deviné pour un nouvel article : d'abord un article proche déjà classé (même premier mot),
 // puis des mots-clés courants, sinon Divers
 const AISLE_WORDS = {
-  'fruits': 'banane pomme poire orange citron fraise raisin kiwi melon peche abricot clementine mangue ananas avocat tomate salade carotte oignon ail echalote pomme de terre patate courgette aubergine poivron concombre champignon poireau brocoli chou epinard haricot vert legume fruit herbe persil basilic radis betterave',
+  'fruits': 'banane pomme poire orange citron fraise raisin kiwi melon peche abricot clementine mangue ananas avocat tomate salade carotte oignon ail echalote pomme de terre patate courgette aubergine poivron concombre champignon poireau brocoli chou epinard haricot vert legume fruit herbe persil basilic radis betterave thym ciboulette potiron courge citrouille herbes coriandre menthe',
   'boulangerie': 'pain baguette brioche croissant viennoiserie pain de mie biscotte',
-  'cremerie': 'lait yaourt yogourt fromage beurre creme oeuf babybel danonino danone petit suisse kiri vache qui rit emmental comte mozzarella feta skyr fromage blanc compote lait',
+  'cremerie': 'lait yaourt yogourt fromage beurre creme oeuf babybel danonino danone petit suisse kiri vache qui rit emmental comte mozzarella feta skyr fromage blanc compote lait parmesan gruyere reblochon cheddar raclette chevre',
   'boucherie': 'poulet boeuf veau porc agneau dinde jambon lardon saucisse steak viande hache saumon cabillaud poisson crevette thon frais chorizo merguez escalope filet',
-  'epicerie salee': 'pates riz semoule farine huile vinaigre sel poivre epice curry sauce ketchup mayonnaise moutarde conserve thon sardine lentille pois chiche haricot bouillon soupe chips cracker quinoa nouille',
-  'epicerie sucree': 'sucre chocolat cereale biscuit gateau confiture miel nutella cafe the tisane cacao bonbon gouter madeleine compote',
+  'epicerie salee': 'pates riz semoule farine huile vinaigre sel poivre epice curry sauce ketchup mayonnaise moutarde conserve thon sardine lentille pois chiche haricot bouillon soupe chips cracker quinoa nouille pesto olive gnocchi coquillette tortilla wrap',
+  'epicerie sucree': 'sucre chocolat cereale biscuit gateau confiture miel nutella cafe the tisane cacao bonbon gouter madeleine compote levure flocon avoine',
   'boissons': 'eau jus soda coca biere vin sirop limonade boisson',
-  'surgeles': 'surgele glace frite pizza surgelee poelee',
+  'surgeles': 'surgele glace frite pizza surgelee poelee nugget',
   'hygiene': 'shampoing gel douche savon dentifrice brosse a dents deodorant papier toilette mouchoir coton couche lingette rasoir creme solaire serviette hygienique tampon',
   'entretien': 'litiere croquette patee lessive adoucissant eponge liquide vaisselle pastille lave vaisselle sac poubelle javel nettoyant essuie tout aluminium film',
 };
-const AISLE_PHRASES = { 'lait de coco': 'epicerie salee', 'creme solaire': 'hygiene', 'pomme de terre': 'fruits', 'papier toilette': 'hygiene', 'liquide vaisselle': 'entretien', 'creme fraiche': 'cremerie' };
+const AISLE_PHRASES = { 'lait de coco': 'epicerie salee', 'creme solaire': 'hygiene', 'pomme de terre': 'fruits', 'papier toilette': 'hygiene', 'liquide vaisselle': 'entretien', 'creme fraiche': 'cremerie',
+  'pate brisee': 'cremerie', 'pate feuilletee': 'cremerie', 'pate a pizza': 'cremerie', 'coulis de tomate': 'epicerie salee', 'concass': 'epicerie salee',
+  'haricots rouges': 'epicerie salee', 'poisson pane': 'surgeles', 'erable': 'epicerie sucree' };
 const aisleByKey = key => S.aisles.find(a => plain(a.name).startsWith(key.split(' ')[0]) && (key.split(' ').length < 2 || plain(a.name).includes(key.split(' ')[1])));
 function guessAisle(name) {
   const n = plain(name), first = n.split(/\s+/)[0];
@@ -574,6 +576,7 @@ const views = {
         <input name="name" value="${esc(recipeDraft)}" placeholder="Chercher ou créer une recette…" autocomplete="off" autocapitalize="sentences" required>
         <button class="accent" aria-label="Créer">${icon.plus}</button>
       </form>
+      <button class="wide" data-a="go" data-v="library">${icon.meals} Idées de recettes <small>${LIBRARY.length}</small></button>
       <div id="recipeItems">${recipeItems()}</div>
       <datalist id="recipeCats">${recipeCats().map(c => `<option value="${esc(c)}">`).join('')}</datalist>`;
   },
@@ -899,7 +902,7 @@ function render() {
   if (tab !== lastTab) scrollTo(0, 0);
   lastTab = tab;
   // Onglet allumé : la section dont dépend l'écran courant
-  const parent = { catalog: 'list', recipes: 'meals', activity: 'list', trip: 'budget' };
+  const parent = { catalog: 'list', recipes: 'meals', library: 'meals', activity: 'list', trip: 'budget' };
   const section = parent[tab === 'item' ? sheetBack : tab] ?? (tab === 'item' ? sheetBack : tab);
   document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === section));
   document.getElementById('gear')?.classList.toggle('active', tab === 'aisles');

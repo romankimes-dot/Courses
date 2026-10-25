@@ -60,7 +60,8 @@ views.meals = () => {
       <form id="newRecipe" class="addtop">
         <input name="name" placeholder="Nom de la recette (ex. Curry)" autocomplete="off" autocapitalize="sentences" required>
         <button class="accent" aria-label="Créer">${icon.plus}</button>
-      </form>`}
+      </form>
+      <button class="wide" data-a="go" data-v="library">${icon.meals} Ou piocher dans les idées de recettes</button>`}
     <div class="week">
       ${week().map((d, k) => {
         const key = dayKey(d), planned = (S.plan[key] || []).map(recipe).filter(Boolean);

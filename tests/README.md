@@ -20,6 +20,7 @@ Un dossier optionnel en argument reçoit les captures d'écran.
 | `plusieurs-listes.js` | créer et changer de liste, rejoindre un lien sans écraser sa liste |
 | `repas.js` | recette avec quantités, posée sur deux jours, ingrédients cumulés ajoutés |
 | `tickets-et-suggestions.js` | ticket modifié (montant, parts hors partage attribuées à un membre, articles ajoutés après coup), pré-remplissage de la liste et refus |
+| `idees-recettes.js` | bibliothèque : parcourir, chercher, aperçu des articles connus/nouveaux, adopter sans doublon |
 | `paniers.js` | paniers créés dans Mes articles, ajoutés en décochant ou d'un toucher depuis la liste (Annuler) |
 | `depenses.js` | compte joint par défaut, option partage : qui doit quoi, remboursement, dépense à la main |
 | `activite.js` | fil d'activité : ajout d'un autre, départ en courses, article pris pour moi |
