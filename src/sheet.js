@@ -22,8 +22,8 @@ views.item = () => {
     <label class="field">Rayon ou commerce<select id="itemAisle">${aisleOptions(i.aisle)}</select></label>
     <label class="field">Précision <small>(quantité, marque, bio…)</small><input id="itemNote" value="${esc(i.note || '')}" placeholder="ex. 2 l, bio, marque X" autocomplete="off"></label>
     <label class="field">Si absent, prendre… <small>(consigne pour qui fait les courses)</small><input id="itemAlt" value="${esc(i.alt || '')}" placeholder="ex. la marque Schär, sinon rien" autocomplete="off"></label>
-    <label class="field check"><input type="checkbox" id="itemPin"${i.pin ? ' checked' : ''}><span>⭐ Indispensable<br><small>Toujours en haut des basiques et de la liste.</small></span></label>
-    <label class="field check"><input type="checkbox" id="itemFreq"${i.freq ? ' checked' : ''}><span>Article de base<br><small>Toujours visible dans « Mes basiques », coché par « Tout cocher ».</small></span></label>
+    <label class="field check"><input type="checkbox" id="itemPin"${i.pin ? ' checked' : ''}><span>⭐ Indispensable<br><small>Toujours en haut de « Mes articles », et proposé en haut de la liste.</small></span></label>
+    <label class="field check"><input type="checkbox" id="itemFreq"${i.freq ? ' checked' : ''}><span>Article de base<br><small>Toujours visible dans « Mes articles », coché par « Tout cocher ».</small></span></label>
     <h3>Habitudes</h3>
     <div class="row static"><span class="name">Acheté en moyenne</span><span>${r ? `tous les ${Math.round(r.every)} jours` : '<small>pas encore assez d\'achats</small>'}</span></div>
     <div class="row static"><span class="name">Dernier achat</span><span>${last ? `${fmtDate(last)}${i.lastBy ? ` · ${esc(i.lastBy)}` : ''}` : '—'}</span></div>

@@ -478,7 +478,7 @@ const views = {
       ${!need.length ? `
         <div class="empty-state">
           <p>Rien à acheter pour l'instant.</p>
-          <p class="hint">Écrivez ce qu'il manque, touchez une suggestion, ou piochez dans vos basiques.${Sync.config() ? ' Tout le monde voit la même liste.' : ''}</p>
+          <p class="hint">Écrivez ce qu'il manque, touchez une suggestion, ou piochez dans vos articles.${Sync.config() ? ' Tout le monde voit la même liste.' : ''}</p>
         </div>` : need.every(i => i.done) ? '<p class="hint center">✓ Tout est dans le caddie.</p>' : ''}
       ${cart.length ? `
         <section class="basket">
@@ -489,33 +489,27 @@ const views = {
         ${myCart.length ? `<button class="primary" data-a="finish">✓ Terminer les courses (${myCart.length})</button>`
           : need.length && !shopping ? `<button class="primary" data-a="goShopping">🛒 J'y vais${estimate ? ` <small>≈ ${euro(estimate)}</small>` : ''}</button>` : ''}
         <div class="tools">
-          <button data-a="go" data-v="catalog">${icon.plus}Basiques</button>
+          <button data-a="go" data-v="catalog">${icon.plus}Articles</button>
           ${need.length ? `<button data-a="shareList">${icon.share}Envoyer</button><button data-a="clearList">${icon.trash}Vider</button>` : ''}
         </div>
       </div>`;
   },
 
-  // Mes basiques : des pastilles à toucher, ✓ = déjà sur la liste
+  // Mes articles : TOUS les articles connus. Toucher = sur la liste ou non ; « Modifier » = ⭐ et fiche.
   catalog() {
-    const pins = S.items.filter(i => i.pin);
-    const chip = i => `<button class="chip ${i.need ? 'on' : ''}" data-a="${catalogEdit ? 'openItem' : 'toggleNeed'}" data-id="${i.id}">${i.need ? '✓ ' : ''}${esc(i.name)}</button>`;
     return `
       <button class="ghost back" data-a="go" data-v="list">← Liste</button>
-      <h2>Mes basiques</h2>
-      <p class="hint">${catalogEdit ? 'Touchez un article pour le modifier : rayon, ⭐ indispensable, photo…' : 'Touchez ce qui manque. ✓ = déjà sur la liste.'}</p>
+      <h2>Mes articles</h2>
+      <p class="hint">${catalogEdit ? 'Touchez ☆ pour mettre un article en indispensable (toujours en haut), › pour sa fiche (rayon, photo…).' : 'Touchez ce qui manque. ✓ = déjà sur la liste.'}</p>
       <div class="bar">
-        <button data-a="allFreq">Tout ajouter</button>
-        <button data-a="noneNeed">Tout retirer</button>
-        <button class="ghost ${catalogEdit ? 'active' : ''}" data-a="catalogEdit">✎ ${catalogEdit ? 'Terminé' : 'Modifier'}</button>
+        ${catalogEdit ? '' : '<button data-a="allFreq">Tout ajouter</button><button data-a="noneNeed">Tout retirer</button>'}
+        <button class="${catalogEdit ? 'accent grow' : 'ghost'}" data-a="catalogEdit">${catalogEdit ? '✓ Terminé' : '✎ Modifier'}</button>
       </div>
       <form id="quick" class="addtop">
-        <input name="name" value="${esc(quickDraft)}" placeholder="Nouvel article de base…" autocomplete="off" autocapitalize="sentences" required>
+        <input name="name" value="${esc(quickDraft)}" placeholder="Chercher ou ajouter un article…" autocomplete="off" autocapitalize="sentences" required>
         <button class="accent" aria-label="Ajouter">＋</button>
       </form>
-      <div id="suggest" class="chips suggest">${suggestChips()}</div>
-      ${pins.length ? `<section class="pins"><h3>⭐ Indispensables</h3><div class="chips">${pins.map(chip).join('')}</div></section>` : ''}
-      ${[...byAisle(i => (i.freq || i.need) && !i.pin), ...byAisle(i => (i.freq || i.need) && !i.pin, S.shops)].map(g => `
-        <section><h3>${esc(g.aisle.name)}</h3><div class="chips">${g.items.map(chip).join('')}</div></section>`).join('')}`;
+      <div id="catalogItems">${catalogItems()}</div>`;
   },
 
   recipes() {
@@ -725,9 +719,29 @@ const suggestChips = () => matches(lastPart(quickDraft)).map(i => {
   return `<button type="button" class="chip ${i.need ? 'on' : ''}" data-a="pickSuggest" data-id="${i.id}">${i.need ? '✓ ' : ''}${esc(i.name)} <small>${esc(where)}</small></button>`;
 }).join('');
 
+// Contenu de « Mes articles », filtré par ce qu'on tape dans le champ (recherche)
+function catalogItems() {
+  const q = sameKey(lastPart(quickDraft));
+  const shown = i => !q || sameKey(i.name).split(' ').some(w => w.startsWith(q)) || sameKey(i.name).includes(q);
+  const chip = i => `<button class="chip ${i.need ? 'on' : ''}" data-a="toggleNeed" data-id="${i.id}">${i.need ? '✓ ' : ''}${esc(i.name)}</button>`;
+  const row = i => `
+    <div class="row static">
+      <span class="name">${esc(i.name)}${noteOf(i)}</span>
+      <button class="ghost star ${i.pin ? 'on' : ''}" data-a="pin" data-id="${i.id}" title="${i.pin ? 'Retirer des indispensables' : 'Mettre en indispensable'}">${i.pin ? '★' : '☆'}</button>
+      ${more(i)}
+    </div>`;
+  const block = items => catalogEdit ? items.map(row).join('') : `<div class="chips">${items.map(chip).join('')}</div>`;
+  const pins = S.items.filter(i => i.pin && shown(i));
+  const groups = [...byAisle(i => !i.pin && shown(i)), ...byAisle(i => !i.pin && shown(i), S.shops)];
+  if (!pins.length && !groups.length) return `<p class="hint center">Aucun article « ${esc(lastPart(quickDraft))} » : touchez ＋ pour le créer.</p>`;
+  return `
+    ${pins.length ? `<section class="pins"><h3>⭐ Indispensables</h3>${block(pins)}</section>` : ''}
+    ${groups.map(g => `<section><h3>${esc(g.aisle.name)}</h3>${block(g.items)}</section>`).join('')}`;
+}
+
 // Autocomplétion des recettes : les articles connus
 const catalogList = () => `<datalist id="catalog">${S.items.map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>`;
-let catalogEdit = false; // « Mes basiques » en mode modification
+let catalogEdit = false; // « Mes articles » en mode modification
 
 let lastTab = null;
 // En courses : écran maintenu allumé (si le téléphone le permet)
@@ -745,8 +759,9 @@ document.addEventListener('input', e => {
   if (e.target.id === 'welcomeName') setMe(e.target.value);
   if (e.target.closest('#quick')) {
     quickDraft = e.target.value;
-    const box = document.getElementById('suggest');
+    const box = document.getElementById('suggest'), cat = document.getElementById('catalogItems');
     if (box) box.innerHTML = suggestChips();
+    if (cat) cat.innerHTML = catalogItems();
   }
 });
 function render() {
