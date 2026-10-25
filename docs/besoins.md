@@ -69,6 +69,9 @@ La colonne de droite indique où c'est **aujourd'hui** (les premières demandes 
 | 35 | Dépense à la main : **date d'achat** | Champ Date (dépense à la main, fiche Ticket) |
 | 36 | **Paniers préenregistrés** (ex. Bébé : Danonino, couches, tomates cerises, pompotes) | Mes articles > Paniers ; puce par panier sur la liste |
 | 38 | **Bibliothèque de recettes préenregistrées**, simples, à parcourir et adopter ; reconnaître les articles déjà créés | Repas > Mes recettes > Idées de recettes (35 recettes, 6 catégories, recherche) ; aperçu « déjà dans vos articles / nouveaux » ; adopter = copie dans Mes recettes |
+| 39 | Puce d'un panier sur la liste : décocher ce qu'on a déjà, comme dans la vue panier | Fenêtre du panier avec cases (déjà sur la liste grisé), puis Ajouter (Annuler possible) |
+| 40 | Repas : un calendrier du mois en cases plutôt qu'une liste de jours | Repas : calendrier mensuel (mois précédent/suivant), toucher une case = ses repas et « + repas » |
+| 41 | Toucher le nom pour modifier, sans icône dédiée | Recettes et paniers (nom = modifier), Mes articles en mode Modifier (nom = fiche) ; icônes ✎ et › retirées |
 | 37 | Mode partagé : **attribuer une part à un participant** (modifiable) | Fiche Ticket > Hors partage : « X € pour [membre] », plusieurs parts |
 
 ## 4. Décisions prises

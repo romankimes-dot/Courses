@@ -554,7 +554,7 @@ const views = {
         <button data-a="catalogPins" data-v="baskets" class="${catalogBaskets ? 'active' : ''}">${icon.basket} Paniers <small>${baskets().length}</small></button>
       </div>
       ${catalogBaskets ? basketsPane() : `
-      <p class="hint">${catalogEdit ? `Touchez ${icon.star} pour mettre un article en indispensable (toujours en haut de la liste), ${icon.right} pour sa fiche (rayon, photo…).`
+      <p class="hint">${catalogEdit ? `Touchez ${icon.star} pour mettre un article en indispensable (toujours en haut de la liste), son nom pour sa fiche (rayon, photo…).`
         : catalogPins ? `Toujours en haut de la liste quand il en faut. Touchez ce qui manque aujourd'hui.` : `Touchez ce qui manque. ${icon.check} = déjà sur la liste, ${icon.starOn} = indispensable.`}</p>
       <div class="bar">
         ${catalogEdit ? '' : catalogPins ? (nPins ? '<button data-a="allPins">Tout ajouter</button>' : '') : '<button data-a="allFreq">Tout ajouter</button><button data-a="noneNeed">Tout retirer</button>'}
@@ -787,9 +787,8 @@ function catalogItems() {
   const chip = i => `<button class="chip ${i.need ? 'on' : ''}" data-a="toggleNeed" data-id="${i.id}">${i.need ? icon.check : i.pin && !catalogPins ? icon.starOn : ''}${esc(i.name)}</button>`;
   const row = i => `
     <div class="row static">
-      <span class="name">${esc(i.name)}${noteOf(i)}</span>
+      <span class="name link" data-a="openItem" data-id="${i.id}">${esc(i.name)}${noteOf(i)}</span>
       <button class="ghost star ${i.pin ? 'on' : ''}" data-a="pin" data-id="${i.id}" title="${i.pin ? 'Retirer des indispensables' : 'Mettre en indispensable'}">${i.pin ? icon.starOn : icon.star}</button>
-      ${more(i)}
     </div>`;
   const block = items => catalogEdit ? items.map(row).join('') : `<div class="chips">${items.map(chip).join('')}</div>`;
   const keep = i => shown(i) && (!catalogPins || i.pin);
@@ -956,9 +955,8 @@ function recipeCard(r) {
   return `
     <section class="card">
       <div class="bar">
-        <strong class="grow">${esc(r.name)}</strong>
+        <strong class="grow link" data-a="editRecipe" data-id="${r.id}" title="Modifier">${esc(r.name)}</strong>
         <button data-a="startRecipe" data-id="${r.id}" ${its.length ? '' : 'disabled'}>Ajouter à la liste</button>
-        <button class="ghost" data-a="editRecipe" data-id="${r.id}" title="Modifier">${icon.edit}</button>
       </div>
       <p class="small">${its.map(i => esc(i.name)).join(' · ') || 'Aucun article lié'}</p>
     </section>`;
@@ -1163,12 +1161,19 @@ const actions = {
   hintDone: () => { try { localStorage.setItem('courses.hint', '1'); } catch {} },
   catalogEdit: () => { catalogEdit = !catalogEdit; },
   catalogPins: ({ v }) => { catalogPins = v === '1'; catalogBaskets = v === 'baskets'; },
-  // Puce d'un panier sur la liste : tout son contenu d'un toucher (Annuler possible)
+  // Puce d'un panier sur la liste : fenêtre où l'on décoche ce qu'on a déjà, puis ajout (Annuler possible)
   addBasket: ({ id }) => {
-    snapshot();
-    const r = recipe(id), its = r.items.map(item).filter(i => i && !i.need);
-    its.forEach(i => { want(i); if (r.qty?.[i.id] && !i.note) i.note = r.qty[i.id]; });
-    toast(its.length ? `${r.name} : ${its.length} article${its.length > 1 ? 's' : ''} ajouté${its.length > 1 ? 's' : ''}` : `${r.name} : tout est déjà sur la liste`, !!its.length);
+    const r = recipe(id), its = r.items.map(item).filter(Boolean);
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="overlay sheet-modal">
+        <form id="basketForm" class="card" data-id="${r.id}">
+          <h2>${icon.basket} ${esc(r.name)}</h2>
+          <p class="hint">Décochez ce que vous avez déjà.</p>
+          ${its.map(i => `<label class="field check"><input type="checkbox" name="i" value="${i.id}"${i.need ? ' disabled' : ' checked'}><span>${esc(i.name)}${r.qty?.[i.id] ? ` <small>${esc(r.qty[i.id])}</small>` : ''}${i.need ? ' <small>déjà sur la liste</small>' : ''}</span></label>`).join('')}
+          <button class="primary">${icon.plus} Ajouter à la liste</button>
+          <button type="button" class="ghost wide" data-a="closePhoto">Annuler</button>
+        </form>
+      </div>`);
   },
   shareList: async () => {
     const groups = [...byAisle(i => i.need), ...byAisle(i => i.need, S.shops)];
@@ -1351,6 +1356,15 @@ document.addEventListener('submit', e => {
     // Articles inconnus : sur la liste ? indispensables ? (fenêtre de choix)
     if (newItems.length) { setTimeout(askNewItems); save(); render(); return; }
     if (already.length) setTimeout(() => toast(`Déjà sur la liste : ${already.join(', ')}`, false));
+  }
+  if (e.target.id === 'basketForm') {
+    const r = recipe(e.target.dataset.id), its = f.getAll('i').map(item).filter(i => i && !i.need);
+    e.target.closest('.overlay').remove();
+    snapshot();
+    its.forEach(i => { want(i); if (r.qty?.[i.id] && !i.note) i.note = r.qty[i.id]; });
+    save(); render();
+    if (its.length) toast(`${r.name} : ${its.length} article${its.length > 1 ? 's' : ''} ajouté${its.length > 1 ? 's' : ''}`);
+    return;
   }
   if (e.target.id === 'newItemForm') {
     const need = f.get('need') === 'on', pin = f.get('pin') === 'on', aisle = f.get('aisle');

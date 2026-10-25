@@ -172,6 +172,17 @@ details.adv summary { cursor: pointer; color: var(--accent); font-weight: 600; p
 .day { background: var(--card); border-radius: 10px; padding: 8px 10px; display: grid; gap: 6px; }
 .day.today { outline: 2px solid var(--accent-soft); }
 .day select { border-radius: 16px; padding: 4px 8px; font-size: 14px; }
+.cal-head { margin-top: 4px; text-transform: capitalize; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin: 4px 0 10px; }
+.cal i { font-style: normal; text-align: center; font-size: 12px; color: var(--muted); }
+.cal .cell { min-height: 54px; padding: 3px; border-radius: 8px; background: var(--card); display: flex; flex-direction: column; align-items: stretch; gap: 1px; text-align: left; overflow: hidden; border: 1px solid transparent; }
+.cal .cell b { font-size: 13px; font-weight: 600; }
+.cal .cell small { font-size: 10px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--accent-soft); border-radius: 4px; padding: 0 2px; color: var(--fg); }
+.cal .cell.today { border-color: var(--accent); }
+.cal .cell.sel { background: var(--accent-soft); border-color: var(--accent); }
+.cal .cell { color: var(--fg); }
+.cal .cell.past { opacity: .65; }
+.cal .cell.past b { color: var(--muted); }
 .qty { width: 80px; flex: none; }
 .part select { flex: 1; min-width: 0; }
 .part > span { color: var(--muted); }
