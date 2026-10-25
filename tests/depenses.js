@@ -1,4 +1,4 @@
-// Compte joint par défaut (pas de « qui doit quoi ») ; option Partager les dépenses : qui doit quoi, remboursement, dépense à la main
+// Compte joint par défaut (pas de « qui doit quoi ») ; option Partager les dépenses : qui doit quoi, remboursement, dépense à la main datée
 const { phones, start, share, syncAll, add } = require('./_outils');
 (async () => {
   const { browser, pages: [A, B], errs } = await phones(2);
@@ -22,9 +22,12 @@ const { phones, start, share, syncAll, add } = require('./_outils');
   await A.click('.owe [data-a=settle]');
   const settled = (await A.textContent('main')).includes('Tout le monde est à jour');
   await A.click('[data-a=expense]'); await A.fill('#expenseForm input[name=amount]', '8'); await A.fill('#expenseForm input[name=name]', 'Marché');
-  await A.selectOption('#expenseForm select', 'Tom'); await A.click('#expenseForm button.accent');
+  await A.selectOption('#expenseForm select', 'Tom');
+  const day = await A.evaluate(() => dayKey(new Date(Date.now() - 3 * DAY)));
+  await A.fill('#expenseForm input[name=date]', day); await A.click('#expenseForm button.accent');
+  const expenseDay = await A.evaluate(() => dayKey(new Date(S.trips.find(t => t.type === 'expense').date)));
   const owe2 = await A.$$eval('.owe .name', e => e.map(x => x.textContent.trim()));
   const hero = (await A.textContent('.hero strong')).trim();
-  console.log(JSON.stringify({ joint, jointPayer, splitB: await B.evaluate(() => S.settings.split), owe, settled, owe2, hero, errs }, null, 1));
+  console.log(JSON.stringify({ dated: expenseDay === day, joint, jointPayer, splitB: await B.evaluate(() => S.settings.split), owe, settled, owe2, hero, errs }, null, 1));
   await browser.close(); process.exit(0);
 })();

@@ -265,9 +265,9 @@ const suggestions = () => S.items
   .map(i => ({ i, r: rhythm(i) }))
   .filter(x => x.r && x.r.due >= 0.8 && !(x.i.snooze && Date.now() - x.i.snooze < x.r.every * DAY))
   .sort((a, b) => b.r.due - a.r.due);
-// Pré-remplissage (option de la liste) : ce qui arrive à échéance revient sur la liste, marqué « suggéré »
+// Pré-remplissage (option de la liste, active par défaut) : ce qui arrive à échéance revient sur la liste, marqué « suggéré »
 function autoFill() {
-  if (!S.settings.autofill || myShopping()) return false;
+  if (S.settings.autofill === false || myShopping()) return false;
   const due = suggestions().filter(x => x.r.due >= 1);
   due.forEach(({ i }) => { want(i); i.auto = true; delete i.by; });
   return due.length > 0;
@@ -614,7 +614,7 @@ const views = {
       }).join('')}` : ''}
       </details>
       <h3>Passages en caisse</h3>
-      ${S.trips.slice(-20).reverse().map(t => `
+      ${[...S.trips].sort((a, b) => b.date - a.date).slice(0, 20).map(t => `
         <div class="row" data-a="openTrip" data-id="${t.id}">
           <span class="name">${shortDate(t.date)} · ${esc(t.type === 'settle' ? `${t.from} → ${t.to}` : t.place)}${t.n ? ` <small>${t.n} art.</small>` : ''}${S.settings.split && t.by && t.type !== 'settle' ? ` <small>· payé par ${esc(t.by)}${t.own ? `, ${euro(t.own)} perso` : ''}</small>` : ''}${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
           <span>${t.total == null ? '<small>Ajouter €</small>' : euro(t.total)}</span>${icon.right}
@@ -629,7 +629,7 @@ const views = {
       <h2>Réglages</h2>
       <h3>Cette liste</h3>
       <label class="field">Nom<input id="listTitle" value="${esc(currentList().name)}" autocomplete="off"></label>
-      <label class="field check"><input type="checkbox" id="autofill"${S.settings.autofill ? ' checked' : ''}><span>Pré-remplir la liste<br><small>Ce qui est acheté régulièrement (au moins 2 achats) revient de lui-même quand c'est le moment, marqué « suggéré ». Retiré, il attend le prochain cycle.</small></span></label>
+      <label class="field check"><input type="checkbox" id="autofill"${S.settings.autofill !== false ? ' checked' : ''}><span>Pré-remplir la liste<br><small>Ce qui est acheté régulièrement (au moins 2 achats) revient de lui-même quand c'est le moment, marqué « suggéré ». Retiré, il attend le prochain cycle.</small></span></label>
       <label class="field check"><input type="checkbox" id="split"${S.settings.split ? ' checked' : ''}><span>Partager les dépenses<br><small>Qui a payé quoi, qui doit combien à qui (colocation, courses pour un proche). Décoché : compte joint, on suit juste le budget commun.</small></span></label>
       ${Sync.config() ? `
         <p class="hint">Liste partagée${members().length > 1 ? ` avec ${members().filter(m => m !== me).map(esc).join(', ')}` : ''}. Les modifications faites sans réseau partent dès qu'il revient.</p>
@@ -1390,7 +1390,7 @@ document.addEventListener('submit', e => {
 document.addEventListener('change', async e => {
   if (e.target.id === 'brush') { brush = e.target.value; brushOpen = true; return; }
   if (e.target.id === 'meName') { setMe(e.target.value); return render(); }
-  if (e.target.id === 'autofill') { S.settings.autofill = e.target.checked || undefined; autoFill(); save(); return render(); }
+  if (e.target.id === 'autofill') { S.settings.autofill = e.target.checked; autoFill(); save(); return render(); }
   if (e.target.id === 'split') { S.settings.split = e.target.checked || undefined; save(); return render(); }
   if (e.target.id === 'listTitle' && e.target.value.trim()) { currentList().name = S.settings.listName = e.target.value.trim(); saveLists(); save(); return render(); }
   if (e.target.id === 'rname') { const r = recipe(e.target.dataset.id); if (e.target.value.trim()) r.name = e.target.value.trim(); return save(); }
