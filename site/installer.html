@@ -14,8 +14,8 @@
     <div class="wrap">
       <a class="brand" href="./"><img src="../icon.svg" alt="">Courses</a>
       <nav>
-        <a class="hide-sm" href="./#fonctions">Fonctions</a>
-        <a class="btn primary small" href="../">Ouvrir l'app</a>
+        <a class="hide-sm" href="./">Présentation</a>
+        <a class="btn ink small" href="../">Ouvrir l'app</a>
       </nav>
     </div>
   </header>
@@ -23,9 +23,8 @@
   <main>
     <div class="page-head">
       <div class="wrap">
-        <p class="eyebrow" data-icon="addHome">Pas de store, pas de compte</p>
         <h1>Installer Courses</h1>
-        <p class="lead" style="margin:0 auto 24px">L'app s'installe depuis le navigateur, en 30 secondes. Ensuite, elle s'ouvre depuis son icône, en plein écran, même sans réseau.</p>
+        <p class="lede">Courses ne passe pas par l'App Store ni par Google Play : on l'ajoute à l'écran d'accueil depuis le navigateur. Elle s'ouvre ensuite depuis son icône, comme une autre appli.</p>
         <div class="tabs" role="tablist">
           <button role="tab" data-p="iphone" aria-selected="true">iPhone</button>
           <button role="tab" data-p="android" aria-selected="false">Android</button>
@@ -48,7 +47,7 @@
           </li>
           <li>
             <div><h3>Choisissez « Sur l'écran d'accueil »</h3><p>Faites défiler la liste des actions si besoin.</p></div>
-            <div class="mock"><div class="sheet"><div><span>Copier</span></div><div><span>Ajouter aux favoris</span></div><div class="pick"><span>Sur l'écran d'accueil</span><span data-icon="addHome"></span></div></div></div>
+            <div class="mock"><div class="sheet-ui"><div><span>Copier</span></div><div><span>Ajouter aux favoris</span></div><div class="pick"><span>Sur l'écran d'accueil</span><span data-icon="addHome"></span></div></div></div>
           </li>
           <li>
             <div><h3>Touchez Ajouter</h3><p>L'icône Courses apparaît sur l'écran d'accueil : c'est par elle que vous ouvrez l'app désormais.</p></div>
@@ -61,8 +60,8 @@
           </li>
         </ol>
         <div class="notes">
-          <div class="note"><h3 data-icon="alert">Installez avant de commencer</h3><p>Sur iPhone, l'app installée a ses propres données : ce qui est fait dans Safari n'y apparaît pas. Créez ou rejoignez votre liste depuis l'icône.</p></div>
-          <div class="note"><h3 data-icon="send">Une liste vous attend déjà ?</h3><p>Dans l'app installée, touchez « J'ai reçu un lien d'invitation » et collez le lien reçu.</p></div>
+          <div class="note"><h3>Installez avant de commencer</h3><p>Sur iPhone, l'app installée a ses propres données : ce qui est fait dans Safari n'y apparaît pas. Créez ou rejoignez votre liste depuis l'icône.</p></div>
+          <div class="note"><h3>Une liste vous attend déjà ?</h3><p>Dans l'app installée, touchez « J'ai reçu un lien d'invitation » et collez le lien reçu.</p></div>
         </div>
       </div>
 
@@ -74,7 +73,7 @@
           </li>
           <li>
             <div><h3>Touchez « Installer l'app »</h3><p>Le bouton apparaît en haut de la liste. Sinon : menu <span class="inline-i" data-icon="more"></span> du navigateur, puis « Installer l'application » ou « Ajouter à l'écran d'accueil ».</p></div>
-            <div class="mock"><div class="sheet"><div><span>Nouvel onglet</span></div><div><span>Favoris</span></div><div class="pick"><span>Installer l'application</span><span data-icon="addHome"></span></div></div></div>
+            <div class="mock"><div class="sheet-ui"><div><span>Nouvel onglet</span></div><div><span>Favoris</span></div><div class="pick"><span>Installer l'application</span><span data-icon="addHome"></span></div></div></div>
           </li>
           <li>
             <div><h3>Confirmez</h3><p>Courses rejoint vos applications et l'écran d'accueil, comme une app du store.</p></div>
@@ -89,25 +88,25 @@
       </div>
 
       <div class="panel" id="ordi" role="tabpanel">
-        <div class="qr">
+        <div class="qr-block">
           <img src="img/qr.svg" alt="QR code vers Courses" width="180" height="180">
           <div>
-            <h3>Scannez avec votre téléphone</h3>
-            <p>L'appareil photo du téléphone ouvre Courses, avec le guide d'installation en haut de la liste.</p>
-            <p>Sur ordinateur, Courses marche aussi dans le navigateur : Chrome et Edge proposent même de l'installer (icône dans la barre d'adresse).</p>
+            <h3>Ouvrez-la sur votre téléphone</h3>
+            <p>Visez ce code avec l'appareil photo du téléphone : Courses s'ouvre, avec les explications en haut de la liste.</p>
+            <p>Elle marche aussi sur ordinateur, dans le navigateur.</p>
             <a class="btn small" href="../">Ouvrir sur cet ordinateur</a>
           </div>
         </div>
       </div>
     </div>
 
-    <section>
+    <section class="faq">
       <div class="wrap">
-        <h2 class="center">Questions</h2>
-        <div class="faq">
+        <h2>Questions</h2>
+        <div>
           <details><summary>Pourquoi pas sur l'App Store ou Google Play ?</summary><p>Courses est une application web : elle s'installe directement depuis le navigateur, sans compte ni téléchargement depuis un store. Elle se met à jour toute seule, et marche hors-ligne comme une app classique.</p></details>
           <details><summary>Pourquoi l'installer plutôt que garder le lien ?</summary><p>Installée, elle s'ouvre en plein écran depuis son icône et peut vous envoyer des notifications. Sur iPhone surtout, Safari efface les données d'un site non installé après 7 jours sans visite : installée, la liste reste.</p></details>
-          <details><summary>Où sont mes données ?</summary><p>Sur votre téléphone. Si vous partagez une liste, elle passe aussi par le serveur de partage du foyer, pour arriver sur les téléphones de ceux que vous invitez. Pas de compte, pas de publicité.</p></details>
+          <details><summary>Où sont mes données ?</summary><p>Sur votre téléphone. Si vous partagez une liste, elle passe aussi par le serveur de partage du foyer, pour arriver sur les téléphones de ceux que vous invitez. Pas de compte, pas de publicité. Le détail : <a href="cgu.html#confidentialite">confidentialité</a>.</p></details>
           <details><summary>Comment avoir les nouveautés ?</summary><p>Rien à faire : à l'ouverture, l'app vérifie s'il existe une nouvelle version et propose de recharger.</p></details>
           <details><summary>Comment la désinstaller ?</summary><p>Comme une autre app : appui long sur l'icône, puis Supprimer.</p></details>
         </div>
@@ -117,8 +116,8 @@
 
   <footer>
     <div class="wrap">
-      <span>Courses · fait pour un foyer, partagé avec quelques-uns.</span>
-      <a href="./">Retour à la présentation</a>
+      <a href="./">Courses</a>
+      <a href="cgu.html">Conditions et confidentialité</a>
     </div>
   </footer>
 

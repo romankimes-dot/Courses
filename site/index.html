@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Courses · la liste de courses du foyer</title>
-  <meta name="description" content="Une liste de courses partagée, rangée par rayons, qui marche même sans réseau au magasin. Gratuite, sans compte, à installer en 30 secondes.">
-  <meta property="og:title" content="Courses · la liste de courses du foyer">
-  <meta property="og:description" content="Tout le monde ajoute ce qui manque. Au magasin, la liste suit vos rayons, même sans réseau.">
+  <title>Courses</title>
+  <meta name="description" content="La liste de courses partagée du foyer : chacun ajoute depuis son téléphone, et au magasin tout est rangé par rayon, même sans réseau. Gratuite, sans compte.">
+  <meta property="og:title" content="Courses">
+  <meta property="og:description" content="La liste de courses partagée du foyer, rangée par rayons, même sans réseau.">
   <meta property="og:image" content="img/liste.png">
   <meta name="theme-color" content="#f0eee9">
   <link rel="icon" href="../icon.svg" type="image/svg+xml">
@@ -17,131 +17,168 @@
     <div class="wrap">
       <a class="brand" href="./"><img src="../icon.svg" alt="">Courses</a>
       <nav>
-        <a class="hide-sm" href="#fonctions">Fonctions</a>
+        <a class="hide-sm" href="#magasin">Au magasin</a>
         <a class="hide-sm" href="installer.html">Installer</a>
-        <a class="btn primary small" href="../">Ouvrir l'app</a>
+        <a class="btn ink small" href="../">Ouvrir l'app</a>
       </nav>
     </div>
   </header>
 
   <main>
-    <section class="hero">
+    <div class="hero">
+      <div class="wrap">
+        <h1>On n'oublie<br>plus le lait.</h1>
+        <p class="sub">La liste de courses partagée du foyer. Chacun ajoute depuis son téléphone ; au magasin, tout est rangé par rayon, même sans réseau.</p>
+        <div class="actions">
+          <a class="btn primary" href="installer.html">Installer Courses</a>
+          <a class="btn line" href="../">Essayer dans le navigateur</a>
+        </div>
+        <div class="demo" id="demo" aria-label="Démonstration : deux téléphones partagent la même liste">
+          <div><div class="who"><span class="av" style="background:#1f5fcc">L</span>Téléphone de Léa</div><div class="phone"><div class="screen" data-me="Léa"></div></div></div>
+          <div><div class="who"><span class="av" style="background:#c2410c">H</span>Téléphone de Hugo</div><div class="phone"><div class="screen" data-me="Hugo"></div></div></div>
+        </div>
+        <p class="demo-hint">Touchez un article chez Léa : il passe dans son caddie, et Hugo le voit aussitôt.</p>
+      </div>
+    </div>
+
+    <section class="store" id="magasin">
       <div class="wrap">
         <div>
-          <p class="eyebrow" data-icon="cart">Gratuite, sans compte, sans pub</p>
-          <h1>La liste de courses <em>du foyer.</em></h1>
-          <p class="lead">Tout le monde ajoute ce qui manque. Au magasin, la liste suit vos rayons, et elle marche même sans réseau.</p>
-          <div class="ctas">
-            <a class="btn primary" href="installer.html" data-icon="addHome">Installer sur mon téléphone</a>
-            <a class="btn" href="../">Essayer dans le navigateur</a>
+          <h2>Le magasin,<br>dans le bon ordre.</h2>
+          <p class="lead">Dessinez le plan de votre supermarché une fois. Courses numérote les rayons et trace le circuit le plus court depuis l'entrée.</p>
+          <div class="seg-ui"><span class="on">Tout le magasin</span><span>Début</span><span>Fin</span></div>
+          <div class="facts">
+            <div><b>À deux, chacun sa moitié</b><span>L'un prend le début du circuit, l'autre la fin.</span></div>
+            <div><b>Plusieurs magasins</b><span>Chacun son plan ; un ordre standard pour les autres.</span></div>
+            <div><b>Sans réseau</b><span>Tout marche au fond du magasin ; ça se synchronise en sortant.</span></div>
+            <div><b>Pas trouvé ?</b><span>On le note, il reste sur la liste pour la prochaine fois.</span></div>
           </div>
-          <ul class="trust">
-            <li data-icon="check">iPhone et Android</li>
-            <li data-icon="check">Marche hors-ligne</li>
-            <li data-icon="check">Partagée en direct</li>
-          </ul>
         </div>
-        <div class="stage">
-          <div class="phone"><img src="img/liste.png" alt="La liste de courses, rangée par rayons" width="390" height="844"></div>
-          <div class="bubble b1"><span class="av" style="background:#c2410c">R</span><span><b>Raphaëlle a ajouté</b><small>Tomates, 1 kg</small></span></div>
-          <div class="bubble b2"><span class="av" style="background:#1f5fcc">3</span><span><b>Plus que 3 articles</b><small>Crèmerie, puis Boissons</small></span></div>
-        </div>
+        <svg class="map" role="img" aria-label="Plan du magasin en 3D, rayons numérotés dans l'ordre du circuit" viewBox="-8.5 -2.2 15 9.7">
+      <polygon points="0.000,0.000 6.000,3.000 -2.000,7.000 -8.000,4.000" fill="var(--card)" stroke="var(--line)" stroke-width=".04"></polygon><polygon points="-7.000,3.500 -6.000,4.000 -7.000,4.500 -8.000,4.000" fill="var(--accent)" opacity=".35"></polygon><text x="-7" y="4.12" font-size=".3" font-weight="700" text-anchor="middle" fill="var(--accent)">Entrée</text>
+      <polyline points="-7,4 -4,3 -1,3 0,3.5 1.5,3.75 3,4 3,2 -7,4" fill="none" stroke="var(--accent)" stroke-width=".1" stroke-dasharray=".25 .15" stroke-linecap="round" stroke-linejoin="round" opacity=".8"></polyline>
+      <polygon points="-2.000,0.300 -1.000,0.800 -1.000,1.500 -2.000,1.000" fill="hsl(150 4% 52%)" opacity="0.55" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="0.000,0.300 -1.000,0.800 -1.000,1.500 0.000,1.000" fill="hsl(150 4% 42%)" opacity="0.55" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-1.000,-0.200 0.000,0.300 -1.000,0.800 -2.000,0.300" fill="hsl(150 4% 70%)" opacity="0.55" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-3.000,0.800 -2.000,1.300 -2.000,2.000 -3.000,1.500" fill="hsl(150 4% 52%)" opacity="0.55" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-1.000,0.800 -2.000,1.300 -2.000,2.000 -1.000,1.500" fill="hsl(150 4% 42%)" opacity="0.55" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-2.000,0.300 -1.000,0.800 -2.000,1.300 -3.000,0.800" fill="hsl(150 4% 70%)" opacity="0.55" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="1.000,0.800 2.000,1.300 2.000,2.000 1.000,1.500" fill="hsl(98 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="3.000,0.800 2.000,1.300 2.000,2.000 3.000,1.500" fill="hsl(98 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="2.000,0.300 3.000,0.800 2.000,1.300 1.000,0.800" fill="hsl(98 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="2.000,1.300 3.000,1.800 3.000,2.500 2.000,2.000" fill="hsl(98 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="4.000,1.300 3.000,1.800 3.000,2.500 4.000,2.000" fill="hsl(98 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="3.000,0.800 4.000,1.300 3.000,1.800 2.000,1.300" fill="hsl(98 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-5.000,1.800 -4.000,2.300 -4.000,3.000 -5.000,2.500" fill="hsl(0 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-3.000,1.800 -4.000,2.300 -4.000,3.000 -3.000,2.500" fill="hsl(0 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-4.000,1.300 -3.000,1.800 -4.000,2.300 -5.000,1.800" fill="hsl(0 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-1.000,1.800 0.000,2.300 0.000,3.000 -1.000,2.500" fill="hsl(131 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="1.000,1.800 0.000,2.300 0.000,3.000 1.000,2.500" fill="hsl(131 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="0.000,1.300 1.000,1.800 0.000,2.300 -1.000,1.800" fill="hsl(131 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="3.000,1.800 4.000,2.300 4.000,3.000 3.000,2.500" fill="hsl(98 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="5.000,1.800 4.000,2.300 4.000,3.000 5.000,2.500" fill="hsl(98 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="4.000,1.300 5.000,1.800 4.000,2.300 3.000,1.800" fill="hsl(98 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-6.000,2.300 -5.000,2.800 -5.000,3.500 -6.000,3.000" fill="hsl(0 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-4.000,2.300 -5.000,2.800 -5.000,3.500 -4.000,3.000" fill="hsl(0 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-5.000,1.800 -4.000,2.300 -5.000,2.800 -6.000,2.300" fill="hsl(0 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-4.000,2.300 -3.000,2.800 -3.000,3.500 -4.000,3.000" fill="hsl(0 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-2.000,2.300 -3.000,2.800 -3.000,3.500 -2.000,3.000" fill="hsl(0 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-3.000,1.800 -2.000,2.300 -3.000,2.800 -4.000,2.300" fill="hsl(0 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-2.000,2.300 -1.000,2.800 -1.000,3.500 -2.000,3.000" fill="hsl(131 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="0.000,2.300 -1.000,2.800 -1.000,3.500 0.000,3.000" fill="hsl(131 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-1.000,1.800 0.000,2.300 -1.000,2.800 -2.000,2.300" fill="hsl(131 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="0.000,2.300 1.000,2.800 1.000,3.500 0.000,3.000" fill="hsl(164 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="2.000,2.300 1.000,2.800 1.000,3.500 2.000,3.000" fill="hsl(164 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="1.000,1.800 2.000,2.300 1.000,2.800 0.000,2.300" fill="hsl(164 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-5.000,2.800 -4.000,3.300 -4.000,4.000 -5.000,3.500" fill="hsl(0 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-3.000,2.800 -4.000,3.300 -4.000,4.000 -3.000,3.500" fill="hsl(0 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-4.000,2.300 -3.000,2.800 -4.000,3.300 -5.000,2.800" fill="hsl(0 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-3.000,2.800 -2.000,3.300 -2.000,4.000 -3.000,3.500" fill="hsl(131 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-1.000,2.800 -2.000,3.300 -2.000,4.000 -1.000,3.500" fill="hsl(131 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-2.000,2.300 -1.000,2.800 -2.000,3.300 -3.000,2.800" fill="hsl(131 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-1.000,2.800 0.000,3.300 0.000,4.000 -1.000,3.500" fill="hsl(164 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="1.000,2.800 0.000,3.300 0.000,4.000 1.000,3.500" fill="hsl(164 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="0.000,2.300 1.000,2.800 0.000,3.300 -1.000,2.800" fill="hsl(164 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="1.000,2.800 2.000,3.300 2.000,4.000 1.000,3.500" fill="hsl(262 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="3.000,2.800 2.000,3.300 2.000,4.000 3.000,3.500" fill="hsl(262 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="2.000,2.300 3.000,2.800 2.000,3.300 1.000,2.800" fill="hsl(262 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="3.000,2.800 4.000,3.300 4.000,4.000 3.000,3.500" fill="hsl(65 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="5.000,2.800 4.000,3.300 4.000,4.000 5.000,3.500" fill="hsl(65 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="4.000,2.300 5.000,2.800 4.000,3.300 3.000,2.800" fill="hsl(65 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-2.000,3.300 -1.000,3.800 -1.000,4.500 -2.000,4.000" fill="hsl(164 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="0.000,3.300 -1.000,3.800 -1.000,4.500 0.000,4.000" fill="hsl(164 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-1.000,2.800 0.000,3.300 -1.000,3.800 -2.000,3.300" fill="hsl(164 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="0.000,3.300 1.000,3.800 1.000,4.500 0.000,4.000" fill="hsl(262 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="2.000,3.300 1.000,3.800 1.000,4.500 2.000,4.000" fill="hsl(262 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="1.000,2.800 2.000,3.300 1.000,3.800 0.000,3.300" fill="hsl(262 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="2.000,3.300 3.000,3.800 3.000,4.500 2.000,4.000" fill="hsl(65 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="4.000,3.300 3.000,3.800 3.000,4.500 4.000,4.000" fill="hsl(65 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="3.000,2.800 4.000,3.300 3.000,3.800 2.000,3.300" fill="hsl(65 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-1.000,4.150 0.000,4.650 0.000,5.000 -1.000,4.500" fill="hsl(150 4% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="1.000,4.150 0.000,4.650 0.000,5.000 1.000,4.500" fill="hsl(150 4% 50%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="0.000,3.650 1.000,4.150 0.000,4.650 -1.000,4.150" fill="hsl(150 4% 78%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="1.000,3.800 2.000,4.300 2.000,5.000 1.000,4.500" fill="hsl(65 55% 42%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="3.000,3.800 2.000,4.300 2.000,5.000 3.000,4.500" fill="hsl(65 55% 32%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="2.000,3.300 3.000,3.800 2.000,4.300 1.000,3.800" fill="hsl(65 55% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="0.000,4.650 1.000,5.150 1.000,5.500 0.000,5.000" fill="hsl(150 4% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="2.000,4.650 1.000,5.150 1.000,5.500 2.000,5.000" fill="hsl(150 4% 50%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="1.000,4.150 2.000,4.650 1.000,5.150 0.000,4.650" fill="hsl(150 4% 78%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-3.000,5.150 -2.000,5.650 -2.000,6.000 -3.000,5.500" fill="hsl(150 4% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-1.000,5.150 -2.000,5.650 -2.000,6.000 -1.000,5.500" fill="hsl(150 4% 50%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-2.000,4.650 -1.000,5.150 -2.000,5.650 -3.000,5.150" fill="hsl(150 4% 78%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-2.000,5.650 -1.000,6.150 -1.000,6.500 -2.000,6.000" fill="hsl(150 4% 60%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="0.000,5.650 -1.000,6.150 -1.000,6.500 0.000,6.000" fill="hsl(150 4% 50%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><polygon points="-1.000,5.150 0.000,5.650 -1.000,6.150 -2.000,5.650" fill="hsl(150 4% 78%)" opacity="1" stroke="rgba(0,0,0,.15)" stroke-width=".02"></polygon><g opacity="1">
+      <line x1="-4" y1="2.3" x2="-4" y2="1.7" stroke="var(--fg)" stroke-width=".03"></line>
+      <circle cx="-4" cy="1.7" r=".32" fill="hsl(0 55% 55%)" stroke="var(--bg)" stroke-width=".06"></circle>
+      <text x="-4" y="1.83" font-size=".36" font-weight="700" text-anchor="middle" fill="#fff">1</text>
+    </g><g opacity="1">
+      <line x1="-1" y1="2.3" x2="-1" y2="1.7" stroke="var(--fg)" stroke-width=".03"></line>
+      <circle cx="-1" cy="1.7" r=".32" fill="hsl(131 55% 55%)" stroke="var(--bg)" stroke-width=".06"></circle>
+      <text x="-1" y="1.83" font-size=".36" font-weight="700" text-anchor="middle" fill="#fff">2</text>
+    </g><g opacity="1">
+      <line x1="0" y1="2.8" x2="0" y2="2.2" stroke="var(--fg)" stroke-width=".03"></line>
+      <circle cx="0" cy="2.2" r=".32" fill="hsl(164 55% 55%)" stroke="var(--bg)" stroke-width=".06"></circle>
+      <text x="0" y="2.33" font-size=".36" font-weight="700" text-anchor="middle" fill="#fff">3</text>
+    </g><g opacity="1">
+      <line x1="1.5" y1="3.05" x2="1.5" y2="2.45" stroke="var(--fg)" stroke-width=".03"></line>
+      <circle cx="1.5" cy="2.45" r=".32" fill="hsl(262 55% 55%)" stroke="var(--bg)" stroke-width=".06"></circle>
+      <text x="1.5" y="2.58" font-size=".36" font-weight="700" text-anchor="middle" fill="#fff">4</text>
+    </g><g opacity="1">
+      <line x1="3" y1="3.3" x2="3" y2="2.7" stroke="var(--fg)" stroke-width=".03"></line>
+      <circle cx="3" cy="2.7" r=".32" fill="hsl(65 55% 55%)" stroke="var(--bg)" stroke-width=".06"></circle>
+      <text x="3" y="2.83" font-size=".36" font-weight="700" text-anchor="middle" fill="#fff">5</text>
+    </g><g opacity="1">
+      <line x1="3" y1="1.3" x2="3" y2="0.7" stroke="var(--fg)" stroke-width=".03"></line>
+      <circle cx="3" cy="0.7" r=".32" fill="hsl(98 55% 55%)" stroke="var(--bg)" stroke-width=".06"></circle>
+      <text x="3" y="0.83" font-size=".36" font-weight="700" text-anchor="middle" fill="#fff">6</text>
+    </g><g opacity="0.35">
+      <line x1="-1.5" y1="0.55" x2="-1.5" y2="-0.050000000000000044" stroke="var(--fg)" stroke-width=".03"></line>
+      <circle cx="-1.5" cy="-0.050000000000000044" r=".32" fill="var(--muted)" stroke="var(--bg)" stroke-width=".06"></circle>
+      <text x="-1.5" y="0.07999999999999996" font-size=".36" font-weight="700" text-anchor="middle" fill="#fff">7</text>
+    </g>
+    </svg>
       </div>
     </section>
 
-    <section class="band">
-      <div class="wrap center">
-        <p class="kicker">Comment ça marche</p>
-        <h2>Trois gestes, pas un de plus.</h2>
-        <ol class="steps3">
-          <li class="reveal"><div class="ico" data-icon="plus"></div><h3>On ajoute, à plusieurs</h3><p>« lait, œufs, 2 kg tomates » : chacun complète la même liste depuis son téléphone, rangée toute seule par rayon.</p></li>
-          <li class="reveal"><div class="ico" data-icon="cart"></div><h3>On touche, c'est dans le caddie</h3><p>Au magasin, un toucher suffit. Ce qui est pris descend en bas ; l'autre le voit aussitôt.</p></li>
-          <li class="reveal"><div class="ico" data-icon="wallet"></div><h3>On paie, c'est noté</h3><p>Le montant du ticket rejoint les dépenses du mois, et la liste se souvient de ce que vous rachetez.</p></li>
-        </ol>
-      </div>
-    </section>
-
-    <section class="feature" id="fonctions">
+    <section>
       <div class="wrap">
-        <div class="text reveal">
-          <p class="kicker">Au magasin</p>
-          <h2>Votre supermarché, rayon par rayon.</h2>
-          <p class="lead">Dessinez le plan une fois : Courses trace le circuit le plus court et numérote les rayons dans l'ordre.</p>
-          <ul class="points">
-            <li data-icon="door"><span><b>Le circuit le plus court</b>Depuis l'entrée, sans revenir sur vos pas.</span></li>
-            <li data-icon="send"><span><b>À deux, chacun sa moitié</b>L'un prend le début du circuit, l'autre la fin.</span></li>
-            <li data-icon="pin"><span><b>Plusieurs magasins</b>Et un ordre standard pour ceux qu'on ne connaît pas.</span></li>
-          </ul>
+        <h2>Tout le reste<br>de la maison.</h2>
+        <p class="lead">Les repas, le budget, ce qui revient chaque semaine : au même endroit que la liste.</p>
+        <div class="bento">
+          <div class="tile w2">
+            <div><h3>Les repas de la semaine</h3><p>Posez vos recettes sur les jours ; les ingrédients partent sur la liste en un geste, quantités cumulées. Une centaine d'idées pour démarrer.</p></div>
+            <div class="ui">
+              <div class="week">
+                <div><b>Lun 26</b>Soupe de légumes</div>
+                <div class="today"><b>Mar 27</b>Croque-monsieur</div>
+                <div><b>Mer 28</b>Gratin dauphinois</div>
+                <div><b>Jeu 29</b>Salade niçoise</div>
+                <div><b>Ven 30</b>Pâtes carbonara</div>
+              </div>
+              <div class="wide-btn">Ingrédients des 7 prochains jours sur la liste (16)</div>
+            </div>
+          </div>
+          <div class="tile">
+            <div><h3>Le budget du mois</h3><p>Chaque passage en caisse est noté.</p></div>
+            <div class="ui">
+              <div class="small-muted">Dépensé ce mois</div>
+              <div class="money">308,65 €</div>
+              <div class="gauge"><div></div></div>
+              <div class="small-muted">Reste 291,35 € sur 600 €</div>
+            </div>
+          </div>
+          <div class="tile blue">
+            <div><h3>Même sans réseau</h3><p>Ajoutez, cochez : les changements attendent le réseau puis partent tout seuls.</p></div>
+            <div class="ui"><span class="status" id="netStatus"><i></i><span>Hors ligne · 3 en attente</span></span></div>
+          </div>
+          <div class="tile">
+            <div><h3>Ce qui revient</h3><p>Ce que vous rachetez souvent réapparaît quand c'est le moment.</p></div>
+            <div class="ui mini-rows">
+              <div><span>Litière <small>tous les 14 jours</small></span><em>suggéré</em></div>
+              <div><span>Café <small>toutes les 3 semaines</small></span><em>suggéré</em></div>
+            </div>
+          </div>
+          <div class="tile">
+            <div><h3>Paniers</h3><p>Les articles qui vont ensemble, ajoutés d'un toucher.</p></div>
+            <div class="ui chips-ui"><span class="on">+ Bébé</span><span>+ Apéro</span><span>+ Petit-déj</span><span>+ Ménage</span></div>
+          </div>
+          <div class="tile w2">
+            <div><h3>Qui fait quoi</h3><p>On voit qui a ajouté quoi, qui part en courses, et ce qui a été pris pour vous.</p></div>
+            <div class="ui mini-rows">
+              <div><span><b>Hugo</b> a ajouté Œufs</span><small>à l'instant</small></div>
+              <div><span><b>Léa</b> part en courses</span><small>il y a 5 min</small></div>
+              <div><span><b>Hugo</b> a pris Pain pour vous</span><small>hier</small></div>
+            </div>
+          </div>
+          <div class="tile">
+            <div><h3>Plusieurs listes</h3><p>La maison, les vacances, les courses d'un proche.</p></div>
+            <div class="ui chips-ui"><span class="on">Maison</span><span>Vacances</span><span>Mamie</span></div>
+          </div>
         </div>
-        <div class="stage reveal"><div class="phone"><img src="img/magasin.png" alt="Le plan du magasin en 3D avec le circuit numéroté" width="390" height="844" loading="lazy"></div></div>
       </div>
     </section>
 
-    <section class="feature flip band">
+    <section style="padding-top:0">
       <div class="wrap">
-        <div class="text reveal">
-          <p class="kicker">Repas</p>
-          <h2>Les menus de la semaine, les ingrédients en un geste.</h2>
-          <p class="lead">Posez vos recettes sur le calendrier : un toucher met tous les ingrédients de la semaine sur la liste, quantités cumulées.</p>
-          <ul class="points">
-            <li data-icon="meals"><span><b>130 idées de recettes</b>Plats, rapides, végétariennes, pour les enfants… à adopter d'un toucher.</span></li>
-            <li data-icon="check"><span><b>On décoche ce qu'on a déjà</b>Seul ce qui manque part sur la liste.</span></li>
-          </ul>
+        <div class="nots">
+          <div><strong>Pas de compte.</strong><span>Un prénom suffit. Pour partager, on envoie un lien.</span></div>
+          <div><strong>Pas de pub.</strong><span>Ni pistage, ni statistiques de visite, ni revente de données.</span></div>
+          <div><strong>Pas de store.</strong><span>Elle s'installe depuis le navigateur, sur iPhone comme sur Android, et se met à jour toute seule.</span></div>
         </div>
-        <div class="stage reveal"><div class="phone"><img src="img/repas.png" alt="Le calendrier des repas du mois" width="390" height="844" loading="lazy"></div></div>
       </div>
     </section>
 
-    <section class="feature">
+    <div class="get">
       <div class="wrap">
-        <div class="text reveal">
-          <p class="kicker">Dépenses</p>
-          <h2>Le budget du mois, sans tableur.</h2>
-          <p class="lead">Chaque passage en caisse est rangé. Vous voyez ce qui est dépensé, ce qui reste, et la comparaison avec le mois dernier.</p>
-          <ul class="points">
-            <li data-icon="wallet"><span><b>Compte joint ou dépenses partagées</b>Pour une colocation : qui a payé, qui doit combien.</span></li>
-            <li data-icon="again"><span><b>Ce qui revient tout seul</b>La litière tous les 14 jours ? Elle réapparaît sur la liste quand c'est le moment.</span></li>
-          </ul>
-        </div>
-        <div class="stage reveal"><div class="phone"><img src="img/depenses.png" alt="Les dépenses du mois et le budget" width="390" height="844" loading="lazy"></div></div>
-      </div>
-    </section>
-
-    <section class="band">
-      <div class="wrap center">
-        <p class="kicker">Et aussi</p>
-        <h2>Les petites choses qui changent tout.</h2>
-        <div class="grid6">
-          <div class="reveal"><span class="ico" data-icon="offline"></span><h3>Sans réseau</h3><p>Au fond du magasin, tout marche ; les changements partent au retour du réseau.</p></div>
-          <div class="reveal"><span class="ico" data-icon="star"></span><h3>Indispensables</h3><p>Les yaourts du petit, toujours en haut de la liste.</p></div>
-          <div class="reveal"><span class="ico" data-icon="basket"></span><h3>Paniers</h3><p>« Bébé » : couches, compotes, Danonino, ajoutés d'un toucher.</p></div>
-          <div class="reveal"><span class="ico" data-icon="bell"></span><h3>Activité</h3><p>Qui a ajouté quoi, qui part en courses, ce qu'on a pris pour vous.</p></div>
-          <div class="reveal"><span class="ico" data-icon="camera"></span><h3>Photo de l'article</h3><p>La bonne marque, la bonne taille, sans appel depuis le rayon.</p></div>
-          <div class="reveal"><span class="ico" data-icon="list"></span><h3>Plusieurs listes</h3><p>La maison, la maison de vacances, les courses d'un proche.</p></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="cta">
-      <div class="wrap">
-        <div class="box reveal">
+        <div class="box">
           <div>
-            <h2>Sur votre écran d'accueil en 30 secondes.</h2>
-            <p>Pas de store, pas de compte : Courses s'installe depuis le navigateur.</p>
+            <h2>Prête pour<br>samedi matin.</h2>
+            <p class="lead">Installez-la sur votre téléphone, puis envoyez le lien au reste du foyer.</p>
+            <div class="actions">
+              <a class="btn primary" href="installer.html">Installer Courses</a>
+              <a class="btn line" href="../">Ouvrir dans le navigateur</a>
+            </div>
           </div>
-          <div class="ctas">
-            <a class="btn light" href="installer.html" data-icon="addHome">Installer</a>
-            <a class="btn" href="../">Ouvrir l'app</a>
-          </div>
+          <div class="qr"><img src="img/qr.svg" alt="QR code vers Courses" width="172" height="172">Visez avec l'appareil photo du téléphone</div>
         </div>
       </div>
-    </section>
+    </div>
   </main>
 
   <footer>
     <div class="wrap">
-      <span>Courses · fait pour un foyer, partagé avec quelques-uns.</span>
-      <span>Vos listes restent sur vos téléphones et sur le serveur de partage du foyer. <a href="https://github.com/romankimes-dot/Courses">Code source</a></span>
+      <span>Courses</span>
+      <span><a href="installer.html">Installer</a> · <a href="cgu.html">Conditions et confidentialité</a></span>
     </div>
   </footer>
 
