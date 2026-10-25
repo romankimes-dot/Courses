@@ -454,9 +454,10 @@ const views = {
             ${mapSvg(groups)}</details>` : ''}
         </section>` : ''}
       <form id="quick" class="addtop">
-        <input name="name" list="catalog" placeholder="Ajouter… (lait, œufs, 2 kg tomates)" autocomplete="off" required>
+        <input name="name" value="${esc(quickDraft)}" placeholder="Ajouter… (lait, œufs, 2 kg tomates)" autocomplete="off" autocapitalize="sentences" required>
         <button class="accent" aria-label="Ajouter">＋</button>
       </form>
+      <div id="suggest" class="chips suggest">${suggestChips()}</div>
       ${hint && need.length ? `<p class="hint tip">Touchez un article quand il est dans le caddie. Glissez-le vers la gauche pour le retirer. <button class="ghost" data-a="hintDone">OK</button></p>` : ''}
       ${chips.length && !shopping ? `
         <div class="chips">
@@ -482,7 +483,7 @@ const views = {
           : need.length && !shopping ? `<button class="primary" data-a="goShopping">🛒 J'y vais${estimate ? ` <small>≈ ${euro(estimate)}</small>` : ''}</button>` : ''}
         <div class="bar">
           <button class="grow" data-a="go" data-v="catalog">＋ Mes basiques</button>
-          ${need.length ? '<button class="grow" data-a="shareList">⤴ Envoyer la liste</button>' : ''}
+          ${need.length ? '<button class="grow" data-a="shareList">⤴ Envoyer</button><button class="grow" data-a="clearList">🗑 Vider la liste</button>' : ''}
         </div>
       </div>`;
   },
@@ -501,9 +502,10 @@ const views = {
         <button class="ghost ${catalogEdit ? 'active' : ''}" data-a="catalogEdit">✎ ${catalogEdit ? 'Terminé' : 'Modifier'}</button>
       </div>
       <form id="quick" class="addtop">
-        <input name="name" placeholder="Nouvel article de base…" autocomplete="off" required>
+        <input name="name" value="${esc(quickDraft)}" placeholder="Nouvel article de base…" autocomplete="off" autocapitalize="sentences" required>
         <button class="accent" aria-label="Ajouter">＋</button>
       </form>
+      <div id="suggest" class="chips suggest">${suggestChips()}</div>
       ${pins.length ? `<section class="pins"><h3>⭐ Indispensables</h3><div class="chips">${pins.map(chip).join('')}</div></section>` : ''}
       ${[...byAisle(i => (i.freq || i.need) && !i.pin), ...byAisle(i => (i.freq || i.need) && !i.pin, S.shops)].map(g => `
         <section><h3>${esc(g.aisle.name)}</h3><div class="chips">${g.items.map(chip).join('')}</div></section>`).join('')}`;
@@ -696,7 +698,27 @@ const storePicker = manage => `
       <button class="ghost" data-a="delStore" title="Supprimer">×</button>` : ''}` : ''}
   </div>`;
 
-// Autocomplétion de l'ajout : les articles connus (et leur rayon)
+// Ajout : dès les premières lettres, propositions parmi les articles déjà connus (accents et pluriels ignorés).
+// On cherche sur le dernier article tapé (« lait, tom » -> tom), sans la quantité (« 2 kg tom » -> tom).
+let quickDraft = '', refocusQuick = false;
+const lastPart = v => v.split(/[,;]/).pop().replace(/^\s*\d+(?:[.,]\d+)?\s*(?:kg|g|l|cl|ml|x|×)?\s+(?:de |d')?/i, '').trim();
+function matches(q) {
+  const k = sameKey(q);
+  if (!k) return [];
+  return S.items.map(i => {
+    const n = sameKey(i.name);
+    const score = n.startsWith(k) ? 0 : n.split(' ').some(w => w.startsWith(k)) ? 1 : n.includes(k) ? 2 : 9;
+    return { i, score };
+  }).filter(x => x.score < 9)
+    .sort((a, b) => a.score - b.score || (b.i.bought?.length || 0) - (a.i.bought?.length || 0) || a.i.name.localeCompare(b.i.name))
+    .slice(0, 6).map(x => x.i);
+}
+const suggestChips = () => matches(lastPart(quickDraft)).map(i => {
+  const where = shopOf(i)?.name || S.aisles.find(a => a.id === i.aisle)?.name || '';
+  return `<button type="button" class="chip ${i.need ? 'on' : ''}" data-a="pickSuggest" data-id="${i.id}">${i.need ? '✓ ' : ''}${esc(i.name)} <small>${esc(where)}</small></button>`;
+}).join('');
+
+// Autocomplétion des recettes : les articles connus
 const catalogList = () => `<datalist id="catalog">${S.items.map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>`;
 let catalogEdit = false; // « Mes basiques » en mode modification
 
@@ -712,14 +734,27 @@ async function keepAwake(on) {
   } catch {}
 }
 document.addEventListener('visibilitychange', () => { if (myShopping()) keepAwake(true); });
-document.addEventListener('input', e => { if (e.target.id === 'welcomeName') setMe(e.target.value); });
+document.addEventListener('input', e => {
+  if (e.target.id === 'welcomeName') setMe(e.target.value);
+  if (e.target.closest('#quick')) {
+    quickDraft = e.target.value;
+    const box = document.getElementById('suggest');
+    if (box) box.innerHTML = suggestChips();
+  }
+});
 function render() {
   if (!S.aisles.length) {
     app.innerHTML = `<p class="empty">${tab === 'aisles' ? '' : 'En attente de la première synchronisation…'}</p>${tab === 'aisles' ? views.aisles() : ''}`;
     return;
   }
   if (brush === null || (brush && brush !== 'entry' && !S.aisles.some(a => a.id === brush))) brush = S.aisles[0].id;
-  app.innerHTML = views[tab]() + (tab === 'list' ? catalogList() : '');
+  app.innerHTML = views[tab]();
+  if (refocusQuick) {
+    refocusQuick = false;
+    const q = app.querySelector('#quick input');
+    q?.focus();
+    q?.setSelectionRange(q.value.length, q.value.length);
+  }
   if (tab !== lastTab) scrollTo(0, 0);
   lastTab = tab;
   // Onglet allumé : la section dont dépend l'écran courant
@@ -946,6 +981,25 @@ const actions = {
   // Valide la liste : les articles pris alimentent l'historique d'achat, le montant du ticket le budget
   goShopping: () => { S.shoppers[me || '?'] = Date.now(); tab = 'list'; },
   stopShopping: () => { delete S.shoppers[me || '?']; },
+  // Toucher une proposition : l'article va sur la liste, on continue à taper
+  pickSuggest: ({ id }) => {
+    const i = item(id), parts = quickDraft.split(/[,;]/);
+    const qty = parts.at(-1).match(/^\s*(\d+(?:[.,]\d+)?\s*(?:kg|g|l|cl|ml|x|×)?)\s/i)?.[1].trim();
+    if (tab === 'catalog') i.freq = true;
+    if (i.need) toast(`${i.name} : déjà sur la liste${i.by ? ` (${i.by})` : ''}`, false);
+    else want(i);
+    if (qty) i.note = qty;
+    parts.pop();
+    quickDraft = parts.length ? parts.join(',') + ', ' : '';
+    refocusQuick = true;
+  },
+  // Vider la liste d'un geste (Annuler pendant 6 s)
+  clearList: () => {
+    snapshot();
+    const n = S.items.filter(i => i.need).length;
+    S.items.forEach(i => { i.need = false; i.done = false; delete i.doneAt; delete i.doneBy; delete i.missing; });
+    toast(`Liste vidée (${n} article${n > 1 ? 's' : ''})`);
+  },
   hintDone: () => { try { localStorage.setItem('courses.hint', '1'); } catch {} },
   catalogEdit: () => { catalogEdit = !catalogEdit; },
   shareList: async () => {
@@ -1117,6 +1171,7 @@ document.addEventListener('submit', e => {
   const f = new FormData(e.target);
   const name = f.get('name');
   if (e.target.id === 'quick') { // « lait, œufs, 2 kg tomates »
+    quickDraft = '';
     const already = [];
     name.split(/[,;\n]+/).forEach(raw => {
       const m = raw.trim().match(/^(\d+(?:[.,]\d+)?\s*(?:kg|g|l|cl|ml|x|×|paquets?|boîtes?|bouteilles?)?)\s+(?:de |d')?(.+)$/i);
