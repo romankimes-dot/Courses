@@ -6,14 +6,14 @@ const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&
 // ---------- Démo : la même liste sur deux téléphones ----------
 const demo = document.getElementById('demo');
 if (demo) {
-  const AISLES = ['Fruits & légumes', 'Boulangerie', 'Crèmerie', 'Épicerie'];
+  const AISLES = ['Fruits & légumes', 'Boulangerie', 'Crèmerie'];
   const start = () => [
-    { id: 'tom', name: 'Tomates', note: '1 kg', aisle: 0, by: 'Hugo' },
-    { id: 'ban', name: 'Bananes', aisle: 0, by: 'Léa' },
-    { id: 'pain', name: 'Pain', aisle: 1, by: 'Léa' },
-    { id: 'lait', name: 'Lait', note: '6', aisle: 2, by: 'Hugo' },
-    { id: 'yao', name: 'Yaourts', aisle: 2, by: 'Léa' },
-    { id: 'cafe', name: 'Café', aisle: 3, by: 'Hugo' },
+    { id: 'tom', name: 'Tomates', note: '1 kg', aisle: 0, by: 'Hugo', img: 'tomato' },
+    { id: 'ban', name: 'Bananes', aisle: 0, by: 'Léa', img: 'banana' },
+    { id: 'pain', name: 'Baguette', aisle: 1, by: 'Léa', img: 'loaf-baguette' },
+    { id: 'lait', name: 'Lait', note: '6', aisle: 2, by: 'Hugo', img: 'carton' },
+    { id: 'yao', name: 'Fromage', aisle: 2, by: 'Léa', img: 'cheese' },
+    { id: 'avo', name: 'Avocats', aisle: 0, by: 'Hugo', img: 'avocado' },
   ];
   let items = start(), flash = {};
   const screens = [...demo.querySelectorAll('.screen')];
@@ -22,6 +22,7 @@ if (demo) {
   const row = (i, me) => `
     <div class="row${i.done ? ' done' : ''}${flash[me] === i.id ? ' flash' : ''}" data-id="${i.id}">
       <span class="box">${i.done ? check : ''}</span>
+      <img class="th" src="img/p/${i.img}.png" alt="">
       <span class="nm">${esc(i.name)}${i.note ? ` <small>${esc(i.note)}</small>` : ''}
         ${i.done ? (i.doneBy !== me ? ` <small>· pris par ${i.doneBy}</small>` : '') : ` <small>· ${i.by}</small>`}
         ${i.isNew && i.by !== me && !i.done ? ' <small class="tag">nouveau</small>' : ''}</span>
@@ -57,10 +58,11 @@ if (demo) {
 
   // Scénario joué tout seul tant qu'on ne touche à rien
   const script = [
-    [1800, () => change('Hugo', () => items.push({ id: 'oeufs', name: 'Œufs', aisle: 2, by: 'Hugo', isNew: true }))],
+    [1800, () => change('Hugo', () => items.push({ id: 'oeufs', name: 'Œufs', aisle: 2, by: 'Hugo', img: 'egg', isNew: true }))],
     [2600, () => toggle('Hugo', 'lait')],
     [2400, () => toggle('Léa', 'ban')],
     [2400, () => toggle('Hugo', 'pain')],
+    [2400, () => toggle('Hugo', 'avo')],
     [2600, () => toggle('Léa', 'tom')],
     [4200, () => { items = start(); drawAll(); }],
   ];
