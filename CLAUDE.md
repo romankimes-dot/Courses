@@ -3,8 +3,8 @@
 Liste de courses partagée du foyer : PWA statique (HTML/CSS/JS, sans build), hors-ligne d'abord,
 synchro Supabase, hébergée sur GitHub Pages (https://romankimes-dot.github.io/Courses/).
 
-**Avant toute évolution, lire `docs/besoins.md`** : vision, demandes du propriétaire, décisions prises,
-retours du panel de test et backlog à arbitrer.
+**Avant toute évolution, lire `docs/besoins.md`** (vision, demandes du propriétaire, décisions prises,
+retours du panel de test et backlog) **puis `docs/analyse-v2.md`** (revue à six voix d'octobre 2026 : constats priorisés, décisions en attente).
 
 ## Le propriétaire
 - Échanger en français, réponses courtes et directes.
