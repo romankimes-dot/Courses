@@ -380,6 +380,13 @@ const isNew = i => { const at = myShopping(); return at && i.at > at && i.by !==
 const byOf = i => Sync.config() && i.by ? ` <small>· ${esc(i.by)}</small>` : '';
 const more = i => `<button class="ghost more" data-a="openItem" data-id="${i.id}" title="Fiche produit">›</button>`;
 const noteOf = i => i.note ? ` <small>${esc(i.note)}</small>` : '';
+// Icônes au trait, de la couleur du texte : même taille et même style pour tous les boutons d'outils
+const svg = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const icon = {
+  plus: svg('<path d="M12 5v14M5 12h14"/>'),
+  share: svg('<path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>'),
+  trash: svg('<path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>'),
+};
 const shortDate = t => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 
 // Une ligne d'article, la même partout : toucher = dans le caddie (et inversement), › = fiche
@@ -481,9 +488,9 @@ const views = {
       <div class="actions">
         ${myCart.length ? `<button class="primary" data-a="finish">✓ Terminer les courses (${myCart.length})</button>`
           : need.length && !shopping ? `<button class="primary" data-a="goShopping">🛒 J'y vais${estimate ? ` <small>≈ ${euro(estimate)}</small>` : ''}</button>` : ''}
-        <div class="bar">
-          <button class="grow" data-a="go" data-v="catalog">＋ Mes basiques</button>
-          ${need.length ? '<button class="grow" data-a="shareList">⤴ Envoyer</button><button class="grow" data-a="clearList">🗑 Vider la liste</button>' : ''}
+        <div class="tools">
+          <button data-a="go" data-v="catalog">${icon.plus}Basiques</button>
+          ${need.length ? `<button data-a="shareList">${icon.share}Envoyer</button><button data-a="clearList">${icon.trash}Vider</button>` : ''}
         </div>
       </div>`;
   },
