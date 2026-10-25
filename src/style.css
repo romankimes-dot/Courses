@@ -107,7 +107,8 @@ h2 { font-size: 18px; margin: 8px 0; }
 .field { display: grid; gap: 4px; margin: 12px 0; font-size: 14px; color: var(--muted); }
 .field select, .field input:not([type=checkbox]) { color: var(--fg); }
 .field.check { display: flex; gap: 10px; align-items: flex-start; }
-.field.check input { margin-top: 3px; }
+.field.check input { margin-top: 3px; width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
+.field.check span { color: var(--fg); font-size: 16px; }
 .danger { color: #c0392b !important; margin-top: 24px; }
 
 .list-head { display: flex; align-items: baseline; gap: 8px; margin: 4px 0 10px; }
@@ -142,7 +143,7 @@ details.adv summary { cursor: pointer; color: var(--accent); font-weight: 600; p
 
 .warn { color: #c0392b !important; }
 .row.done-soft .name { color: var(--muted); }
-.sheet-modal { align-content: end; background: rgba(0,0,0,.45); color: var(--fg); }
+.sheet-modal { z-index: 25; align-content: end; justify-content: stretch; background: rgba(0,0,0,.45); color: var(--fg); }
 .sheet-modal .card { background: var(--bg); width: min(560px, 100%); margin: 0 auto; padding: 16px; display: grid; gap: 8px; }
 :root[data-size="large"] body { zoom: 1.15; }
 :root[data-size="xl"] body { zoom: 1.32; }

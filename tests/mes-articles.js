@@ -1,10 +1,10 @@
 // Mes articles : tous les articles (même ponctuels), recherche, ⭐ indispensable sans l'ajouter à la liste ;
 // la liste ne propose plus les indispensables (listChips vide)
-const { phones, start, needs } = require('./_outils');
+const { phones, start, needs, add } = require('./_outils');
 (async () => {
   const { browser, pages: [p], errs } = await phones(1);
   await start(p, 'Roman');
-  await p.fill('#quick input', 'Danonino'); await p.press('#quick input', 'Enter');
+  await add(p, 'Danonino');
   await p.click('main .row:has-text("Danonino") [data-a=openItem]'); await p.click('[data-a=toggleNeed]'); await p.click('[data-a=closeItem]');
   const listBefore = await needs(p);
   await p.click('[data-a=go][data-v=catalog]');

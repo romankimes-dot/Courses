@@ -1,12 +1,12 @@
 // Une seule liste, un seul geste : toucher = dans le caddie ; glisser = retirer ; J'y vais ; Terminer
-const { phones, start, needs, swipeLeft } = require('./_outils');
+const { phones, start, needs, swipeLeft, add } = require('./_outils');
 (async () => {
   const { browser, pages: [p], errs } = await phones(1);
   await start(p, 'Léa');
   await p.click('[data-a=go][data-v=catalog]');
   for (const n of ['Lait', 'Pain', 'Bananes']) await p.click(`.chip:has-text("${n}")`);
   await p.click('[data-a=go][data-v=list]');
-  await p.fill('#quick input', '2 kg tomates, litière, cafe'); await p.press('#quick input', 'Enter');
+  await add(p, '2 kg tomates, litière, cafe');
   const added = await p.evaluate(() => S.items.filter(i => i.need).map(i => `${i.name}${i.note ? ' ' + i.note : ''}@${S.aisles.find(a => a.id === i.aisle).name}`).sort());
   await swipeLeft(p, 'Litière');
   const afterSwipe = await needs(p);

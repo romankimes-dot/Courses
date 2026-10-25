@@ -45,4 +45,15 @@ async function swipeLeft(p, name) {
   }, name);
 }
 
-module.exports = { U, phones, start, share, syncAll, needs, swipeLeft };
+// Saisie rapide ; si des articles sont nouveaux, répond à la fenêtre de choix (liste / indispensable)
+async function add(p, text, choice = {}) {
+  await p.fill('#quick input', text); await p.press('#quick input', 'Enter');
+  const form = await p.waitForSelector('#newItemForm', { timeout: 400 }).catch(() => null);
+  if (!form) return false;
+  if (choice.need != null) await p.setChecked('#newItemForm [name=need]', choice.need);
+  if (choice.pin != null) await p.setChecked('#newItemForm [name=pin]', choice.pin);
+  await p.click('#newItemForm .primary');
+  return true;
+}
+
+module.exports = { U, phones, start, share, syncAll, needs, swipeLeft, add };

@@ -1,6 +1,6 @@
 // Parcours à deux : Tom rejoint depuis l'accueil, ajouts multiples, « J'y vais », « nouveau » pendant les courses,
 // terminer, annuler
-const { U, phones, start, share, syncAll, needs } = require('./_outils');
+const { U, phones, start, share, syncAll, needs, add } = require('./_outils');
 (async () => {
   const { browser, pages: [A, B], errs } = await phones(2);
   await start(A, 'Léa');
@@ -13,12 +13,12 @@ const { U, phones, start, share, syncAll, needs } = require('./_outils');
   await B.fill('#joinForm input', link); await B.click('#joinForm button');
   await B.waitForFunction(() => S.items.some(i => i.need));
   const bList = await B.$$eval('main .row .name', e => e.map(x => x.textContent.trim()));
-  await B.fill('#quick input', 'œufs, beurre ; café'); await B.press('#quick input', 'Enter');
+  await add(B, 'œufs, beurre ; café');
   await syncAll(A, B);
   await A.click('[data-a=goShopping]');
   await syncAll(A, B);
   const banner = await B.textContent('.banner').catch(() => null);
-  await B.fill('#quick input', 'Kiwi'); await B.press('#quick input', 'Enter');
+  await add(B, 'Kiwi');
   await syncAll(A, B); await A.evaluate(() => render());
   const newTag = await A.textContent('.row.new .name').catch(() => null);
   await A.click('main .row:has-text("Lait")'); await A.click('main .row:has-text("Pain")');

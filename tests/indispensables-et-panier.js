@@ -1,9 +1,9 @@
 // ⭐ Indispensables en haut (épinglés depuis la fiche), caddie en bas, ordre des rayons appris en cochant
-const { phones, start } = require('./_outils');
+const { phones, start, add } = require('./_outils');
 (async () => {
   const { browser, pages: [p], errs } = await phones(1);
   await start(p, 'Sophie');
-  await p.fill('#quick input', 'Babybel, Danonino, pâtes, café, eau, bananes'); await p.press('#quick input', 'Enter');
+  await add(p, 'Babybel, Danonino, pâtes, café, eau, bananes');
   for (const n of ['Babybel', 'Danonino']) {
     await p.click(`main .row:has-text("${n}") [data-a=openItem]`); await p.check('#itemPin'); await p.click('[data-a=closeItem]');
   }
