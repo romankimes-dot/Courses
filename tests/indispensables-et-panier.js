@@ -8,8 +8,8 @@ const { phones, start } = require('./_outils');
     await p.click(`main .row:has-text("${n}") [data-a=openItem]`); await p.check('#itemPin'); await p.click('[data-a=closeItem]');
   }
   const heads = await p.$$eval('main section h3', e => e.map(x => x.textContent.trim()));
-  await p.click('[data-a=go][data-v=catalog]');
-  const pins = await p.$$eval('.pins .chip', e => e.map(x => x.textContent.trim()));
+  await p.click('[data-a=go][data-v=catalog]'); await p.click('[data-a=catalogPins][data-v="1"]');
+  const pins = await p.$$eval('#catalogItems .chip', e => e.map(x => x.textContent.trim()));
   await p.click('[data-a=go][data-v=list]');
   await p.click('[data-a=goShopping]');
   const seq = ['Eau', 'Café', 'Babybel', 'Danonino', 'Bananes', 'Pâtes'];

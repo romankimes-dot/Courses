@@ -8,6 +8,7 @@ const { phones, start } = require('./_outils');
   await p.fill('#link input', 'pois chiches, lait de coco, oignons, riz'); await p.press('#link input', 'Enter');
   await p.fill('[data-rqty$=":' + await p.evaluate(() => findItem('lait de coco').id) + '"]', '40 cl'); await p.press('.qty >> nth=1', 'Tab');
   await p.click('[data-a=closeRecipe]');
+  await p.click('[data-a=go][data-v=meals]');
   const days = await p.$$eval('[data-plan]', e => e.slice(0, 2).map(x => x.dataset.plan));
   for (const d of days) await p.selectOption(`[data-plan="${d}"]`, { label: 'Curry de pois chiches' });
   await p.click('[data-a=weekReview]');

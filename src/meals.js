@@ -51,12 +51,16 @@ views.meals = () => {
       ${[...needs].some(([i]) => i.need) ? `<p class="hint">Déjà sur la liste : ${[...needs].filter(([i]) => i.need).map(([i]) => esc(i.name)).join(', ')}</p>` : ''}
       <button class="primary" data-a="weekConfirm" ${n ? '' : 'disabled'}>Ajouter ${n} article${n > 1 ? 's' : ''} à la liste</button>`;
   }
-  const options = [...S.recipes].sort((a, b) => a.name.localeCompare(b.name)).map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join('');
+  // Menu des jours : recettes rangées par catégorie, comme dans « Mes recettes »
+  const options = recipeGroups().map(g => `<optgroup label="${esc(g.cat)}">${g.rs.map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join('')}</optgroup>`).join('');
   const missing = [...needs].filter(([i]) => !i.need).length;
-  const book = `<h3>Mes recettes</h3>${views.recipes()}`;
   return `
     <h2>Repas de la semaine</h2>
-    ${S.recipes.length ? '' : `<p class="hint">Créez une recette (ses ingrédients et quantités), puis posez-la sur un jour : un geste mettra tout sur la liste.</p>${book}`}
+    ${S.recipes.length ? '' : `<p class="hint">Créez une recette (ses ingrédients et quantités), puis posez-la sur un jour : un geste mettra tout sur la liste.</p>
+      <form id="newRecipe" class="addtop">
+        <input name="name" placeholder="Nom de la recette (ex. Curry)" autocomplete="off" autocapitalize="sentences" required>
+        <button class="accent" aria-label="Créer">${icon.plus}</button>
+      </form>`}
     <div class="week">
       ${week().map((d, k) => {
         const key = dayKey(d), planned = (S.plan[key] || []).map(recipe).filter(Boolean);
@@ -71,7 +75,7 @@ views.meals = () => {
       }).join('')}
     </div>
     ${needs.size ? `<button class="primary" data-a="weekReview" ${missing ? '' : 'disabled'}>${icon.cart} Mettre les ingrédients sur la liste${missing ? ` (${missing})` : ' : déjà fait'}</button>` : ''}
-    ${S.recipes.length ? book : ''}`;
+    ${S.recipes.length ? `<button class="wide" data-a="go" data-v="recipes">${icon.meals} Mes recettes <small>${S.recipes.length}</small></button>` : ''}`;
 };
 
 Object.assign(actions, {

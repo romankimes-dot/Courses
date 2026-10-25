@@ -61,7 +61,7 @@ function clean(st) {
   st.shops = st.shops.filter(ok);
   const fb = (st.aisles.find(a => a.name === 'Divers') || st.aisles.at(-1))?.id;
   if (fb) st.items.forEach(i => { if (!i.aisle) i.aisle = fb; });
-  st.recipes = st.recipes.filter(ok).map(r => ({ ...r, items: (Array.isArray(r.items) ? r.items : []).filter(x => ID.test(x)) }));
+  st.recipes = st.recipes.filter(ok).map(r => ({ ...r, cat: r.cat ? String(r.cat).slice(0, 30) : undefined, items: (Array.isArray(r.items) ? r.items : []).filter(x => ID.test(x)) }));
   st.stores = st.stores.filter(ok);
   for (const s of st.stores) {
     s.order = Array.isArray(s.order) ? s.order.filter(x => ID.test(x)) : null;
@@ -427,7 +427,7 @@ const views = {
     const cart = need.filter(i => i.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
     const myCart = cart.filter(mine);
     const estimate = need.filter(i => lastPrice(i) != null).reduce((t, i) => t + lastPrice(i), 0);
-    const chips = [...new Set([...S.items.filter(i => i.pin && !i.need), ...suggestions().map(x => x.i)])];
+    const chips = suggestions().map(x => x.i).filter(i => !i.need);
     let hint = false;
     try { hint = !localStorage.getItem('courses.hint'); } catch {}
     return `
@@ -463,7 +463,7 @@ const views = {
       ${hint && need.length ? `<p class="hint tip">Touchez un article quand il est dans le caddie. Glissez-le vers la gauche pour le retirer. <button class="ghost" data-a="hintDone">OK</button></p>` : ''}
       ${chips.length && !shopping ? `
         <div class="chips">
-          ${chips.slice(0, 12).map(i => `<button class="chip" data-a="toggleNeed" data-id="${i.id}">${i.pin ? icon.starOn : icon.again} ${esc(i.name)}</button>`).join('')}
+          ${chips.slice(0, 12).map(i => `<button class="chip" data-a="toggleNeed" data-id="${i.id}">${icon.again} ${esc(i.name)}</button>`).join('')}
         </div>` : ''}
       ${sections.map(g => `
         <section>
@@ -491,31 +491,41 @@ const views = {
   },
 
   // Mes articles : TOUS les articles connus. Toucher = sur la liste ou non ; « Modifier » = ⭐ et fiche.
+  // Filtre « Indispensables » : les gérer même nombreux (par rayon, recherche, tout ajouter d'un coup).
   catalog() {
+    const nPins = S.items.filter(i => i.pin).length;
     return `
       <button class="ghost back" data-a="go" data-v="list">${icon.back} Liste</button>
       <h2>Mes articles</h2>
-      <p class="hint">${catalogEdit ? `Touchez ${icon.star} pour mettre un article en indispensable (toujours en haut), ${icon.right} pour sa fiche (rayon, photo…).` : `Touchez ce qui manque. ${icon.check} = déjà sur la liste.`}</p>
+      <div class="seg">
+        <button data-a="catalogPins" data-v="" class="${catalogPins ? '' : 'active'}">Tous <small>${S.items.length}</small></button>
+        <button data-a="catalogPins" data-v="1" class="${catalogPins ? 'active' : ''}">${icon.star} Indispensables <small>${nPins}</small></button>
+      </div>
+      <p class="hint">${catalogEdit ? `Touchez ${icon.star} pour mettre un article en indispensable (toujours en haut de la liste), ${icon.right} pour sa fiche (rayon, photo…).`
+        : catalogPins ? `Toujours en haut de la liste quand il en faut. Touchez ce qui manque aujourd'hui.` : `Touchez ce qui manque. ${icon.check} = déjà sur la liste, ${icon.starOn} = indispensable.`}</p>
       <div class="bar">
-        ${catalogEdit ? '' : '<button data-a="allFreq">Tout ajouter</button><button data-a="noneNeed">Tout retirer</button>'}
+        ${catalogEdit ? '' : catalogPins ? (nPins ? '<button data-a="allPins">Tout ajouter</button>' : '') : '<button data-a="allFreq">Tout ajouter</button><button data-a="noneNeed">Tout retirer</button>'}
         <button class="${catalogEdit ? 'accent grow' : 'ghost'}" data-a="catalogEdit">${catalogEdit ? `${icon.check} Terminé` : `${icon.edit} Modifier`}</button>
       </div>
       <form id="quick" class="addtop">
-        <input name="name" value="${esc(quickDraft)}" placeholder="Chercher ou ajouter un article…" autocomplete="off" autocapitalize="sentences" required>
+        <input name="name" value="${esc(quickDraft)}" placeholder="${catalogPins ? 'Chercher ou ajouter un indispensable…' : 'Chercher ou ajouter un article…'}" autocomplete="off" autocapitalize="sentences" required>
         <button class="accent" aria-label="Ajouter">${icon.plus}</button>
       </form>
       <div id="catalogItems">${catalogItems()}</div>`;
   },
 
+  // Mes recettes : un seul champ pour chercher (nom, catégorie, ingrédient) ou créer ; rangées par catégorie
   recipes() {
-    const rs = [...S.recipes].sort((a, b) => a.name.localeCompare(b.name));
     return `
-      <form id="newRecipe" class="add">
-        <input name="name" placeholder="Nouvelle recette" autocomplete="off" required>
-        <button>Créer</button>
+      <button class="ghost back" data-a="go" data-v="meals">${icon.back} Repas</button>
+      <h2>Mes recettes</h2>
+      <form id="newRecipe" class="addtop">
+        <input name="name" value="${esc(recipeDraft)}" placeholder="Chercher ou créer une recette…" autocomplete="off" autocapitalize="sentences" required>
+        <button class="accent" aria-label="Créer">${icon.plus}</button>
       </form>
-      ${rs.map(recipeCard).join('') || '<p class="empty">Aucune recette pour l\'instant.</p>'}
-      ${catalogList()}`;
+      <div id="recipeItems">${recipeItems()}</div>
+      ${catalogList()}
+      <datalist id="recipeCats">${recipeCats().map(c => `<option value="${esc(c)}">`).join('')}</datalist>`;
   },
 
   budget() {
@@ -719,7 +729,7 @@ const suggestChips = () => matches(lastPart(quickDraft)).map(i => {
 function catalogItems() {
   const q = sameKey(lastPart(quickDraft));
   const shown = i => !q || sameKey(i.name).split(' ').some(w => w.startsWith(q)) || sameKey(i.name).includes(q);
-  const chip = i => `<button class="chip ${i.need ? 'on' : ''}" data-a="toggleNeed" data-id="${i.id}">${i.need ? icon.check : ''}${esc(i.name)}</button>`;
+  const chip = i => `<button class="chip ${i.need ? 'on' : ''}" data-a="toggleNeed" data-id="${i.id}">${i.need ? icon.check : i.pin && !catalogPins ? icon.starOn : ''}${esc(i.name)}</button>`;
   const row = i => `
     <div class="row static">
       <span class="name">${esc(i.name)}${noteOf(i)}</span>
@@ -727,32 +737,56 @@ function catalogItems() {
       ${more(i)}
     </div>`;
   const block = items => catalogEdit ? items.map(row).join('') : `<div class="chips">${items.map(chip).join('')}</div>`;
-  const pins = S.items.filter(i => i.pin && shown(i));
-  const groups = [...byAisle(i => !i.pin && shown(i)), ...byAisle(i => !i.pin && shown(i), S.shops)];
-  if (!pins.length && !groups.length) return `<p class="hint center">Aucun article « ${esc(lastPart(quickDraft))} » : touchez + pour le créer.</p>`;
-  return `
-    ${pins.length ? `<section class="pins"><h3>${icon.starOn} Indispensables</h3>${block(pins)}</section>` : ''}
-    ${groups.map(g => `<section><h3>${esc(g.aisle.name)}</h3>${block(g.items)}</section>`).join('')}`;
+  const keep = i => shown(i) && (!catalogPins || i.pin);
+  const groups = [...byAisle(keep), ...byAisle(keep, S.shops)];
+  if (!groups.length) return q ? `<p class="hint center">Aucun ${catalogPins ? 'indispensable' : 'article'} « ${esc(lastPart(quickDraft))} » : touchez + pour le créer.</p>`
+    : `<p class="hint center">Aucun indispensable pour l'instant : écrivez-en un ci-dessus, ou touchez Modifier puis ${icon.star}.</p>`;
+  return groups.map(g => `<section><h3>${esc(g.aisle.name)} <small>${g.items.length}</small></h3>${block(g.items)}</section>`).join('');
+}
+
+// Recettes rangées par catégorie (« Autres » à la fin), filtrées par ce qu'on tape
+let recipeDraft = '';
+const recipeCats = () => [...new Set(S.recipes.map(r => r.cat).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+function recipeGroups(q = '') {
+  const k = sameKey(q);
+  const shown = r => !k || [r.name, r.cat || '', ...r.items.map(id => item(id)?.name || '')].some(t => sameKey(t).includes(k));
+  const rs = S.recipes.filter(r => shown(r) || r.id === recipeEdit).sort((a, b) => a.name.localeCompare(b.name));
+  return [...recipeCats(), ''].map(cat => ({ cat: cat || 'Autres', rs: rs.filter(r => (r.cat || '') === cat) })).filter(g => g.rs.length);
+}
+function recipeItems() {
+  const groups = recipeGroups(recipeDraft), named = groups.length > 1 || groups[0]?.cat !== 'Autres';
+  if (!groups.length) return recipeDraft ? `<p class="hint center">Aucune recette « ${esc(recipeDraft)} » : touchez + pour la créer.</p>`
+    : '<p class="empty">Aucune recette pour l\'instant.</p><p class="hint center">Écrivez son nom ci-dessus, puis ses ingrédients et quantités.</p>';
+  return groups.map(g => `<section>${named ? `<h3>${esc(g.cat)} <small>${g.rs.length}</small></h3>` : ''}${g.rs.map(recipeCard).join('')}</section>`).join('');
 }
 
 // Autocomplétion des recettes : les articles connus
 const catalogList = () => `<datalist id="catalog">${S.items.map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>`;
-let catalogEdit = false; // « Mes articles » en mode modification
+let catalogEdit = false, catalogPins = false; // « Mes articles » : mode modification, filtre indispensables
 
 let lastTab = null;
-// En courses : écran maintenu allumé (si le téléphone le permet)
-let wake = null;
+// Liste à l'écran (ou en courses) : écran maintenu allumé, si le téléphone le permet (iPhone : iOS 18.4 et +).
+// Le verrou tombe quand l'app passe en arrière-plan : on le reprend au retour et au premier toucher.
+const awake = () => tab === 'list' || !!myShopping();
+let wake = null, waking = false;
 async function keepAwake(on) {
   try {
-    if (on && !wake && navigator.wakeLock && document.visibilityState === 'visible') {
-      wake = await navigator.wakeLock.request('screen');
+    if (on && !wake && !waking && navigator.wakeLock && document.visibilityState === 'visible') {
+      waking = true;
+      wake = await navigator.wakeLock.request('screen').finally(() => { waking = false; });
       wake.addEventListener('release', () => { wake = null; });
     } else if (!on && wake) { wake.release(); wake = null; }
   } catch {}
 }
-document.addEventListener('visibilitychange', () => { if (myShopping()) keepAwake(true); });
+document.addEventListener('visibilitychange', () => keepAwake(awake()));
+document.addEventListener('pointerdown', () => { if (!wake && awake()) keepAwake(true); });
 document.addEventListener('input', e => {
   if (e.target.id === 'welcomeName') setMe(e.target.value);
+  if (e.target.closest('#newRecipe')) {
+    recipeDraft = e.target.value;
+    const box = document.getElementById('recipeItems');
+    if (box) box.innerHTML = recipeItems();
+  }
   if (e.target.closest('#quick')) {
     quickDraft = e.target.value;
     const box = document.getElementById('suggest'), cat = document.getElementById('catalogItems');
@@ -785,7 +819,7 @@ function render() {
   if (ln) ln.innerHTML = `${esc(l.name)}${icon.down}`;
   const unseen = feed().filter(e => !e.seen).length, bell = document.getElementById('bell');
   if (bell) bell.dataset.count = unseen || '';
-  keepAwake(!!myShopping());
+  keepAwake(awake());
 }
 
 function recipeCard(r) {
@@ -796,6 +830,7 @@ function recipeCard(r) {
         <input id="rname" data-id="${r.id}" value="${esc(r.name)}" class="grow">
         <button data-a="closeRecipe">OK</button>
       </div>
+      <label class="field">Catégorie<input id="rcat" data-id="${r.id}" list="recipeCats" value="${esc(r.cat || '')}" placeholder="ex. Plats, Desserts, Rapide" autocomplete="off"></label>
       ${its.map(i => `
         <div class="row static">
           <span class="name link" data-a="openItem" data-id="${i.id}">${esc(i.name)}</span>
@@ -1027,6 +1062,7 @@ const actions = {
   },
   hintDone: () => { try { localStorage.setItem('courses.hint', '1'); } catch {} },
   catalogEdit: () => { catalogEdit = !catalogEdit; },
+  catalogPins: ({ v }) => { catalogPins = !!v; },
   shareList: async () => {
     const groups = [...byAisle(i => i.need), ...byAisle(i => i.need, S.shops)];
     const text = `${currentList().name}\n` + groups.map(g => `\n${g.aisle.name}\n` + g.items.map(i => `• ${i.name}${i.note ? ` (${i.note})` : ''}`).join('\n')).join('\n');
@@ -1206,18 +1242,21 @@ document.addEventListener('submit', e => {
       addItem(n, null, tab === 'catalog');
       if (qty) { const i = findItem(n); if (i) i.note = qty; }
     });
-    // Article tout juste créé : proposer d'en faire un indispensable, sans avoir à le rechercher
-    const created = S.items.filter(i => !known.has(i.id));
+    // Article tout juste créé : indispensable d'office (filtre Indispensables de Mes articles) ou proposé
+    const created = S.items.filter(i => !known.has(i.id)), pinNow = tab === 'catalog' && catalogPins;
+    if (pinNow) created.forEach(i => { i.pin = true; i.freq = true; });
     if (already.length) setTimeout(() => toast(`Déjà sur la liste : ${already.join(', ')}`, false));
+    else if (created.length && pinNow) setTimeout(() => toast(created.length > 1 ? `${created.length} indispensables créés` : `${created[0].name} : indispensable`, false));
     else if (created.length) setTimeout(() => toast(created.length > 1 ? `${created.length} articles créés` : `${created[0].name} créé`, false,
       { a: 'pinIds', ids: created.map(i => i.id).join(','), label: `${icon.star} Indispensable${created.length > 1 ? 's' : ''}` }));
   }
   if (e.target.id === 'addAisle' && name.trim()) S.aisles.push({ id: uid(), name: name.trim() });
   if (e.target.id === 'addShop' && name.trim()) S.shops.push({ id: uid(), name: name.trim() });
   if (e.target.id === 'newRecipe' && name.trim()) {
-    const r = { id: uid(), name: name.trim(), items: [] };
-    S.recipes.push(r);
-    recipeEdit = r.id;
+    let r = S.recipes.find(x => sameKey(x.name) === sameKey(name));
+    if (!r) S.recipes.push(r = { id: uid(), name: cap(name.trim()), items: [] });
+    recipeEdit = r.id; recipeAdd = null; recipeDraft = '';
+    tab = 'recipes';
   }
   if (e.target.id === 'link') {
     const r = recipe(e.target.dataset.id);
@@ -1263,7 +1302,7 @@ document.addEventListener('submit', e => {
   if (e.target.id === 'share') Sync.create(f.get('url').trim().replace(/\/+$/, ''), f.get('key').trim());
   save();
   render();
-  app.querySelector(`#${e.target.id} input`)?.focus();
+  app.querySelector(e.target.id === 'newRecipe' ? '#link input' : `#${e.target.id} input`)?.focus();
 });
 
 document.addEventListener('change', async e => {
@@ -1271,6 +1310,7 @@ document.addEventListener('change', async e => {
   if (e.target.id === 'meName') { setMe(e.target.value); return render(); }
   if (e.target.id === 'listTitle' && e.target.value.trim()) { currentList().name = S.settings.listName = e.target.value.trim(); saveLists(); save(); return render(); }
   if (e.target.id === 'rname') { const r = recipe(e.target.dataset.id); if (e.target.value.trim()) r.name = e.target.value.trim(); return save(); }
+  if (e.target.id === 'rcat') { const r = recipe(e.target.dataset.id); r.cat = cap(e.target.value.trim().slice(0, 30)) || undefined; return save(); }
   if (e.target.dataset.itemAisle) { item(e.target.dataset.itemAisle).aisle = e.target.value; return save(); }
   if (e.target.id === 'photo') {
     const file = e.target.files[0], i = item(photoFor);
