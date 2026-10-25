@@ -28,5 +28,6 @@ Un dossier optionnel en argument reçoit les captures d'écran.
 | `hors-ligne.js` | ajout et coche hors-ligne, rechargement sans réseau, fusion au retour du réseau |
 | `fiabilite.js` | horloge décalée, doublons hors-ligne, « Annuler » ciblé, données malformées écartées |
 | `rejoindre-et-pas-trouve.js` | prénom demandé, accents (cafe = Café), rayon deviné, ✓ dans le panier, « pas trouvé » |
+| `moitie-auto.js` | à deux : la 2e personne reçoit l'autre moitié du circuit, avertie si elle prend la même |
 | `courses-a-deux.js` | deux personnes en courses, chacune termine son panier, quantités, « déjà sur la liste » |
 | `indispensables-et-panier.js` | ⭐ indispensables, panier en bas, ordre des rayons appris |
