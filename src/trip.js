@@ -29,6 +29,7 @@ views.trip = () => {
     ${back}
     <h2>${t.type === 'expense' ? 'Dépense' : 'Ticket'} · ${fmtDate(t.date)}</h2>
     <label class="field">Où<input id="tripPlace" value="${esc(t.place)}" autocomplete="off"></label>
+    <label class="field">Date d'achat<input id="tripDate" type="date" value="${dayKey(new Date(t.date))}" max="${dayKey(new Date())}"></label>
     <label class="field">Montant (€)<input id="tripTotal" inputmode="decimal" value="${amount(t.total)}" placeholder="ex. 42,50" autocomplete="off"></label>
     ${split ? `
       <label class="field">Payé par<select id="tripBy">${[...new Set([t.by, me, ...members()].filter(Boolean))].map(m => `<option${m === t.by ? ' selected' : ''}>${esc(m)}</option>`).join('')}</select></label>
@@ -93,6 +94,11 @@ document.addEventListener('change', e => {
   if (!t) return;
   if (el.id === 'tripPlace') t.place = el.value.trim() || t.place;
   else if (el.id === 'tripTotal') t.total = parseEuro(el.value);
+  else if (el.id === 'tripDate' && el.value) { // l'historique d'achat des articles du ticket suit la date
+    const d = dayTime(el.value);
+    for (const n of t.names || []) { const i = findItem(n), k = i?.bought?.indexOf(t.date); if (k >= 0) { i.bought[k] = d; i.bought.sort((a, b) => a - b); } }
+    t.date = d;
+  }
   else if (el.id === 'tripBy') t.by = el.value;
   else if (el.id === 'tripOwn') t.own = parseEuro(el.value) || undefined;
   else return;

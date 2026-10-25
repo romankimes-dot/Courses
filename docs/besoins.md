@@ -47,7 +47,8 @@ Synthèse des demandes du propriétaire (fil de conception d'octobre 2026), des 
 | 31 | Dans une recette, appeler les produits existants, avec l'option d'en créer sans sortir de la recette | Champ « Ajouter un ingrédient… » : propositions dès les premières lettres, « + Créer » (article créé hors liste) |
 | 32 | Dépenses partagées : à chaque ticket, ignorer une partie de la somme (« un paquet de bonbons perso ») ; pouvoir modifier le ticket | Toucher un passage dans Dépenses : fiche Ticket (lieu, montant, payé par, **part perso hors partage**) |
 | 33 | Tous modes : **ajouter des articles au ticket après coup** (pris en plus de la liste) | Fiche Ticket > Articles : propositions dès les premières lettres ou création ; comptent dans l'historique d'achat |
-| 34 | Suggestions selon l'historique et les habitudes ; **pré-remplir la liste si on le souhaite** | Puces « à racheter » (rythme moyen entre achats, dès 2 achats) + option Réglages > Cette liste > « Pré-remplir la liste » (marqué « suggéré » ; retiré, il attend le prochain cycle) |
+| 34 | Suggestions selon l'historique et les habitudes ; **pré-remplir la liste si on le souhaite** | Puces « à racheter » (rythme moyen entre achats, dès 2 achats) + option Réglages > Cette liste > « Pré-remplir la liste », **active par défaut** (marqué « suggéré » ; retiré, il attend le prochain cycle) |
+| 35 | Dépense à la main : indiquer la date d'achat | Champ Date d'achat (dépense à la main et fiche Ticket) ; passages triés par date |
 | 27 | Ne pas avoir à rouvrir la liste toutes les 3 secondes (veille de l'iPhone) | Écran gardé allumé tant que la liste est affichée (Wake Lock ; iPhone : iOS 18.4 et +) |
 
 ## 3. Décisions prises
