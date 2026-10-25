@@ -14,11 +14,12 @@ Un dossier optionnel en argument reçoit les captures d'écran.
 |---|---|
 | `propositions-et-vider.js` | propositions dès les premières lettres, quantité gardée, vider la liste + Annuler |
 | `mes-articles.js` | tous les articles, recherche, ⭐ indispensable sans l'ajouter à la liste |
-| `recettes-et-indispensables.js` | beaucoup de recettes (recherche, catégories) et d'indispensables (filtre par rayon, tout ajouter) |
+| `recettes-et-indispensables.js` | beaucoup de recettes (recherche, catégories, ingrédients piochés ou créés sur place) et d'indispensables (filtre par rayon, tout ajouter) |
 | `icones-et-indispensable.js` | aucun emoji natif à l'écran ; fenêtre « Nouvel article » : sur la liste ou non, indispensable ou non, annuler |
 | `liste-unique.js` | ajout multiple et quantités, glisser pour retirer + Annuler, J'y vais, caddie, terminer |
 | `plusieurs-listes.js` | créer et changer de liste, rejoindre un lien sans écraser sa liste |
 | `repas.js` | recette avec quantités, posée sur deux jours, ingrédients cumulés ajoutés |
+| `tickets-et-suggestions.js` | ticket modifié (montant, part perso, articles ajoutés après coup), pré-remplissage de la liste et refus |
 | `depenses.js` | compte joint par défaut, option partage : qui doit quoi, remboursement, dépense à la main |
 | `activite.js` | fil d'activité : ajout d'un autre, départ en courses, article pris pour moi |
 | `parcours-a-deux.js` | accueil, rejoindre, ajout multiple, « J'y vais », « nouveau » pendant les courses, terminer, annuler, budget |

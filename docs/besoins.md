@@ -44,6 +44,10 @@ Synthèse des demandes du propriétaire (fil de conception d'octobre 2026), des 
 | 28 | À la création d'un article, ne pas forcément l'ajouter à la liste : choisir liste et/ou indispensable | Fenêtre « Nouvel article » : rayon, Ajouter à la liste, Indispensable (Annuler = rien n'est créé) |
 | 29 | Le scan a lu le ticket sans reconnaître les articles ni le bon total : « soit à améliorer clairement, soit à mettre de côté » | **Mis de côté** : scan retiré de l'app (`src/scan.js` reste dans l'historique Git). Le montant se saisit en terminant les courses |
 | 30 | « Je ne veux pas être en mode Tricount » : Raphaëlle et moi avons un compte joint | Partage des dépenses devenu une **option de la liste** (Réglages > Cette liste), désactivée par défaut : on suit juste le budget commun |
+| 31 | Dans une recette, appeler les produits existants, avec l'option d'en créer sans sortir de la recette | Champ « Ajouter un ingrédient… » : propositions dès les premières lettres, « + Créer » (article créé hors liste) |
+| 32 | Dépenses partagées : à chaque ticket, ignorer une partie de la somme (« un paquet de bonbons perso ») ; pouvoir modifier le ticket | Toucher un passage dans Dépenses : fiche Ticket (lieu, montant, payé par, **part perso hors partage**) |
+| 33 | Tous modes : **ajouter des articles au ticket après coup** (pris en plus de la liste) | Fiche Ticket > Articles : propositions dès les premières lettres ou création ; comptent dans l'historique d'achat |
+| 34 | Suggestions selon l'historique et les habitudes ; **pré-remplir la liste si on le souhaite** | Puces « à racheter » (rythme moyen entre achats, dès 2 achats) + option Réglages > Cette liste > « Pré-remplir la liste » (marqué « suggéré » ; retiré, il attend le prochain cycle) |
 | 27 | Ne pas avoir à rouvrir la liste toutes les 3 secondes (veille de l'iPhone) | Écran gardé allumé tant que la liste est affichée (Wake Lock ; iPhone : iOS 18.4 et +) |
 
 ## 3. Décisions prises
