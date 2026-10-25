@@ -764,7 +764,8 @@ const views = {
         <button data-a="export">Exporter</button>
         <label class="btn">Importer<input type="file" accept="application/json" id="import" hidden></label>
         <button data-a="reset">Réinitialiser</button>
-      </div>`;
+      </div>
+      <p class="hint">Vos listes sont sur ce téléphone : exportez-les de temps en temps. <a href="site/cgu.html" target="_blank" rel="noopener">Conditions et confidentialité</a></p>`;
   },
 };
 
@@ -1009,6 +1010,7 @@ views.welcome = () => `
       <button class="primary" data-a="welcomeCreate">Créer la liste du foyer</button>
       <button class="wide" data-a="welcomeJoin">J'ai reçu un lien d'invitation</button>
       <button class="ghost wide" data-a="welcomeSolo">Juste pour moi, sans partage</button>`}
+    <p class="hint legal">En continuant, vous acceptez les <a href="site/cgu.html" target="_blank" rel="noopener">conditions d'utilisation et de confidentialité</a>.</p>
   </div>`;
 
 // Carte d'invitation en haut de la liste, jusqu'à ce qu'on l'ait utilisée ou fermée
