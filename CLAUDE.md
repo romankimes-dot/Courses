@@ -14,7 +14,7 @@ retours du panel de test et backlog à arbitrer.
 ## Code
 - `index.html` : coquille ; en-tête (sélecteur de listes, 🔔, ⚙️) ; onglets Liste / Repas / Dépenses.
 - `src/lists.js` : plusieurs listes ; `K(nom)` donne la clé de stockage de la liste courante (à utiliser pour tout stockage propre à une liste).
-- `src/app.js` : état `S`, vues (`views.*`), actions (`actions.*`, déclenchées par `data-a`), rendu `render()`. La liste unique : `views.list` (un seul geste, toucher = caddie).
+- `src/app.js` : état `S`, vues (`views.*`), actions (`actions.*`, déclenchées par `data-a`), rendu `render()`. La liste unique : `views.list` (un seul geste, toucher = caddie) ; `views.catalog` = Mes articles (indispensables) ; `views.recipes` = Mes recettes.
 - `src/feed.js` : activité 🔔 et notifications ; `src/meals.js` : repas de la semaine ; `src/money.js` : partage des dépenses.
 - `src/sync.js` : synchro par enregistrement (`records()` / `fromRecords()`), file d'attente, fusion des doublons.
 - `src/scan.js` : scan de ticket (Tesseract.js) et page de validation ; `src/sheet.js` : fiche produit.

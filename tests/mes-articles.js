@@ -1,4 +1,5 @@
-// Mes articles : tous les articles (même ponctuels), recherche, ⭐ indispensable sans l'ajouter à la liste
+// Mes articles : tous les articles (même ponctuels), recherche, ⭐ indispensable sans l'ajouter à la liste ;
+// la liste ne propose plus les indispensables (listChips vide)
 const { phones, start, needs } = require('./_outils');
 (async () => {
   const { browser, pages: [p], errs } = await phones(1);
@@ -14,7 +15,8 @@ const { phones, start, needs } = require('./_outils');
   const pinned = await p.evaluate(() => findItem('danonino').pin === true && !findItem('danonino').need);
   await p.click('[data-a=catalogEdit]');
   await p.fill('#quick input', ''); await p.evaluate(() => { quickDraft = ''; render(); });
-  const pinsSection = await p.$$eval('.pins .chip', e => e.map(x => x.textContent.trim()));
+  await p.click('[data-a=catalogPins][data-v="1"]');
+  const pinsSection = await p.$$eval('#catalogItems .chip', e => e.map(x => x.textContent.trim()));
   await p.click('[data-a=go][data-v=list]');
   const listChips = await p.$$eval('main .chips .chip', e => e.map(x => x.textContent.trim()));
   console.log(JSON.stringify({ listBefore, found, pinned, pinsSection, listChips, list: await needs(p), errs }, null, 1));
