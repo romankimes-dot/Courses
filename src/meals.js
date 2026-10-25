@@ -4,6 +4,27 @@
 const dayKey = d => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 const week = () => Array.from({ length: 7 }, (_, k) => { const d = new Date(); d.setDate(d.getDate() + k); return d; });
 let weekAdd = null; // revue des ingrédients de la semaine : Set des articles décochés
+let calMonth = 0, calDay = null; // calendrier : décalage en mois depuis aujourd'hui, jour choisi (AAAA-MM-JJ)
+
+// Calendrier du mois en cases (lundi en premier) ; chaque case montre les repas posés ce jour-là
+function calendar() {
+  const now = new Date(), first = new Date(now.getFullYear(), now.getMonth() + calMonth, 1);
+  const days = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate(), lead = (first.getDay() + 6) % 7;
+  const today = dayKey(now);
+  const cells = Array.from({ length: lead }, () => '<span></span>');
+  for (let d = 1; d <= days; d++) {
+    const key = dayKey(new Date(first.getFullYear(), first.getMonth(), d)), rs = (S.plan[key] || []).map(recipe).filter(Boolean);
+    cells.push(`<button class="cell ${key === today ? 'today' : ''} ${key === calDay ? 'sel' : ''} ${key < today ? 'past' : ''}" data-a="calDay" data-v="${key}">
+      <b>${d}</b>${rs.slice(0, 2).map(r => `<small>${esc(r.name)}</small>`).join('')}${rs.length > 2 ? `<small>+${rs.length - 2}</small>` : ''}</button>`);
+  }
+  return `
+    <div class="bar cal-head">
+      <button class="ghost" data-a="calMove" data-v="-1" aria-label="Mois précédent">${icon.back}</button>
+      <strong class="grow">${first.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</strong>
+      <button class="ghost" data-a="calMove" data-v="1" aria-label="Mois suivant">${icon.right}</button>
+    </div>
+    <div class="cal">${['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(j => `<i>${j}</i>`).join('')}${cells.join('')}</div>`;
+}
 
 // « 40 cl » + « 40 cl » = « 80 cl » ; unités différentes ou texte libre : mis bout à bout
 function sumQty(list) {
@@ -55,31 +76,32 @@ views.meals = () => {
   const options = recipeGroups().map(g => `<optgroup label="${esc(g.cat)}">${g.rs.map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join('')}</optgroup>`).join('');
   const missing = [...needs].filter(([i]) => !i.need).length;
   return `
-    <h2>Repas de la semaine</h2>
+    <h2>Repas</h2>
     ${cookbook().length ? '' : `<p class="hint">Créez une recette (ses ingrédients et quantités), puis posez-la sur un jour : un geste mettra tout sur la liste.</p>
       <form id="newRecipe" class="addtop">
         <input name="name" placeholder="Nom de la recette (ex. Curry)" autocomplete="off" autocapitalize="sentences" required>
         <button class="accent" aria-label="Créer">${icon.plus}</button>
       </form>
       <button class="wide" data-a="go" data-v="library">${icon.meals} Ou piocher dans les idées de recettes</button>`}
-    <div class="week">
-      ${week().map((d, k) => {
-        const key = dayKey(d), planned = (S.plan[key] || []).map(recipe).filter(Boolean);
-        return `
-        <div class="day ${k ? '' : 'today'}">
-          <strong>${k ? d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }) : 'Aujourd\'hui'}</strong>
-          <div class="chips">
-            ${planned.map(r => `<button class="chip on" data-a="unplan" data-v="${key}" data-id="${r.id}" title="Retirer">${esc(r.name)} ${icon.x}</button>`).join('')}
-            ${cookbook().length ? `<select data-plan="${key}" aria-label="Ajouter un repas"><option value="">+ repas</option>${options}</select>` : ''}
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
-    ${needs.size ? `<button class="primary" data-a="weekReview" ${missing ? '' : 'disabled'}>${icon.cart} Mettre les ingrédients sur la liste${missing ? ` (${missing})` : ' : déjà fait'}</button>` : ''}
+    ${calendar()}
+    ${(() => {
+      const key = calDay || dayKey(new Date()), planned = (S.plan[key] || []).map(recipe).filter(Boolean);
+      return `
+      <div class="day today">
+        <strong>${key === dayKey(new Date()) ? 'Aujourd\'hui' : new Date(`${key}T12:00`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</strong>
+        <div class="chips">
+          ${planned.map(r => `<button class="chip on" data-a="unplan" data-v="${key}" data-id="${r.id}" title="Retirer">${esc(r.name)} ${icon.x}</button>`).join('')}
+          ${cookbook().length ? `<select data-plan="${key}" aria-label="Ajouter un repas"><option value="">+ repas</option>${options}</select>` : ''}
+        </div>
+      </div>`;
+    })()}
+    ${needs.size ? `<button class="primary" data-a="weekReview" ${missing ? '' : 'disabled'}>${icon.cart} Ingrédients des 7 prochains jours sur la liste${missing ? ` (${missing})` : ' : déjà fait'}</button>` : ''}
     ${cookbook().length ? `<button class="wide" data-a="go" data-v="recipes">${icon.meals} Mes recettes <small>${cookbook().length}</small></button>` : ''}`;
 };
 
 Object.assign(actions, {
+  calDay: ({ v }) => { calDay = v; },
+  calMove: ({ v }) => { calMonth += +v; },
   unplan: ({ v, id }) => { S.plan[v] = (S.plan[v] || []).filter(x => x !== id); if (!S.plan[v].length) delete S.plan[v]; },
   weekReview: () => { weekAdd = new Set(); },
   weekCancel: () => { weekAdd = null; },
