@@ -1,0 +1,25 @@
+// Partage des dépenses : chacun paie ses courses, qui doit quoi, remboursement, dépense à la main
+const { phones, start, share, syncAll } = require('./_outils');
+(async () => {
+  const { browser, pages: [A, B], errs } = await phones(2);
+  await start(A, 'Léo');
+  const link = await share(A);
+  await B.goto(link); await B.waitForFunction(() => S.items.length > 0);
+  await B.fill('#meForm input', 'Tom'); await B.click('#meForm button');
+  await A.fill('#quick input', 'pâtes, bière'); await A.press('#quick input', 'Enter');
+  await syncAll(A, B);
+  await A.click('main .row:has-text("Pâtes")'); await A.click('[data-a=finish]'); await A.fill('#finishForm input', '30'); await A.click('#finishForm .primary');
+  await syncAll(A, B);
+  await B.click('main .row:has-text("Bière")'); await B.click('[data-a=finish]'); await B.fill('#finishForm input', '10'); await B.click('#finishForm .primary');
+  await syncAll(A, B);
+  await A.click('[data-tab=budget]');
+  const owe = await A.$$eval('.owe .name', e => e.map(x => x.textContent.trim()));
+  await A.click('.owe [data-a=settle]');
+  const settled = (await A.textContent('main')).includes('Tout le monde est à jour');
+  await A.click('[data-a=expense]'); await A.fill('#expenseForm input[name=amount]', '8'); await A.fill('#expenseForm input[name=name]', 'Marché');
+  await A.selectOption('#expenseForm select', 'Tom'); await A.click('#expenseForm button.accent');
+  const owe2 = await A.$$eval('.owe .name', e => e.map(x => x.textContent.trim()));
+  const hero = (await A.textContent('.hero strong')).trim();
+  console.log(JSON.stringify({ owe, settled, owe2, hero, errs }, null, 1));
+  await browser.close(); process.exit(0);
+})();

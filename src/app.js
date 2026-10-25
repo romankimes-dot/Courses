@@ -1,6 +1,6 @@
 // Courses — données locales d'abord (fonctionne sans réseau), synchro dans sync.js.
 
-const KEY = 'courses.v1';
+const KEY = K('courses.v1'); // une clé par liste (src/lists.js)
 const uid = () => Math.random().toString(36).slice(2, 9);
 const esc = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -30,7 +30,7 @@ function seed() {
     aisles.push(aisle);
     for (const n of list) items.push({ id: uid(), name: n, aisle: aisle.id, freq: true, need: false, done: false });
   }
-  return { aisles, items, recipes: [], shops: defaultShops(), stores: [newStore()], trips: [], settings: {}, aliases: {} };
+  return { aisles, items, recipes: [], shops: defaultShops(), stores: [newStore()], trips: [], settings: {}, aliases: {}, plan: {} };
 }
 // Plan d'un magasin : quadrillage approximatif, case "x,y" -> rayon
 const newMap = () => ({ cols: 6, rows: 8, cells: {}, entry: null, auto: true });
@@ -70,11 +70,19 @@ function clean(st) {
       entry: CELL.test(m.entry) ? m.entry : null,
       cells: Object.fromEntries(Object.entries(m.cells || {}).filter(([c, a]) => CELL.test(c) && ID.test(a))) };
   }
-  st.trips = st.trips.filter(t => t && ID.test(t.id)).map(t => ({ ...t, date: num0(t.date), n: num0(t.n), total: t.total == null ? null : num0(t.total), place: String(t.place || ''), names: Array.isArray(t.names) ? t.names.map(String) : undefined }));
+  const str = v => v == null ? undefined : String(v).slice(0, 60);
+  st.trips = st.trips.filter(t => t && ID.test(t.id)).map(t => ({ ...t, date: num0(t.date), n: num0(t.n), total: t.total == null ? null : num0(t.total), place: String(t.place || ''),
+    names: Array.isArray(t.names) ? t.names.map(String) : undefined, by: str(t.by), from: str(t.from), to: str(t.to), type: ['settle', 'expense'].includes(t.type) ? t.type : undefined }));
+  st.recipes.forEach(r => { r.qty = Object.fromEntries(Object.entries(r.qty && typeof r.qty === 'object' ? r.qty : {}).filter(([k]) => ID.test(k)).map(([k, v]) => [k, String(v).slice(0, 30)])); });
+  const old = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
+  st.plan = Object.fromEntries(Object.entries(st.plan || {}).filter(([d, ids]) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= old && Array.isArray(ids)).map(([d, ids]) => [d, ids.filter(x => ID.test(x))]));
+  if (st.settings.listName != null) st.settings.listName = String(st.settings.listName).slice(0, 40);
   st.aliases = Object.fromEntries(Object.entries(st.aliases || {}).filter(([, v]) => v === 'ignore' || ID.test(v)));
   if (st.settings.budget != null) st.settings.budget = num0(st.settings.budget);
   delete st.settings.shopping;
-  if (st.settings.shoppers) st.settings.shoppers = Object.fromEntries(Object.entries(st.settings.shoppers).map(([n, at]) => [String(n).slice(0, 40), num0(at)]));
+  // Qui est en courses : un enregistrement par personne (sinon deux « J'y vais » simultanés s'écrasent)
+  st.shoppers = Object.fromEntries(Object.entries(st.shoppers || st.settings.shoppers || {}).filter(([n]) => /^[^:]{1,40}$/.test(n)).map(([n, at]) => [n, num0(at)]));
+  delete st.settings.shoppers;
   return st;
 }
 
@@ -86,6 +94,7 @@ function upgrade(st) {
   st.trips ||= [];
   st.settings ||= {};
   st.aliases ||= {}; // libellé de ticket normalisé -> id d'article, ou 'ignore'
+  st.plan ||= {}; // repas : date -> recettes
   if (!st.stores) { st.stores = [newStore()]; if (st.map) st.stores[0].map = st.map; }
   delete st.map;
   return clean(st);
@@ -125,11 +134,11 @@ const applySize = () => { document.documentElement.dataset.size = size; };
 applySize();
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
 let who = 0; // courses à deux : 0 = seul, 1 ou 2 = mon circuit (propre à cet appareil)
-try { who = +localStorage.getItem('courses.who') || 0; } catch {}
+try { who = +localStorage.getItem(K('courses.who')) || 0; } catch {}
 let recipeEdit = null, recipeAdd = null, recipeSkip = new Set(); // recette en cours d'édition / d'ajout
 let place = ''; // en courses : '' = supermarché, sinon id du commerce
 let storeId = null; // supermarché où je suis (propre à cet appareil) ; 'none' = magasin non cartographié
-try { storeId = localStorage.getItem('courses.store'); } catch {}
+try { storeId = localStorage.getItem(K('courses.store')); } catch {}
 const store = () => storeId === 'none' ? null : S.stores.find(s => s.id === storeId) || S.stores[0] || null;
 const M = () => store()?.map || NO_MAP;
 // Rayons dans l'ordre du magasin courant (les rayons absents de son ordre gardent l'ordre générique, à la fin)
@@ -171,7 +180,7 @@ const AISLE_WORDS = {
   'boissons': 'eau jus soda coca biere vin sirop limonade boisson',
   'surgeles': 'surgele glace frite pizza surgelee poelee',
   'hygiene': 'shampoing gel douche savon dentifrice brosse a dents deodorant papier toilette mouchoir coton couche lingette rasoir creme solaire serviette hygienique tampon',
-  'entretien': 'lessive adoucissant eponge liquide vaisselle pastille lave vaisselle sac poubelle javel nettoyant essuie tout aluminium film',
+  'entretien': 'litiere croquette patee lessive adoucissant eponge liquide vaisselle pastille lave vaisselle sac poubelle javel nettoyant essuie tout aluminium film',
 };
 const AISLE_PHRASES = { 'lait de coco': 'epicerie salee', 'creme solaire': 'hygiene', 'pomme de terre': 'fruits', 'papier toilette': 'hygiene', 'liquide vaisselle': 'entretien', 'creme fraiche': 'cremerie' };
 const aisleByKey = key => S.aisles.find(a => plain(a.name).startsWith(key.split(' ')[0]) && (key.split(' ').length < 2 || plain(a.name).includes(key.split(' ')[1])));
@@ -355,16 +364,8 @@ const thumb = (i, add) => i.photo
   ? `<img class="thumb" src="${esc(i.photo)}" alt="" data-a="viewPhoto" data-id="${i.id}">`
   : add ? `<button class="ghost" data-a="photo" data-id="${i.id}" title="Photo">📷</button>` : '';
 
-const shopRow = i => `
-  <div class="row big ${i.done ? 'done' : ''} ${isNew(i) ? 'new' : ''}" data-a="toggleDone" data-id="${i.id}">
-    <span class="box"></span><span class="name">${esc(i.name)}${noteOf(i)}${i.alt && !i.done ? `<br><small>si absent : ${esc(i.alt)}</small>` : ''}${i.done && !mine(i) ? ` <small>· pris par ${esc(i.doneBy)}</small>` : ''}${isNew(i) ? ` <small class="tag">nouveau${i.by ? ` · ${esc(i.by)}` : ''}</small>` : ''}</span>${thumb(i)}${more(i)}
-  </div>`;
-const basket = items => {
-  const done = items.filter(i => i.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
-  return done.length ? `<section class="basket"><h3>🧺 Dans le panier · ${done.length}</h3>${done.map(shopRow).join('')}</section>` : '';
-};
 // Qui est en courses en ce moment (« J'y vais », valable 3 h), plusieurs personnes possibles
-const shoppers = () => Object.entries(S.settings.shoppers || {}).filter(([, at]) => Date.now() - at < 3 * 36e5);
+const shoppers = () => Object.entries(S.shoppers).filter(([, at]) => Date.now() - at < 3 * 36e5);
 const myShopping = () => shoppers().find(([n]) => n === (me || '?'))?.[1];
 const shoppingBanner = () => {
   const others = shoppers().filter(([n]) => n !== (me || '?'));
@@ -372,193 +373,158 @@ const shoppingBanner = () => {
   const who = others.map(([n, at]) => { const min = Math.round((Date.now() - at) / 6e4); return `${esc(n === '?' ? 'Quelqu\'un' : n)} (${min < 2 ? 'à l\'instant' : `depuis ${min} min`})`; }).join(', ');
   return `<div class="banner">🛒 En courses : ${who}. Ce que vous ajoutez ${others.length > 1 ? 'leur' : 'lui'} arrive.</div>`;
 };
-// Ajouté par quelqu'un d'autre depuis le début de mes courses
 const mine = i => !i.doneBy || i.doneBy === (me || '?');
 const othersShopping = () => shoppers().some(([n]) => n !== (me || '?'));
+// Ajouté par quelqu'un d'autre depuis le début de mes courses
 const isNew = i => { const at = myShopping(); return at && i.at > at && i.by !== me && !i.done; };
 const byOf = i => Sync.config() && i.by ? ` <small>· ${esc(i.by)}</small>` : '';
 const more = i => `<button class="ghost more" data-a="openItem" data-id="${i.id}" title="Fiche produit">›</button>`;
 const noteOf = i => i.note ? ` <small>${esc(i.note)}</small>` : '';
+const shortDate = t => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 
-const catRow = i => `
-  <div class="row ${i.need ? 'on' : ''}" data-a="toggleNeed" data-id="${i.id}">
+// Une ligne d'article, la même partout : toucher = dans le caddie (et inversement), › = fiche
+const itemRow = i => `
+  <div class="row big ${i.done ? 'done' : ''} ${isNew(i) ? 'new' : ''}" data-a="toggleDone" data-id="${i.id}" data-swipe="${i.id}">
     <span class="box"></span>
-    <span class="name">${esc(i.name)}${noteOf(i)}${lastPrice(i) != null ? ` <small>${euro(lastPrice(i))}</small>` : ''}</span>
-    <button class="ghost star ${i.pin ? 'on' : ''}" data-a="pin" data-id="${i.id}" title="${i.pin ? 'Retirer des indispensables' : 'Épingler en haut'}">${i.pin ? '★' : '☆'}</button>
-    ${thumb(i, true)}${more(i)}
+    <span class="name">${esc(i.name)}${noteOf(i)}${i.done ? (mine(i) ? '' : ` <small>· pris par ${esc(i.doneBy)}</small>`) : byOf(i)}${isNew(i) ? ' <small class="tag">nouveau</small>' : ''}${i.missing && !i.done ? ` <small class="warn">⚠ pas trouvé le ${shortDate(i.missing.at)}</small>` : ''}${i.alt && !i.done ? `<br><small>si absent : ${esc(i.alt)}</small>` : ''}</span>
+    ${thumb(i)}${more(i)}
   </div>`;
 
+// Rayons dans l'ordre où on les parcourt : circuit du magasin en courses (et ma moitié si on est deux)
+function shoppingGroups() {
+  let groups = byAisle(i => i.need);
+  const order = route(groups.map(g => g.aisle.id));
+  groups.sort((a, b) => order.indexOf(a.aisle.id) - order.indexOf(b.aisle.id));
+  const mapped = groups.some(g => centroid(g.aisle.id));
+  if (myShopping() && who && groups.length > 1 && (!mapped || M().auto)) {
+    let part;
+    if (mapped) part = splitRoute(groups)[who - 1];
+    else {
+      const total = groups.reduce((t, g) => t + g.items.length, 0);
+      let acc = 0, cut = 1, best = Infinity;
+      groups.forEach((g, k) => { acc += g.items.length; if (k < groups.length - 1 && Math.abs(total / 2 - acc) < best) { best = Math.abs(total / 2 - acc); cut = k + 1; } });
+      part = (who === 1 ? groups.slice(0, cut) : groups.slice(cut)).map(g => g.aisle.id);
+    }
+    groups = part.map(id => groups.find(g => g.aisle.id === id));
+  }
+  return { groups, mapped };
+}
+
 const views = {
-  // Avant : ce qu'il faut acheter, à remplir à plusieurs
+  // LA liste : on la remplit à plusieurs, on la suit en magasin. Un seul geste : toucher = dans le caddie.
   list() {
     const need = S.items.filter(i => i.need);
+    const shopping = !!myShopping();
+    const { groups, mapped } = shoppingGroups();
+    const pinnedTop = shopping ? [] : need.filter(i => i.pin && !i.done);
+    const sections = [
+      ...(pinnedTop.length ? [{ aisle: { name: '⭐ Indispensables' }, items: pinnedTop }] : []),
+      ...groups.map((g, k) => ({ ...g, num: shopping && mapped ? k + 1 : 0, items: g.items.filter(i => !i.done && !pinnedTop.includes(i)) })),
+      ...byAisle(i => i.need && !i.done, S.shops),
+    ].filter(g => g.items.length);
+    const cart = need.filter(i => i.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
+    const myCart = cart.filter(mine);
     const estimate = need.filter(i => lastPrice(i) != null).reduce((t, i) => t + lastPrice(i), 0);
-    const sug = suggestions();
-    const pinned = need.filter(i => i.pin);
-    const groups = [...(pinned.length ? [{ aisle: { name: '⭐ Indispensables' }, items: pinned }] : []),
-      ...byAisle(i => i.need && !i.pin), ...byAisle(i => i.need && !i.pin, S.shops)];
+    const chips = [...new Set([...S.items.filter(i => i.pin && !i.need), ...suggestions().map(x => x.i)])];
+    let hint = false;
+    try { hint = !localStorage.getItem('courses.hint'); } catch {}
     return `
       ${Sync.config() && !me ? `
         <form id="meForm" class="card invite">
           <strong>Votre prénom ?</strong>
-          <p class="hint">Il s'affiche sur vos ajouts, pour que le foyer sache qui a demandé quoi.</p>
+          <p class="hint">Il s'affiche sur vos ajouts, pour que tous sachent qui a demandé quoi.</p>
           <div class="add"><input name="name" placeholder="ex. Inès" autocomplete="given-name" required><button class="accent">OK</button></div>
         </form>` : welcomeInvite()}
       ${shoppingBanner()}
-      <div class="list-head">
-        <strong>${need.length ? `${need.length} article${need.length > 1 ? 's' : ''} à acheter` : 'Liste vide'}</strong>
-        ${estimate ? `<small>≈ ${euro(estimate)}</small>` : ''}
-        ${need.length ? '<button class="ghost" data-a="shareList" title="Envoyer la liste par message">⤴ Envoyer</button>' : ''}
-      </div>
-      <div class="bar">
-        <button class="grow" data-a="go" data-v="catalog">＋ Mes basiques</button>
-        <button class="grow" data-a="go" data-v="recipes">＋ Une recette</button>
-      </div>
-      ${sug.length ? `
-        <section class="sug">
-          <h3>À racheter ? <button class="ghost" data-a="addSug">Tout ajouter</button></h3>
-          <div class="chips">${sug.map(({ i, r }) => `<button class="chip" data-a="toggleNeed" data-id="${i.id}" title="${rhythmLabel(r)}">＋ ${esc(i.name)}</button>`).join('')}</div>
+      ${shopping ? `
+        <section class="card shopping">
+          <div class="bar"><strong class="grow">🛒 En courses</strong><button class="ghost" data-a="stopShopping">Arrêter</button></div>
+          ${storePicker()}
+          ${need.filter(i => !shopOf(i)).length > 3 ? `
+          <div class="seg">
+            <button data-a="setWho" data-v="0" class="${who ? '' : 'active'}">Seul</button>
+            <button data-a="setWho" data-v="1" class="${who === 1 ? 'active' : ''}">À deux ①</button>
+            <button data-a="setWho" data-v="2" class="${who === 2 ? 'active' : ''}">À deux ②</button>
+          </div>` : ''}
+          ${mapped ? `<details class="adv"><summary>Plan du magasin</summary>
+            <div class="seg">
+              <button data-a="setAuto" data-v="1" class="${M().auto ? 'active' : ''}">Circuit le plus court</button>
+              <button data-a="setAuto" data-v="" class="${M().auto ? '' : 'active'}">Ordre des rayons</button>
+            </div>
+            ${mapSvg(groups)}</details>` : ''}
         </section>` : ''}
-      ${need.length ? groups.map(g => `
+      <form id="quick" class="addtop">
+        <input name="name" list="catalog" placeholder="Ajouter… (lait, œufs, 2 kg tomates)" autocomplete="off" required>
+        <button class="accent" aria-label="Ajouter">＋</button>
+      </form>
+      ${hint && need.length ? `<p class="hint tip">Touchez un article quand il est dans le caddie. Glissez-le vers la gauche pour le retirer. <button class="ghost" data-a="hintDone">OK</button></p>` : ''}
+      ${chips.length && !shopping ? `
+        <div class="chips">
+          ${chips.slice(0, 12).map(i => `<button class="chip" data-a="toggleNeed" data-id="${i.id}">${i.pin ? '⭐' : '↻'} ${esc(i.name)}</button>`).join('')}
+        </div>` : ''}
+      ${sections.map(g => `
         <section>
-          <h3>${esc(g.aisle.name)}</h3>
-          ${g.items.map(i => `
-            <div class="row ${i.done ? 'done-soft' : ''}" data-a="openItem" data-id="${i.id}">
-              <span class="name">${esc(i.name)}${noteOf(i)}${byOf(i)}${i.done ? ' <small class="tag">✓ dans le panier</small>' : i.missing ? ` <small class="warn">⚠ pas trouvé le ${new Date(i.missing.at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</small>` : ''}</span>${thumb(i)}
-              <button class="ghost" data-a="unneed" data-id="${i.id}" title="Retirer de la liste">×</button>
-            </div>`).join('')}
-        </section>`).join('') + `<button class="primary" data-a="goShopping">🛒 J'y vais</button>` : `
+          <h3>${g.num ? `<span class="num" style="background:${aisleColor(g.aisle.id)}">${g.num}</span>` : ''}${esc(g.aisle.name)}</h3>
+          ${g.items.map(itemRow).join('')}
+        </section>`).join('')}
+      ${!need.length ? `
         <div class="empty-state">
           <p>Rien à acheter pour l'instant.</p>
-          <p class="hint">Écrivez en bas ce qu'il manque, ou piochez dans vos basiques. Tout le foyer voit la même liste.</p>
-        </div>`}`;
+          <p class="hint">Écrivez ce qu'il manque, touchez une suggestion, ou piochez dans vos basiques.${Sync.config() ? ' Tout le monde voit la même liste.' : ''}</p>
+        </div>` : need.every(i => i.done) ? '<p class="hint center">✓ Tout est dans le caddie.</p>' : ''}
+      ${cart.length ? `
+        <section class="basket">
+          <h3>🧺 Dans le caddie · ${cart.length}</h3>
+          ${cart.map(itemRow).join('')}
+        </section>` : ''}
+      <div class="actions">
+        ${myCart.length ? `<button class="primary" data-a="finish">✓ Terminer les courses (${myCart.length})</button>`
+          : need.length && !shopping ? `<button class="primary" data-a="goShopping">🛒 J'y vais${estimate ? ` <small>≈ ${euro(estimate)}</small>` : ''}</button>` : ''}
+        <div class="bar">
+          <button class="grow" data-a="go" data-v="catalog">＋ Mes basiques</button>
+          ${need.length ? '<button class="grow" data-a="shareList">⤴ Envoyer la liste</button>' : ''}
+        </div>
+      </div>`;
   },
 
-  // Catalogue des basiques : cocher / décocher en masse
+  // Mes basiques : des pastilles à toucher, ✓ = déjà sur la liste
   catalog() {
-    const count = S.items.filter(i => i.need).length;
     const pins = S.items.filter(i => i.pin);
+    const chip = i => `<button class="chip ${i.need ? 'on' : ''}" data-a="${catalogEdit ? 'openItem' : 'toggleNeed'}" data-id="${i.id}">${i.need ? '✓ ' : ''}${esc(i.name)}</button>`;
     return `
       <button class="ghost back" data-a="go" data-v="list">← Liste</button>
       <h2>Mes basiques</h2>
-      <p class="hint">Touchez un article pour le mettre sur la liste ou l'en retirer. Astuce : « Tout cocher » puis décochez ce que vous avez encore.</p>
+      <p class="hint">${catalogEdit ? 'Touchez un article pour le modifier : rayon, ⭐ indispensable, photo…' : 'Touchez ce qui manque. ✓ = déjà sur la liste.'}</p>
       <div class="bar">
-        <button data-a="allFreq">Tout cocher</button>
-        <button data-a="noneNeed">Tout décocher</button>
-        <span class="count">${count} sur la liste</span>
+        <button data-a="allFreq">Tout ajouter</button>
+        <button data-a="noneNeed">Tout retirer</button>
+        <button class="ghost ${catalogEdit ? 'active' : ''}" data-a="catalogEdit">✎ ${catalogEdit ? 'Terminé' : 'Modifier'}</button>
       </div>
-      ${pins.length ? `
-        <section class="pins">
-          <h3>⭐ Indispensables <button class="ghost" data-a="allPins">Tout ajouter</button></h3>
-          ${pins.map(catRow).join('')}
-        </section>` : '<p class="hint">Astuce : touchez ☆ pour épingler un indispensable (Babybel du petit, fruits…) tout en haut.</p>'}
+      <form id="quick" class="addtop">
+        <input name="name" placeholder="Nouvel article de base…" autocomplete="off" required>
+        <button class="accent" aria-label="Ajouter">＋</button>
+      </form>
+      ${pins.length ? `<section class="pins"><h3>⭐ Indispensables</h3><div class="chips">${pins.map(chip).join('')}</div></section>` : ''}
       ${[...byAisle(i => (i.freq || i.need) && !i.pin), ...byAisle(i => (i.freq || i.need) && !i.pin, S.shops)].map(g => `
-        <section>
-          <h3>${esc(g.aisle.name)}${S.shops.includes(g.aisle) ? ' <small>commerce</small>' : ''}</h3>
-          ${g.items.map(catRow).join('')}
-        </section>`).join('')}`;
-  },
-
-  shop() {
-    const need = S.items.filter(i => i.need);
-    const done = need.filter(i => i.done).length;
-    if (!need.length) return `
-      <div class="empty-state">
-        <p>Rien à acheter.</p>
-        <p class="hint">Remplissez d'abord la liste, à plusieurs si besoin.</p>
-        <button data-tab="list">Aller à la liste</button>
-      </div>
-      <button class="ghost wide" data-a="openScan">📷 Scanner un ticket de caisse</button>`;
-    const shops = byAisle(i => i.need, S.shops);
-    if (place && !shops.some(g => g.aisle.id === place)) place = '';
-    const superCount = need.filter(i => !shopOf(i) && !i.done).length;
-    const places = shops.length ? `
-      <div class="seg places">
-        <button data-a="setPlace" data-v="" class="${place ? '' : 'active'}">🛒 ${esc(store()?.name || 'Supermarché')} <small>${superCount}</small></button>
-        ${shops.map(g => `<button data-a="setPlace" data-v="${g.aisle.id}" class="${place === g.aisle.id ? 'active' : ''}">${esc(g.aisle.name)} <small>${g.items.filter(i => !i.done).length}</small></button>`).join('')}
-      </div>` : '';
-    if (place) {
-      const g = shops.find(g => g.aisle.id === place), d = g.items.filter(i => i.done).length;
-      return `
-        <div class="progress"><div style="width:${100 * d / g.items.length}%"></div></div>
-        <p class="count">${d} / ${g.items.length} · total ${done} / ${need.length}</p>
-        ${places}
-        ${g.items.filter(i => !i.done).map(shopRow).join('') || '<p class="hint">Tout est dans le panier.</p>'}
-        ${basket(g.items)}
-        <button class="primary" data-a="finish">✓ Terminer les courses</button>`;
-    }
-    let groups = byAisle(i => i.need);
-    const order = route(groups.map(g => g.aisle.id));
-    groups.sort((a, b) => order.indexOf(a.aisle.id) - order.indexOf(b.aisle.id));
-    const mapped = groups.some(g => centroid(g.aisle.id));
-    const duo = who && groups.length > 1 && (!mapped || M().auto);
-    if (duo) {
-      let part;
-      if (mapped) part = splitRoute(groups)[who - 1];
-      else {
-        const total = groups.reduce((t, g) => t + g.items.length, 0);
-        let acc = 0, cut = 1, best = Infinity;
-        groups.forEach((g, k) => { acc += g.items.length; if (k < groups.length - 1 && Math.abs(total / 2 - acc) < best) { best = Math.abs(total / 2 - acc); cut = k + 1; } });
-        part = (who === 1 ? groups.slice(0, cut) : groups.slice(cut)).map(g => g.aisle.id);
-      }
-      groups = part.map(id => groups.find(g => g.aisle.id === id));
-    }
-    const mineItems = groups.flatMap(g => g.items), mineDone = mineItems.filter(i => i.done).length;
-    return `
-      ${shoppingBanner()}
-      ${storePicker()}
-      <div class="progress"><div style="width:${100 * mineDone / (mineItems.length || 1)}%"></div></div>
-      <p class="count">${duo ? `Mon circuit : ${mineDone} / ${mineItems.length} · total ${done} / ${need.length}` : `${done} / ${need.length} dans le panier`}</p>
-      ${places}
-      ${groups.length ? '' : '<p class="empty">Rien à prendre au supermarché.</p>'}
-      ${!mapped && need.filter(i => !shopOf(i)).length > 3 ? `
-        <div class="seg">
-          <button data-a="setWho" data-v="0" class="${who ? '' : 'active'}">Seul</button>
-          <button data-a="setWho" data-v="1" class="${who === 1 ? 'active' : ''}">À deux : début</button>
-          <button data-a="setWho" data-v="2" class="${who === 2 ? 'active' : ''}">À deux : fin</button>
-        </div>` : ''}
-      ${mapped ? `
-        <div class="seg">
-          <button data-a="setAuto" data-v="1" class="${M().auto ? 'active' : ''}">Circuit optimisé</button>
-          <button data-a="setAuto" data-v="" class="${M().auto ? '' : 'active'}">Ordre des rayons</button>
-        </div>
-        ${M().auto ? `
-        <div class="seg">
-          <button data-a="setWho" data-v="0" class="${who ? '' : 'active'}">Seul</button>
-          <button data-a="setWho" data-v="1" class="${who === 1 ? 'active' : ''}">Circuit 1</button>
-          <button data-a="setWho" data-v="2" class="${who === 2 ? 'active' : ''}">Circuit 2</button>
-        </div>` : ''}
-        ${mapSvg(groups)}` : ''}
-      ${groups.map((g, k) => g.items.some(i => !i.done) ? `
-        <section>
-          <h3><span class="num" style="background:${aisleColor(g.aisle.id)}">${k + 1}</span>${esc(g.aisle.name)}</h3>
-          ${g.items.filter(i => !i.done).map(shopRow).join('')}
-        </section>` : '').join('')}
-      ${mineItems.length && mineItems.every(i => i.done) ? '<p class="hint">✓ Tout est dans le panier.</p>' : ''}
-      ${basket(mineItems)}
-      <button class="primary" data-a="finish">✓ Terminer les courses</button>
-      <button class="ghost wide" data-a="openScan">📷 Scanner le ticket de caisse</button>`;
+        <section><h3>${esc(g.aisle.name)}</h3><div class="chips">${g.items.map(chip).join('')}</div></section>`).join('')}`;
   },
 
   recipes() {
     const rs = [...S.recipes].sort((a, b) => a.name.localeCompare(b.name));
     return `
-      <button class="ghost back" data-a="go" data-v="list">← Liste</button>
-      <h2>Recettes</h2>
-      <p class="hint">Une recette regroupe ses ingrédients : l'ajouter met tout sur la liste, vous décochez ce que vous avez déjà.</p>
       <form id="newRecipe" class="add">
         <input name="name" placeholder="Nouvelle recette" autocomplete="off" required>
         <button>Créer</button>
       </form>
       ${rs.map(recipeCard).join('') || '<p class="empty">Aucune recette pour l\'instant.</p>'}
-      ${tab === 'recipes' ? `<datalist id="catalog">${S.items.map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>` : ''}`;
+      ${catalogList()}`;
   },
 
   budget() {
     const now = new Date(), y = now.getFullYear(), m = now.getMonth();
     const start = new Date(y, m, 1).getTime(), prevStart = new Date(y, m - 1, 1).getTime();
     const days = new Date(y, m + 1, 0).getDate(), day = now.getDate();
-    const paid = S.trips.filter(t => t.total != null);
+    const paid = S.trips.filter(t => t.total != null && t.type !== 'settle');
     const sum = ts => ts.reduce((a, t) => a + t.total, 0);
     const month = paid.filter(t => t.date >= start), prev = paid.filter(t => t.date >= prevStart && t.date < start);
     const recent = paid.filter(t => t.date >= Date.now() - 90 * DAY);
@@ -606,7 +572,7 @@ const views = {
       <h3>Passages en caisse</h3>
       ${S.trips.slice(-20).reverse().map(t => `
         <div class="row static">
-          <span class="name">${new Date(t.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} · ${esc(t.place)} <small>${t.n} art.</small>${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
+          <span class="name">${shortDate(t.date)} · ${esc(t.type === 'settle' ? `${t.from} → ${t.to}` : t.place)}${t.n ? ` <small>${t.n} art.</small>` : ''}${t.by && t.type !== 'settle' ? ` <small>· payé par ${esc(t.by)}</small>` : ''}${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
           <button class="ghost" data-a="editTrip" data-id="${t.id}">${t.total == null ? 'Ajouter €' : euro(t.total)}</button>
           <button class="ghost" data-a="delTrip" data-id="${t.id}">×</button>
         </div>`).join('') || '<p class="hint">Le montant est demandé (facultatif) quand vous terminez des courses, ou lu sur le ticket scanné.</p>'}`;
@@ -617,6 +583,29 @@ const views = {
     return `
       <button class="ghost back" data-a="go" data-v="${settingsBack}">← Retour</button>
       <h2>Réglages</h2>
+      <h3>Cette liste</h3>
+      <label class="field">Nom<input id="listTitle" value="${esc(currentList().name)}" autocomplete="off"></label>
+      ${Sync.config() ? `
+        <p class="hint">Liste partagée${members().length > 1 ? ` avec ${members().filter(m => m !== me).map(esc).join(', ')}` : ''}. Les modifications faites sans réseau partent dès qu'il revient.</p>
+        <div class="bar">
+          <button class="accent" data-a="invite">📨 Inviter quelqu'un</button>
+          <button data-a="syncNow">Synchroniser</button>
+          <button class="ghost" data-a="leave">Ne plus partager</button>
+        </div>` : `
+        <button class="accent wide" data-a="shareNow">📨 Partager cette liste</button>
+        <details class="adv"><summary>Serveur de partage</summary>
+        <form id="share" class="add">
+          <input name="url" placeholder="https://xxxx.supabase.co" value="${SUPA_URL}" required>
+          <input name="key" placeholder="Clé publique (publishable)" value="${SUPA_KEY}" required>
+          <button>Créer la liste partagée</button>
+        </form></details>
+        <p class="hint">Vous avez reçu un lien ? Collez-le ici : la liste s'ajoute à « Mes listes ».</p>
+        <form id="joinForm" class="add">
+          <input name="name" placeholder="Lien d'invitation" autocomplete="off" required>
+          <button>Rejoindre</button>
+        </form>`}
+      ${lists.length > 1 ? `<button class="ghost danger wide" data-a="forgetList">Retirer « ${esc(currentList().name)} » de ce téléphone</button>` : ''}
+      <h3>Vous</h3>
       <label class="field">Votre prénom <small>(sur ce téléphone, affiché sur vos ajouts)</small><input id="meName" value="${esc(me)}" placeholder="ex. Léa" autocomplete="given-name"></label>
       <h3>Taille du texte</h3>
       <div class="seg">
@@ -626,9 +615,13 @@ const views = {
       <div class="seg">
         ${[['auto', 'Automatique'], ['light', 'Clair'], ['dark', 'Sombre']].map(([v, l]) => `<button data-a="setTheme" data-v="${v}" class="${theme === v ? 'active' : ''}">${l}</button>`).join('')}
       </div>
-      <h3>Magasin</h3>
+      <h3>Notifications</h3>
+      ${'Notification' in window ? (Notification.permission === 'granted' ? '<p class="hint">✓ Ce téléphone vous prévient (ajouts, départ en courses, articles pris pour vous) tant que l\'app est ouverte ou en arrière-plan.</p>'
+        : Notification.permission === 'denied' ? '<p class="hint">Notifications refusées : à réactiver dans les réglages du téléphone.</p>'
+        : '<button class="wide" data-a="askNotify">🔔 Activer les notifications</button>') : '<p class="hint">Ce navigateur ne gère pas les notifications. Sur iPhone : ajoutez l\'app à l\'écran d\'accueil.</p>'}
+      <h3>Magasins et rayons</h3>
       ${storePicker(true)}
-      <h3>Rayons</h3>
+      <details class="adv"><summary>Rayons (${list.length})</summary>
       <p class="hint">${st ? `Ordre des rayons chez ${esc(st.name)}${M().auto && Object.keys(M().cells).length ? ' (le plan prime pour les rayons placés)' : ''}.` : 'Ordre générique, utilisé dans les magasins non cartographiés.'}</p>
       ${list.map((a, k) => `
         <div class="row static">
@@ -643,7 +636,8 @@ const views = {
         <input name="name" placeholder="Nouveau rayon" required>
         <button>Ajouter</button>
       </form>
-      <h3>Commerces</h3>
+      </details>
+      <details class="adv"><summary>Commerces (${S.shops.length})</summary>
       <p class="hint">Boulangerie, boucher, marché… : leurs articles ont leur propre liste en courses.</p>
       ${S.shops.map(sh => `
         <div class="row static">
@@ -655,6 +649,7 @@ const views = {
         <input name="name" placeholder="Nouveau commerce (ex. 🐟 Poissonnier)" required>
         <button>Ajouter</button>
       </form>
+      </details>
       <details class="adv"${brushOpen ? ' open' : ''}><summary>Plan du magasin et circuit (avancé)</summary>
       ${st ? `
       <p class="hint">Plan de ${esc(st.name)}. Choisissez un rayon, puis touchez les cases où il se trouve. Approximatif suffit.</p>
@@ -679,25 +674,6 @@ const views = {
       <label class="small"><input type="checkbox" id="auto"${st.map.auto ? ' checked' : ''}> Calculer le circuit le plus court à partir du plan (entrée → rayons → caisses)</label>`
       : '<p class="hint">Magasin non cartographié : choisissez ou créez un magasin pour dessiner son plan.</p>'}
       </details>
-      <h3>Partage</h3>
-      ${Sync.config() ? `
-        <p class="hint">Liste partagée. Les modifications faites sans réseau partent dès qu'il revient.</p>
-        <div class="bar">
-          <button data-a="invite">Copier le lien d'invitation</button>
-          <button data-a="syncNow">Synchroniser</button>
-          <button data-a="leave">Quitter</button>
-        </div>` : `
-        <p class="hint">Pour partager, créez une base Supabase (voir README) puis collez ses accès. Les autres rejoignent via le lien d'invitation.</p>
-        <form id="share" class="add">
-          <input name="url" placeholder="https://xxxx.supabase.co" value="${SUPA_URL}" required>
-          <input name="key" placeholder="Clé publique (publishable)" value="${SUPA_KEY}" required>
-          <button>Créer la liste partagée</button>
-        </form>
-        <p class="hint">Ou rejoignez une liste existante : collez le lien d'invitation reçu.</p>
-        <form id="joinForm" class="add">
-          <input name="name" placeholder="Lien d'invitation" autocomplete="off" required>
-          <button>Rejoindre</button>
-        </form>`}
       <h3>Données</h3>
       <div class="bar">
         <button data-a="export">Exporter</button>
@@ -720,13 +696,9 @@ const storePicker = manage => `
       <button class="ghost" data-a="delStore" title="Supprimer">×</button>` : ''}` : ''}
   </div>`;
 
-// Ajout rapide en bas d'écran : reconnaît les articles connus (et leur rayon), sinon Divers
-const quickBar = () => `
-  <form id="quick" class="quickbar">
-    <input name="name" list="catalog" placeholder="${tab === 'catalog' ? 'Nouvel article de base…' : 'J\'ajoute… (lait, œufs, pain)'}" autocomplete="off" required>
-    <button aria-label="Ajouter">+</button>
-  </form>
-  <datalist id="catalog">${S.items.map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>`;
+// Autocomplétion de l'ajout : les articles connus (et leur rayon)
+const catalogList = () => `<datalist id="catalog">${S.items.map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>`;
+let catalogEdit = false; // « Mes basiques » en mode modification
 
 let lastTab = null;
 // En courses : écran maintenu allumé (si le téléphone le permet)
@@ -739,7 +711,7 @@ async function keepAwake(on) {
     } else if (!on && wake) { wake.release(); wake = null; }
   } catch {}
 }
-document.addEventListener('visibilitychange', () => { if (tab === 'shop') keepAwake(true); });
+document.addEventListener('visibilitychange', () => { if (myShopping()) keepAwake(true); });
 document.addEventListener('input', e => { if (e.target.id === 'welcomeName') setMe(e.target.value); });
 function render() {
   if (!S.aisles.length) {
@@ -747,14 +719,20 @@ function render() {
     return;
   }
   if (brush === null || (brush && brush !== 'entry' && !S.aisles.some(a => a.id === brush))) brush = S.aisles[0].id;
-  app.innerHTML = views[tab]() + (['list', 'catalog', 'shop'].includes(tab) ? quickBar() : '');
+  app.innerHTML = views[tab]() + (tab === 'list' ? catalogList() : '');
   if (tab !== lastTab) scrollTo(0, 0);
   lastTab = tab;
-  const section = { catalog: 'list', recipes: 'list', scan: 'budget', item: sheetBack, aisles: '' }[tab] ?? tab;
-  document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === ({ catalog: 'list', recipes: 'list', scan: 'budget' }[section] ?? section)));
+  // Onglet allumé : la section dont dépend l'écran courant
+  const parent = { catalog: 'list', recipes: 'meals', scan: 'budget', activity: 'list' };
+  const section = parent[tab === 'item' ? sheetBack : tab] ?? (tab === 'item' ? sheetBack : tab);
+  document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === section));
   document.getElementById('gear')?.classList.toggle('active', tab === 'aisles');
   document.body.classList.toggle('bare', tab === 'welcome');
-  keepAwake(tab === 'shop');
+  const l = currentList(), ln = document.getElementById('listName');
+  if (ln) ln.textContent = `${l.emoji} ${l.name} ▾`;
+  const unseen = feed().filter(e => !e.seen).length, bell = document.getElementById('bell');
+  if (bell) bell.dataset.count = unseen || '';
+  keepAwake(!!myShopping());
 }
 
 function recipeCard(r) {
@@ -768,7 +746,7 @@ function recipeCard(r) {
       ${its.map(i => `
         <div class="row static">
           <span class="name link" data-a="openItem" data-id="${i.id}">${esc(i.name)}</span>
-          <select data-item-aisle="${i.id}">${aisleOptions(i.aisle)}</select>
+          <input class="qty" data-rqty="${r.id}:${i.id}" value="${esc(r.qty?.[i.id] || '')}" placeholder="qté" aria-label="Quantité">
           <button class="ghost" data-a="unlink" data-id="${r.id}" data-item="${i.id}">×</button>
         </div>`).join('')}
       <form id="link" data-id="${r.id}" class="add">
@@ -828,7 +806,7 @@ views.welcome = () => `
 // Carte d'invitation en haut de la liste, jusqu'à ce qu'on l'ait utilisée ou fermée
 const welcomeInvite = () => {
   let done = true;
-  try { done = !!localStorage.getItem('courses.invited'); } catch {}
+  try { done = !!localStorage.getItem(K('courses.invited')); } catch {}
   if (done || !Sync.config()) return '';
   return `
     <div class="card invite">
@@ -837,6 +815,9 @@ const welcomeInvite = () => {
       <div class="bar"><button class="accent grow" data-a="invite">📨 Envoyer l'invitation</button><button class="ghost" data-a="inviteDone">Plus tard</button></div>
     </div>`;
 };
+
+// Ce téléphone a-t-il déjà utilisé cette liste ? (sinon, on peut y rejoindre une liste partagée)
+const hasOwnData = () => S.trips.length > 0 || S.items.some(i => i.need || i.bought?.length || i.prices?.length);
 
 function finishWelcome(next) {
   try { localStorage.setItem('courses.welcome', '1'); } catch {}
@@ -848,7 +829,7 @@ function finishWelcome(next) {
 
 const item = id => S.items.find(i => i.id === id);
 const parseEuro = raw => { const v = parseFloat(String(raw).replace(',', '.').replace(/[^\d.]/g, '')); return isNaN(v) ? null : Math.round(v * 100) / 100; };
-function setStore(id) { storeId = id; try { localStorage.setItem('courses.store', id); } catch {} }
+function setStore(id) { storeId = id; try { localStorage.setItem(K('courses.store'), id); } catch {} }
 
 const recipe = id => S.recipes.find(r => r.id === id);
 
@@ -864,6 +845,17 @@ function toast(msg, undo = true) {
   el.className = 'show';
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.className = ''; undoSnap = null; }, 6000);
+}
+
+// Mes courses en cours : ce que j'ai mis dans le caddie, les endroits visités (supermarché, commerces)
+function myTrip() {
+  const taken = S.items.filter(i => i.done && mine(i));
+  const spot = i => shopOf(i) ? i.aisle : '';
+  const visited = new Set(taken.map(spot));
+  const here = i => visited.has(spot(i));
+  const only = visited.size === 1 && [...visited][0];
+  const where = only ? S.shops.find(s => s.id === only).name : store()?.name || 'Autre magasin';
+  return { taken, here, where };
 }
 
 // Ordre des rayons appris : les rayons cochés prennent, entre eux, l'ordre du parcours réel ;
@@ -892,7 +884,24 @@ const actions = {
   welcomeJoin: () => { welcomeJoin = true; },
   welcomeBack: () => { welcomeJoin = false; },
   welcomeSolo: () => { finishWelcome('catalog'); toast('Touchez ce qui vous manque !', false); },
-  inviteDone: () => { try { localStorage.setItem('courses.invited', '1'); } catch {} },
+  inviteDone: () => { try { localStorage.setItem(K('courses.invited'), '1'); } catch {} },
+  // Mes listes : changer, créer
+  lists: () => {
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="overlay sheet-modal" data-a="closePhoto">
+        <div class="card" data-a="noop">
+          <h2>Mes listes</h2>
+          ${lists.map(l => `<button class="row list-row ${l.id === LIST ? 'on' : ''}" data-a="switchList" data-v="${l.id}"><span class="name">${l.emoji} ${esc(l.name)}</span>${l.id === LIST ? '✓' : ''}</button>`).join('')}
+          <form id="newListForm" class="add">
+            <input name="name" placeholder="Nouvelle liste (ex. Pour Maman)" autocomplete="off" required>
+            <button class="accent">Créer</button>
+          </form>
+          <p class="hint">Chaque liste a ses articles, ses membres et ses dépenses : pratique pour les courses d'un proche ou la semaine avec les enfants.</p>
+        </div>
+      </div>`);
+  },
+  switchList: ({ v }) => { if (v !== LIST) switchList(v); else actions.closePhoto(); },
+  noop: () => {},
   go: ({ v }) => { if (v === 'aisles' && tab !== 'aisles') settingsBack = tab; tab = v; },
   undo: () => {
     if (!undoSnap || !undoAfter) return;
@@ -935,7 +944,10 @@ const actions = {
   addSug: () => suggestions().forEach(({ i }) => want(i)),
   // Valide la liste : les articles pris alimentent l'historique d'achat
   // Valide la liste : les articles pris alimentent l'historique d'achat, le montant du ticket le budget
-  goShopping: () => { S.settings.shoppers = { ...Object.fromEntries(shoppers()), [me || '?']: Date.now() }; tab = 'shop'; },
+  goShopping: () => { S.shoppers[me || '?'] = Date.now(); tab = 'list'; },
+  stopShopping: () => { delete S.shoppers[me || '?']; },
+  hintDone: () => { try { localStorage.setItem('courses.hint', '1'); } catch {} },
+  catalogEdit: () => { catalogEdit = !catalogEdit; },
   shareList: async () => {
     const groups = [...byAisle(i => i.need), ...byAisle(i => i.need, S.shops)];
     const text = '🛒 Courses\n' + groups.map(g => `\n${g.aisle.name}\n` + g.items.map(i => `• ${i.name}${i.note ? ` (${i.note})` : ''}`).join('\n')).join('\n');
@@ -944,9 +956,8 @@ const actions = {
   },
   // Terminer : petit écran (montant facultatif) au lieu d'une boîte de dialogue
   finish: () => {
-    const here = i => place ? i.aisle === place : !shopOf(i);
-    const taken = S.items.filter(i => i.done && here(i) && mine(i));
-    if (!taken.length) return alert('Cochez d\'abord ce qui est dans votre caddie.');
+    const { taken, here } = myTrip();
+    if (!taken.length) return alert('Touchez d\'abord les articles qui sont dans votre caddie.');
     const left = othersShopping() ? 0 : S.items.filter(i => i.need && !i.done && here(i)).length;
     document.body.insertAdjacentHTML('beforeend', `
       <div class="overlay sheet-modal">
@@ -1011,7 +1022,7 @@ applySize(); },
     S.shops = S.shops.filter(x => x.id !== id);
     S.items.forEach(i => { if (i.aisle === id) i.aisle = fallbackAisle(); });
   },
-  setWho: ({ v }) => { who = +v; try { localStorage.setItem('courses.who', v); } catch {} },
+  setWho: ({ v }) => { who = +v; try { localStorage.setItem(K('courses.who'), v); } catch {} },
   paint: ({ c }) => {
     brushOpen = true;
     const m = store().map;
@@ -1030,7 +1041,7 @@ applySize(); },
   invite: async () => {
     const link = Sync.inviteLink();
     const text = `Rejoins notre liste de courses : installe l'app depuis ce lien, puis colle-le dans Réglages > Partage si on te le demande.\n${link}`;
-    try { localStorage.setItem('courses.invited', '1'); } catch {}
+    try { localStorage.setItem(K('courses.invited'), '1'); } catch {}
     try { await navigator.share({ title: 'Liste de courses', text }); }
     catch (e) {
       if (e.name === 'AbortError') return;
@@ -1040,6 +1051,8 @@ applySize(); },
     render();
   },
   syncNow: () => Sync.run(),
+  shareNow: () => { Sync.create(SUPA_URL, SUPA_KEY); actions.invite(); },
+  forgetList: () => { if (confirm(`Retirer « ${currentList().name} » de ce téléphone ? Les autres membres la gardent.`)) forgetList(LIST); },
   leave: () => { if (confirm('Quitter le partage ? La liste reste sur ce téléphone.')) Sync.leave(); },
   photo: ({ id }) => { photoFor = id; document.getElementById('photo').click(); },
   viewPhoto: ({ id }) => {
@@ -1069,10 +1082,34 @@ document.addEventListener('click', e => {
   const tabBtn = e.target.closest('[data-tab]');
   if (tabBtn) { tab = tabBtn.dataset.tab; return render(); }
   const el = e.target.closest('[data-a]');
+  if (swiped?.contains(e.target)) { swiped = null; return; } // un glissement n'est pas un toucher
+  swiped = null;
   if (!el || el.disabled) return;
   actions[el.dataset.a](el.dataset);
   save();
   render();
+});
+
+let swipe = null, swiped = null; // swiped : la ligne qu'on vient de glisser (son « clic » est ignoré)
+document.addEventListener('touchstart', e => {
+  const row = e.target.closest('[data-swipe]');
+  swipe = row ? { row, x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0 } : null;
+}, { passive: true });
+document.addEventListener('touchmove', e => {
+  if (!swipe) return;
+  const dx = e.touches[0].clientX - swipe.x, dy = e.touches[0].clientY - swipe.y;
+  if (Math.abs(dy) > Math.abs(dx) && !swipe.dx) { swipe = null; return; }
+  swipe.dx = Math.min(0, dx);
+  swipe.row.style.transform = `translateX(${swipe.dx}px)`;
+  swipe.row.classList.toggle('removing', swipe.dx < -90);
+}, { passive: true });
+document.addEventListener('touchend', () => {
+  if (!swipe) return;
+  const { row, dx } = swipe;
+  swipe = null;
+  if (dx < -10) swiped = row;
+  if (dx < -90) { actions.unneed({ id: row.dataset.swipe }); save(); render(); }
+  else row.style.transform = '';
 });
 
 document.addEventListener('submit', e => {
@@ -1108,14 +1145,14 @@ document.addEventListener('submit', e => {
       if (!r.items.includes(i.id)) r.items.push(i.id);
     }
   }
+  if (e.target.id === 'newListForm' && name.trim()) { switchList(newList(name.trim()).id); return; }
   if (e.target.id === 'meForm') { setMe(name); save(); render(); return; }
   if (e.target.id === 'finishForm') {
     document.querySelector('.overlay')?.remove();
-    const here = i => place ? i.aisle === place : !shopOf(i);
-    const taken = S.items.filter(i => i.done && here(i) && mine(i));
+    const { taken, here, where } = myTrip();
     snapshot();
-    const learned = !place && learnOrder(taken);
-    if (S.settings.shoppers) delete S.settings.shoppers[me || '?'];
+    const learned = where === store()?.name && learnOrder(taken);
+    delete S.shoppers[me || '?'];
     const now = Date.now();
     taken.forEach(i => {
       i.bought = [...(i.bought || []), now].slice(-HISTORY);
@@ -1124,8 +1161,7 @@ document.addEventListener('submit', e => {
     });
     // « Pas trouvé » seulement si personne d'autre n'est encore en courses
     if (!othersShopping()) S.items.filter(i => i.need && !i.done && here(i)).forEach(i => { i.missing = { by: me || '', at: now }; });
-    const where = place ? S.shops.find(s => s.id === place)?.name : store()?.name;
-    S.trips.push({ id: uid(), date: now, total: parseEuro(name || ''), place: where || 'Autre magasin', n: taken.length, names: taken.map(i => i.name) });
+    S.trips.push({ id: uid(), date: now, total: parseEuro(name || ''), place: where, n: taken.length, names: taken.map(i => i.name), by: me || undefined });
     tab = 'list';
     save(); render();
     toast(learned ? `Courses terminées 👍 Ordre des rayons ajusté pour ${store().name}` : 'Courses terminées 👍');
@@ -1133,16 +1169,11 @@ document.addEventListener('submit', e => {
   }
   if (e.target.id === 'budgetForm') S.settings.budget = parseEuro(name);
   if (e.target.id === 'joinForm') {
-    const m = name.match(/#join=([^\s]+)/);
-    let c = null;
-    try { c = m && JSON.parse(atob(m[1])); } catch {}
-    if (!c?.code) return alert('Lien d\'invitation invalide');
-    const mine = S.trips.length || S.items.some(i => i.need || i.bought?.length);
-    if (tab === 'welcome' || !mine || confirm('Rejoindre la liste partagée ? La liste de ce téléphone sera remplacée.')) {
-      if (tab === 'welcome') finishWelcome('list');
-      try { localStorage.setItem('courses.invited', '1'); } catch {}
-      Sync.join(c);
-    }
+    const c = Sync.decode(name);
+    if (!c) return alert('Lien d\'invitation invalide');
+    if (tab === 'welcome') finishWelcome('list');
+    try { localStorage.setItem(K('courses.invited'), '1'); } catch {}
+    Sync.joinLink(c);
     return;
   }
   if (e.target.id === 'share') Sync.create(f.get('url').trim().replace(/\/+$/, ''), f.get('key').trim());
@@ -1154,6 +1185,7 @@ document.addEventListener('submit', e => {
 document.addEventListener('change', async e => {
   if (e.target.id === 'brush') { brush = e.target.value; brushOpen = true; return; }
   if (e.target.id === 'meName') { setMe(e.target.value); return render(); }
+  if (e.target.id === 'listTitle' && e.target.value.trim()) { currentList().name = S.settings.listName = e.target.value.trim(); saveLists(); save(); return render(); }
   if (e.target.id === 'rname') { const r = recipe(e.target.dataset.id); if (e.target.value.trim()) r.name = e.target.value.trim(); return save(); }
   if (e.target.dataset.itemAisle) { item(e.target.dataset.itemAisle).aisle = e.target.value; return save(); }
   if (e.target.id === 'photo') {

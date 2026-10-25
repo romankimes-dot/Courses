@@ -12,8 +12,10 @@ retours du panel de test et backlog à arbitrer.
 - Fusionner dans `main` seulement quand il le demande.
 
 ## Code
-- `index.html` : coquille, barre d'onglets (Liste / Courses / Budget) et ⚙️.
-- `src/app.js` : état `S`, vues (`views.*`), actions (`actions.*`, déclenchées par `data-a`), rendu `render()`.
+- `index.html` : coquille ; en-tête (sélecteur de listes, 🔔, ⚙️) ; onglets Liste / Repas / Dépenses.
+- `src/lists.js` : plusieurs listes ; `K(nom)` donne la clé de stockage de la liste courante (à utiliser pour tout stockage propre à une liste).
+- `src/app.js` : état `S`, vues (`views.*`), actions (`actions.*`, déclenchées par `data-a`), rendu `render()`. La liste unique : `views.list` (un seul geste, toucher = caddie).
+- `src/feed.js` : activité 🔔 et notifications ; `src/meals.js` : repas de la semaine ; `src/money.js` : partage des dépenses.
 - `src/sync.js` : synchro par enregistrement (`records()` / `fromRecords()`), file d'attente, fusion des doublons.
 - `src/scan.js` : scan de ticket (Tesseract.js) et page de validation ; `src/sheet.js` : fiche produit.
 - `sw.js` : cache hors-ligne (incrémenter `CACHE` quand on ajoute un fichier).

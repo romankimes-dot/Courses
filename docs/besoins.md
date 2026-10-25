@@ -35,13 +35,19 @@ Synthèse des demandes du propriétaire (fil de conception d'octobre 2026), des 
 | 18 | Une liste de base, mais **les Babybel et Danonino du petit et les fruits et légumes toujours en haut** | ⭐ Indispensables (épinglés en haut des basiques et de la liste) |
 | 19 | **La liste change d'ordre selon comment on coche** : un article coché passe rayé / dans le panier en bas | « 🧺 Dans le panier » en bas ; ordre des rayons appris d'après l'ordre où l'on coche |
 | 20 | Garder cette synthèse dans GitHub pour la reprendre dans d'autres fils | Ce fichier + `CLAUDE.md` |
+| 21 | Après le panel, prendre : **plusieurs listes**, **partage des dépenses**, **menus de la semaine**, **notifications** | 🏠 sélecteur de listes ; Dépenses > Partage ; onglet Repas ; 🔔 Activité |
+| 22 | « J'ai l'impression qu'on a subi une régression, le parcours n'est pas clair » | Refonte v3 : une seule liste, un seul geste (voir §3) |
 
 ## 3. Décisions prises
 
 - **Technique** : PWA statique (HTML/CSS/JS sans build), hébergée sur GitHub Pages (`https://romankimes-dot.github.io/Courses/`).
 - **Hors-ligne d'abord** : tout est stocké sur le téléphone ; synchro par enregistrement (article, rayon, magasin, recette, passage en caisse, libellé de ticket…) avec file d'attente ; en cas de conflit, la modification la plus récente gagne (datée après la dernière version vue du serveur, pour résister aux horloges décalées) ; doublons de même nom fusionnés.
 - **Partage sans comptes** : Supabase (projet `lxvtsxjsjyeyppybfrqx`, région Paris), une liste = un code secret long dans le lien d'invitation ; table accessible seulement via les fonctions `push`/`pull` (`supabase/schema.sql`). Toute donnée reçue est nettoyée (`clean()` dans `src/app.js`).
-- **Parcours** : 3 moments, Liste (avant) / Courses (pendant) / Budget (après), Réglages derrière ⚙️. Le plan du magasin et les chiffres détaillés sont repliés (« avancé ») : utiles mais pas au premier jour.
+- **Parcours (v3, octobre 2026)** : la v2 avait deux écrans pour la même liste (Liste et Courses) avec deux gestes différents, les basiques cachés et 4 barres empilées : ressenti de régression. Désormais **une seule liste**, utilisée avant et pendant les courses, **un seul geste** : toucher = dans le caddie (rayé, en bas), glisser à gauche = retirer (avec Annuler), › = fiche. « J'y vais » passe la même liste en mode magasin (choix du magasin, à deux, plan replié). Onglets : **Liste / Repas / Dépenses** ; en-tête : sélecteur de listes, 🔔 activité, ⚙️ réglages. Le plan du magasin et les chiffres détaillés restent repliés (« avancé »).
+- **Plusieurs listes** : chacune a son stockage sur le téléphone (clés suffixées, `src/lists.js`), son code de partage, ses membres et ses dépenses. Ouvrir un lien d'invitation n'écrase jamais une liste déjà utilisée : une nouvelle liste est créée.
+- **Dépenses partagées** : chaque passage en caisse note qui a payé ; parts égales entre membres ; remboursements suggérés ; dépense saisie à la main.
+- **Repas** : recettes avec quantités, posées sur les 7 prochains jours ; un geste met les ingrédients sur la liste (quantités cumulées, on décoche ce qu'on a).
+- **Notifications** : fil d'activité 🔔 (ajouts des autres, départ en courses, articles pris pour moi, pas trouvés, dépenses) + notification du téléphone si autorisée, **tant que l'app est ouverte ou en arrière-plan**. App complètement fermée : nécessite un service push côté serveur (non fait).
 - **Prénom par téléphone**, affiché sur les ajouts ; « J'y vais » visible par les autres ; chacun ne termine que son propre panier.
 - **Scan gratuit** (Tesseract.js) + page de validation qui apprend ; pas d'abonnement.
 
@@ -57,11 +63,11 @@ Panel : expert en organisation familiale ; 10 personas testant réellement l'app
 
 Demandés par plusieurs personas, à arbitrer par le propriétaire :
 
-1. **Plusieurs listes**, chacune avec ses membres (« Pour Maman », « semaine avec les enfants », vacances). Aujourd'hui : une seule liste par téléphone.
-2. **Ce qu'on partage** : budget privé par défaut, lecture seule, protéger photos et passages en caisse ; **révoquer un accès** (changer le code de la liste).
-3. **Partage des dépenses** (qui a payé, soldes, dépense saisie à la main), type Tricount, pour les colocs.
-4. **Menus de la semaine** : recettes posées sur des jours, quantités et portions additionnées, mémoire « j'en ai déjà ».
-5. **Notifications** (« X part faire les courses », « tes céréales sont prises ») : nécessite un service push côté serveur.
+1. ~~Plusieurs listes~~ : fait (v3).
+2. **Ce qu'on partage** : lecture seule, protéger photos et passages en caisse ; **révoquer un accès** (changer le code de la liste). Le cas « ex en garde alternée » est couvert par une liste séparée.
+3. ~~Partage des dépenses~~ : fait (parts égales). Reste : parts inégales, exclure quelqu'un d'une dépense.
+4. ~~Menus de la semaine~~ : fait. Reste : nombre de personnes / portions, mémoire « j'en ai déjà ».
+5. Notifications : fil d'activité et notifications app ouverte faits. Reste : **push app fermée** (Supabase Edge Function + Web Push, clés VAPID).
 6. **Synchro plus fine** : fusion champ par champ (aujourd'hui l'article entier), contrôles côté serveur (dates dans le futur, taille), photos hors de la synchro (Supabase Storage).
 7. **Scan** : reconnaître le magasin depuis l'en-tête du ticket, ne pas remplacer en silence un montant saisi, essayer l'API Claude si l'OCR gratuit déçoit sur de vraies photos.
 8. Divers : ordre des rayons par glisser-déposer, dictée vocale, raccourci écran d'accueil vers l'ajout, cibles tactiles de 44 px partout, dévoiler les fonctions avancées avec l'usage (budget après 3 courses…).
