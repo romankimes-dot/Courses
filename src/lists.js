@@ -1,4 +1,4 @@
-// Plusieurs listes (Maison, Pour Maman, Semaine avec les enfants…) : chacune a ses articles, ses membres,
+// Plusieurs listes (Maison, Pour Tata, Semaine avec les enfants…) : chacune a ses articles, ses membres,
 // son budget et son propre code de partage. Sur le téléphone, chaque liste a son stockage : les clés
 // sont suffixées par l'identifiant de la liste (la liste d'origine « main » garde les clés historiques).
 

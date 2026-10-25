@@ -983,7 +983,7 @@ const actions = {
           <h2>Mes listes</h2>
           ${lists.map(l => `<button class="row list-row ${l.id === LIST ? 'on' : ''}" data-a="switchList" data-v="${l.id}"><span class="name">${esc(l.name)}</span>${l.id === LIST ? icon.check : ''}</button>`).join('')}
           <form id="newListForm" class="add">
-            <input name="name" placeholder="Nouvelle liste (ex. Pour Maman)" autocomplete="off" required>
+            <input name="name" placeholder="Nouvelle liste (ex. Pour Tata, Parrain)" autocomplete="off" required>
             <button class="accent">Créer</button>
           </form>
           <p class="hint">Chaque liste a ses articles, ses membres et ses dépenses : pratique pour les courses d'un proche ou la semaine avec les enfants.</p>
