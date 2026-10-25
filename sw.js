@@ -1,6 +1,6 @@
 // Hors-ligne d'abord : l'app est servie depuis le cache (instantané, même sans réseau),
 // puis mise à jour en arrière-plan pour la prochaine ouverture.
-const CACHE = 'courses-v16';
+const CACHE = 'courses-v17';
 const FILES = ['./', 'index.html', 'src/icons.js', 'src/lists.js', 'src/app.js', 'src/feed.js', 'src/meals.js', 'src/money.js', 'src/sheet.js', 'src/sync.js', 'src/style.css', 'manifest.json', 'icon.svg'];
 
 self.addEventListener('install', e => {

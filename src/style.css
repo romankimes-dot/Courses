@@ -178,6 +178,7 @@ details.adv summary { cursor: pointer; color: var(--accent); font-weight: 600; p
 .suggest { margin: -2px 0 8px; }
 .suggest:empty { display: none; }
 .suggest .chip small { color: var(--muted); margin-left: 2px; }
+.chip.new { border-style: dashed; color: var(--accent); }
 
 #update { position: fixed; left: 16px; right: 16px; top: calc(64px + env(safe-area-inset-top)); max-width: 600px; margin: 0 auto; background: var(--accent); color: #fff; border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; z-index: 30; }
 #update span { flex: 1; }

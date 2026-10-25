@@ -546,7 +546,6 @@ const views = {
         <button class="accent" aria-label="Créer">${icon.plus}</button>
       </form>
       <div id="recipeItems">${recipeItems()}</div>
-      ${catalogList()}
       <datalist id="recipeCats">${recipeCats().map(c => `<option value="${esc(c)}">`).join('')}</datalist>`;
   },
 
@@ -783,8 +782,25 @@ function recipeItems() {
   return groups.map(g => `<section>${named ? `<h3>${esc(g.cat)} <small>${g.rs.length}</small></h3>` : ''}${g.rs.map(recipeCard).join('')}</section>`).join('');
 }
 
-// Autocomplétion des recettes : les articles connus
-const catalogList = () => `<datalist id="catalog">${S.items.map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>`;
+// Ingrédients d'une recette : on pioche dans les articles existants dès les premières lettres,
+// ou on crée l'article sans quitter la recette (pas mis sur la liste)
+let linkDraft = '', refocusLink = false;
+function linkChips(r) {
+  const q = lastPart(linkDraft);
+  if (!q) return '';
+  const where = i => shopOf(i)?.name || S.aisles.find(a => a.id === i.aisle)?.name || '';
+  const found = matches(q).filter(i => !r.items.includes(i.id));
+  const exact = findItem(q);
+  return `${found.map(i => `<button type="button" class="chip" data-a="pickLink" data-r="${r.id}" data-id="${i.id}">${esc(i.name)} <small>${esc(where(i))}</small></button>`).join('')}
+    ${exact ? '' : `<button type="button" class="chip new" data-a="linkNew" data-r="${r.id}">${icon.plus}Créer « ${esc(cap(q))} » <small>${esc(S.aisles.find(a => a.id === guessAisle(q))?.name || '')}</small></button>`}`;
+}
+// Lie un article (existant ou créé) à la recette ; garde ce qui a été tapé avant la dernière virgule
+function linkTo(r, i) {
+  if (!r.items.includes(i.id)) r.items.push(i.id);
+  const parts = linkDraft.split(/[,;]/); parts.pop();
+  linkDraft = parts.length ? parts.join(',') + ', ' : '';
+  refocusLink = true;
+}
 let catalogEdit = false, catalogPins = false; // « Mes articles » : mode modification, filtre indispensables
 
 let lastTab = null;
@@ -805,6 +821,11 @@ document.addEventListener('visibilitychange', () => keepAwake(awake()));
 document.addEventListener('pointerdown', () => { if (!wake && awake()) keepAwake(true); });
 document.addEventListener('input', e => {
   if (e.target.id === 'welcomeName') setMe(e.target.value);
+  if (e.target.closest('#link')) {
+    linkDraft = e.target.value;
+    const box = document.getElementById('linkSuggest');
+    if (box) box.innerHTML = linkChips(recipe(e.target.form.dataset.id));
+  }
   if (e.target.closest('#newRecipe')) {
     recipeDraft = e.target.value;
     const box = document.getElementById('recipeItems');
@@ -824,6 +845,12 @@ function render() {
   }
   if (brush === null || (brush && brush !== 'entry' && !S.aisles.some(a => a.id === brush))) brush = S.aisles[0].id;
   app.innerHTML = views[tab]();
+  if (refocusLink) {
+    refocusLink = false;
+    const l = app.querySelector('#link input');
+    l?.focus();
+    l?.setSelectionRange(l.value.length, l.value.length);
+  }
   if (refocusQuick) {
     refocusQuick = false;
     const q = app.querySelector('#quick input');
@@ -860,10 +887,11 @@ function recipeCard(r) {
           <input class="qty" data-rqty="${r.id}:${i.id}" value="${esc(r.qty?.[i.id] || '')}" placeholder="qté" aria-label="Quantité">
           <button class="ghost" data-a="unlink" data-id="${r.id}" data-item="${i.id}" title="Retirer">${icon.x}</button>
         </div>`).join('')}
-      <form id="link" data-id="${r.id}" class="add">
-        <input name="name" list="catalog" placeholder="Lier un article" autocomplete="off" required>
-        <button>+</button>
+      <form id="link" data-id="${r.id}" class="addtop">
+        <input name="name" value="${esc(linkDraft)}" placeholder="Ajouter un ingrédient…" autocomplete="off" autocapitalize="sentences" required>
+        <button class="accent" aria-label="Ajouter">${icon.plus}</button>
       </form>
+      <div id="linkSuggest" class="chips suggest">${linkChips(r)}</div>
       <button class="ghost" data-a="delRecipe" data-id="${r.id}">Supprimer la recette</button>
     </section>`;
   if (recipeAdd === r.id) {
@@ -1033,8 +1061,15 @@ const actions = {
     recipeAdd = null;
   },
   cancelRecipe: () => { recipeAdd = null; },
-  editRecipe: ({ id }) => { recipeEdit = id; recipeAdd = null; },
-  closeRecipe: () => { recipeEdit = null; },
+  editRecipe: ({ id }) => { recipeEdit = id; recipeAdd = null; linkDraft = ''; },
+  closeRecipe: () => { recipeEdit = null; linkDraft = ''; },
+  pickLink: ({ r, id }) => linkTo(recipe(r), item(id)),
+  linkNew: ({ r }) => {
+    const n = cap(lastPart(linkDraft)), i = { id: uid(), name: n, aisle: guessAisle(n), freq: false, need: false, done: false };
+    S.items.push(i);
+    linkTo(recipe(r), i);
+    toast(`${n} créé (${S.aisles.find(a => a.id === i.aisle)?.name || 'Divers'}) : touchez son nom pour changer de rayon`, false);
+  },
   unlink: ({ id, item: itemId }) => { const r = recipe(id); r.items = r.items.filter(x => x !== itemId); },
   delRecipe: ({ id }) => { if (confirm('Supprimer cette recette ?')) { S.recipes = S.recipes.filter(r => r.id !== id); recipeEdit = null; } },
   toggleNeed: ({ id }) => { const i = item(id); if (i.need) { i.need = false; i.done = false; } else want(i); },
@@ -1293,6 +1328,7 @@ document.addEventListener('submit', e => {
   }
   if (e.target.id === 'link') {
     const r = recipe(e.target.dataset.id);
+    linkDraft = ''; refocusLink = true;
     for (const raw of name.split(/[,;\n]+/)) {
       const n = cap(raw.trim());
       if (!n) continue;
