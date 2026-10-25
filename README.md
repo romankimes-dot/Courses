@@ -3,18 +3,19 @@
 Liste de courses partagée, pensée pour un supermarché sans réseau : tout fonctionne hors-ligne,
 les modifications se synchronisent dès que le réseau revient.
 
-Trois onglets, trois moments :
+Trois onglets :
 
-- **📝 Liste** (avant) : ce qu'il faut acheter, à remplir à plusieurs (« ajouté par »), ajout de plusieurs
-  articles d'un coup (« lait, œufs, pain »), suggestions selon le rythme d'achat, ⭐ indispensables
-  toujours en haut, basiques et recettes, envoi de la liste par message, « J'y vais » visible par les autres.
-- **🛒 Courses** (pendant) : magasin, ordre des rayons (appris selon l'ordre où l'on coche), cases en grand,
-  articles cochés rayés dans « Dans le panier » en bas, commerces, plan et circuit (avancé), mode à deux.
-- **💶 Dépenses** (après) : dépensé ce mois, budget mensuel, conso estimée ; partage des dépenses
-  (qui doit quoi) en option, désactivé pour un compte joint.
-- **⚙️ Réglages** : prénom, apparence (auto/clair/sombre), magasins, rayons, plan, commerces, partage.
+- **Liste** : une seule liste, avant et pendant les courses, remplie à plusieurs (« ajouté par »). Ajout de plusieurs
+  articles d'un coup (« lait, œufs, 2 kg tomates »), propositions dès les premières lettres, indispensables en haut,
+  paniers (ex. Bébé) ajoutés d'un toucher, suggestions et pré-remplissage selon le rythme d'achat.
+  Toucher = dans le caddie, glisser = retirer. « J'y vais » : magasin, ordre des rayons appris, circuit, mode à deux.
+  Mes articles (Tous / Indispensables / Paniers).
+- **Repas** : recettes posées sur la semaine, ingrédients mis sur la liste d'un geste ; Mes recettes (recherche, catégories).
+- **Dépenses** : dépensé ce mois, budget, tickets modifiables (montant, date, articles ajoutés après coup) ;
+  partage des dépenses (qui doit quoi, parts hors partage) en option, désactivé pour un compte joint.
 
-Fiche produit (›) : rayon, précision, indispensable, photo, historique de prix. « Annuler » après une suppression.
+En-tête : plusieurs listes, activité, réglages. Fiche produit (›) : rayon, précision, indispensable, photo, habitudes.
+Besoins, décisions et backlog : [`docs/besoins.md`](docs/besoins.md).
 
 ## Lancer
 
