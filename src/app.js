@@ -455,10 +455,10 @@ function shoppingGroups() {
   const order = route(groups.map(g => g.aisle.id));
   groups.sort((a, b) => order.indexOf(a.aisle.id) - order.indexOf(b.aisle.id));
   const mapped = groups.some(g => centroid(g.aisle.id));
-  if (myShopping() && who && groups.length > 1 && (!mapped || M().auto)) {
+  if (myShopping() && who && groups.length > 1) {
     let part;
-    if (mapped) part = splitRoute(groups)[who - 1];
-    else {
+    if (mapped && M().auto) part = splitRoute(groups)[who - 1];
+    else { // ordre des rayons (plan ou non) : on coupe là où les articles s'équilibrent
       const total = groups.reduce((t, g) => t + g.items.length, 0);
       let acc = 0, cut = 1, best = Infinity;
       groups.forEach((g, k) => { acc += g.items.length; if (k < groups.length - 1 && Math.abs(total / 2 - acc) < best) { best = Math.abs(total / 2 - acc); cut = k + 1; } });
