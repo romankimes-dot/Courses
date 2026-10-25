@@ -569,7 +569,7 @@ const views = {
       <p class="hint">${catalogEdit ? `Touchez ${icon.star} pour mettre un article en indispensable (toujours en haut de la liste), son nom pour sa fiche (rayon, photo…).`
         : catalogPins ? `Toujours en haut de la liste quand il en faut. Touchez ce qui manque aujourd'hui.` : `Touchez ce qui manque. ${icon.check} = déjà sur la liste, ${icon.starOn} = indispensable.`}</p>
       <div class="bar">
-        ${catalogEdit ? '' : catalogPins ? (nPins ? '<button data-a="allPins">Tout ajouter</button>' : '') : '<button data-a="allFreq">Tout ajouter</button><button data-a="noneNeed">Tout retirer</button>'}
+        ${catalogEdit ? '' : catalogPins ? (nPins ? '<button data-a="allPins">Tout ajouter</button>' : '') : ''}
         <button class="${catalogEdit ? 'accent grow' : 'ghost'}" data-a="catalogEdit">${catalogEdit ? `${icon.check} Terminé` : `${icon.edit} Modifier`}</button>
       </div>
       <form id="quick" class="addtop">
@@ -1147,7 +1147,6 @@ const actions = {
   },
   unneed: ({ id }) => { snapshot(); const i = item(id); drop(i); toast(`${i.name} retiré de la liste`); },
   delItem: ({ id }) => { S.items = S.items.filter(i => i.id !== id); },
-  allFreq: () => S.items.forEach(i => { if (i.freq) want(i); }),
   allPins: () => S.items.forEach(i => { if (i.pin) want(i); }),
   cancelNew: () => { newItems = []; actions.closePhoto(); setTimeout(refocusQuickInput); },
   pin: ({ id }) => { const i = item(id); i.pin = !i.pin || undefined; if (i.pin) i.freq = true; },

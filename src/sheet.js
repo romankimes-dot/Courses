@@ -22,7 +22,6 @@ views.item = () => {
     <label class="field">Précision <small>(quantité, marque, bio…)</small><input id="itemNote" value="${esc(i.note || '')}" placeholder="ex. 2 l, bio, marque X" autocomplete="off"></label>
     <label class="field">Si absent, prendre… <small>(consigne pour qui fait les courses)</small><input id="itemAlt" value="${esc(i.alt || '')}" placeholder="ex. la marque Schär, sinon rien" autocomplete="off"></label>
     <label class="field check"><input type="checkbox" id="itemPin"${i.pin ? ' checked' : ''}><span>${icon.starOn} Indispensable<br><small>Toujours en haut de la liste quand il en faut, et rangé à part dans « Mes articles ».</small></span></label>
-    <label class="field check"><input type="checkbox" id="itemFreq"${i.freq ? ' checked' : ''}><span>Article de base<br><small>Toujours visible dans « Mes articles », coché par « Tout cocher ».</small></span></label>
     <h3>Habitudes</h3>
     <div class="row static"><span class="name">Acheté en moyenne</span><span>${r ? `tous les ${Math.round(r.every)} jours` : '<small>pas encore assez d\'achats</small>'}</span></div>
     <div class="row static"><span class="name">Dernier achat</span><span>${last ? `${fmtDate(last)}${i.lastBy ? ` · ${esc(i.lastBy)}` : ''}` : '—'}</span></div>
@@ -59,7 +58,6 @@ document.addEventListener('change', e => {
   else if (t.id === 'itemAisle') i.aisle = t.value;
   else if (t.id === 'itemNote') i.note = t.value.trim() || undefined;
   else if (t.id === 'itemAlt') i.alt = t.value.trim() || undefined;
-  else if (t.id === 'itemFreq') i.freq = t.checked;
   else if (t.id === 'itemPin') { i.pin = t.checked || undefined; if (i.pin) i.freq = true; }
   else return;
   save();
