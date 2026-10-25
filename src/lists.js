@@ -6,7 +6,7 @@ const LISTS_KEY = 'courses.lists', CURRENT_LIST = 'courses.list';
 const lget = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 const lput = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
-let lists = lget(LISTS_KEY, null) || [{ id: 'main', name: 'Maison', emoji: '🏠' }];
+let lists = lget(LISTS_KEY, null) || [{ id: 'main', name: 'Maison' }];
 let LIST = lget(CURRENT_LIST, 'main');
 if (!lists.some(l => l.id === LIST)) LIST = lists[0].id;
 
@@ -14,8 +14,8 @@ const K = name => LIST === 'main' ? name : `${name}:${LIST}`;
 const currentList = () => lists.find(l => l.id === LIST);
 const saveLists = () => lput(LISTS_KEY, lists);
 
-function newList(name, emoji = '🛒') {
-  const l = { id: 'l' + Math.random().toString(36).slice(2, 9), name, emoji };
+function newList(name) {
+  const l = { id: 'l' + Math.random().toString(36).slice(2, 9), name };
   lists.push(l);
   saveLists();
   return l;

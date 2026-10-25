@@ -124,12 +124,12 @@ function startReview(text) {
 // ---------- Vue ----------
 
 views.scan = () => {
-  const back = `<button class="ghost back" data-a="cancelScan">← Retour</button>`;
+  const back = `<button class="ghost back" data-a="cancelScan">${icon.back} Retour</button>`;
   if (!scan) return `
     ${back}
     <h2>Scanner un ticket</h2>
     <p class="hint">Le ticket est lu sur ce téléphone, gratuitement. Les lignes déjà validées par le passé sont reconnues toutes seules : vous ne vérifiez que les nouvelles.</p>
-    <button class="primary" data-a="pickTicket">📷 Photo du ticket</button>
+    <button class="primary" data-a="pickTicket">${icon.camera} Photo du ticket</button>
     <p class="hint">Conseils : ticket à plat, bien éclairé, en entier dans la photo. La première fois, le module de lecture (quelques Mo) se télécharge : il faut du réseau.</p>`;
   if (scan.status === 'reading') return `
     <h2>Lecture du ticket…</h2>
@@ -157,15 +157,15 @@ views.scan = () => {
     ${pending.length ? `
       <h3>À vérifier · ${pending.length}</h3>
       <p class="hint">Jamais vues auparavant. Une fois validées, elles seront reconnues toutes seules.</p>
-      ${pending.filter(l => l.sug).length > 1 ? `<button class="wide" data-a="acceptAll">✓ Accepter les ${pending.filter(l => l.sug).length} propositions</button>` : ''}
-      ${pending.map(lineCard).join('')}` : scan.lines.length ? '<p class="hint">✓ Tout est vérifié.</p>' : ''}
+      ${pending.filter(l => l.sug).length > 1 ? `<button class="wide" data-a="acceptAll">${icon.check} Accepter les ${pending.filter(l => l.sug).length} propositions</button>` : ''}
+      ${pending.map(lineCard).join('')}` : scan.lines.length ? `<p class="hint">${icon.check} Tout est vérifié.</p>` : ''}
     ${known.length ? `
       <h3>Reconnus · ${known.length}</h3>
       ${known.map(l => `
         <div class="row static">
           <span class="name"><code>${esc(l.label)}</code><br>${l.ignore ? '<small>pas un produit</small>' : `→ ${esc(item(l.item).name)}${l.qty > 1 ? ` <small>× ${l.qty}</small>` : ''}`}</span>
           <span>${euro(l.price)}</span>
-          <button class="ghost" data-a="lineReset" data-id="${l.id}" title="Modifier">✎</button>
+          <button class="ghost" data-a="lineReset" data-id="${l.id}" title="Modifier">${icon.edit}</button>
         </div>`).join('')}` : ''}
     <button class="primary" data-a="saveScan" ${scan.lines.length ? '' : 'disabled'}>Enregistrer ${kept.length} article${kept.length > 1 ? 's' : ''}</button>
     <details class="hint"><summary>Texte lu</summary><pre>${esc(scan.text)}</pre></details>
@@ -194,7 +194,7 @@ function lineCard(l) {
   const sug = l.sug && item(l.sug);
   return `
     <section class="card">${head}
-      ${sug ? `<button class="accent wide" data-a="lineAccept" data-id="${l.id}">✓ C'est « ${esc(sug.name)} »</button>` : ''}
+      ${sug ? `<button class="accent wide" data-a="lineAccept" data-id="${l.id}">${icon.check} C'est « ${esc(sug.name)} »</button>` : ''}
       <div class="bar">
         <button data-a="lineMode" data-id="${l.id}" data-v="pick">${sug ? 'Autre article' : 'Choisir un article'}</button>
         <button data-a="lineMode" data-id="${l.id}" data-v="new">Nouvel article</button>

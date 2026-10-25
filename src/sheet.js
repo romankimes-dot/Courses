@@ -6,7 +6,7 @@ const fmtDate = t => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', m
 
 views.item = () => {
   const i = item(sheetId);
-  const back = `<button class="ghost back" data-a="closeItem">← Retour</button>`;
+  const back = `<button class="ghost back" data-a="closeItem">${icon.back} Retour</button>`;
   if (!i) return `${back}<p class="empty">Article introuvable.</p>`;
   const r = rhythm(i), last = i.bought?.at(-1);
   const recipes = S.recipes.filter(rc => rc.items.includes(i.id));
@@ -15,14 +15,14 @@ views.item = () => {
     ${back}
     <div class="sheet-head">
       ${i.photo ? `<img class="sheet-photo" src="${esc(i.photo)}" alt="" data-a="viewPhoto" data-id="${i.id}">`
-        : `<button class="sheet-photo empty-photo" data-a="photo" data-id="${i.id}" title="Ajouter une photo">📷</button>`}
+        : `<button class="sheet-photo empty-photo" data-a="photo" data-id="${i.id}" title="Ajouter une photo">${icon.camera}</button>`}
       <input id="itemTitle" class="title" value="${esc(i.name)}" aria-label="Nom">
     </div>
-    <button class="wide ${i.need ? '' : 'accent'}" data-a="toggleNeed" data-id="${i.id}">${i.need ? '✓ Sur la liste · retirer' : '+ Ajouter à la liste'}</button>
+    <button class="wide ${i.need ? '' : 'accent'}" data-a="toggleNeed" data-id="${i.id}">${i.need ? `${icon.check} Sur la liste · retirer` : `${icon.plus} Ajouter à la liste`}</button>
     <label class="field">Rayon ou commerce<select id="itemAisle">${aisleOptions(i.aisle)}</select></label>
     <label class="field">Précision <small>(quantité, marque, bio…)</small><input id="itemNote" value="${esc(i.note || '')}" placeholder="ex. 2 l, bio, marque X" autocomplete="off"></label>
     <label class="field">Si absent, prendre… <small>(consigne pour qui fait les courses)</small><input id="itemAlt" value="${esc(i.alt || '')}" placeholder="ex. la marque Schär, sinon rien" autocomplete="off"></label>
-    <label class="field check"><input type="checkbox" id="itemPin"${i.pin ? ' checked' : ''}><span>⭐ Indispensable<br><small>Toujours en haut de « Mes articles », et proposé en haut de la liste.</small></span></label>
+    <label class="field check"><input type="checkbox" id="itemPin"${i.pin ? ' checked' : ''}><span>${icon.starOn} Indispensable<br><small>Toujours en haut de « Mes articles », et proposé en haut de la liste.</small></span></label>
     <label class="field check"><input type="checkbox" id="itemFreq"${i.freq ? ' checked' : ''}><span>Article de base<br><small>Toujours visible dans « Mes articles », coché par « Tout cocher ».</small></span></label>
     <h3>Habitudes</h3>
     <div class="row static"><span class="name">Acheté en moyenne</span><span>${r ? `tous les ${Math.round(r.every)} jours` : '<small>pas encore assez d\'achats</small>'}</span></div>
@@ -33,7 +33,7 @@ views.item = () => {
     ${recipes.length ? `<h3>Dans les recettes</h3><p>${recipes.map(rc => esc(rc.name)).join(' · ')}</p>` : ''}
     ${labels.length ? `
       <h3>Libellés de ticket reconnus</h3>
-      ${labels.map(k => `<div class="row static"><code class="name">${esc(k)}</code><button class="ghost" data-a="unalias" data-k="${esc(k)}" title="Oublier">×</button></div>`).join('')}` : ''}
+      ${labels.map(k => `<div class="row static"><code class="name">${esc(k)}</code><button class="ghost" data-a="unalias" data-k="${esc(k)}" title="Oublier">${icon.x}</button></div>`).join('')}` : ''}
     <button class="ghost danger wide" data-a="delItemSheet" data-id="${i.id}">Supprimer l'article</button>`;
 };
 

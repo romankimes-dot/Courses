@@ -1,4 +1,4 @@
-// Activité (🔔) : ce que font les autres sur la liste, vu à la synchro. Gardée sur ce téléphone
+// Activité (cloche) : ce que font les autres sur la liste, vu à la synchro. Gardée sur ce téléphone
 // (50 derniers événements). Si l'utilisateur l'a autorisé, une notification du téléphone part aussi
 // quand l'app tourne en arrière-plan. App fermée : il faudrait un service de notifications côté serveur.
 
@@ -49,9 +49,9 @@ views.activity = () => {
   lput(FEED, list.map(e => ({ ...e, seen: true })));
   const perm = 'Notification' in window ? Notification.permission : 'unsupported';
   return `
-    <button class="ghost back" data-a="go" data-v="list">← Liste</button>
+    <button class="ghost back" data-a="go" data-v="list">${icon.back} Liste</button>
     <h2>Activité</h2>
-    ${perm === 'default' ? `<button class="wide" data-a="askNotify">🔔 Recevoir une notification sur ce téléphone</button>` : ''}
+    ${perm === 'default' ? `<button class="wide" data-a="askNotify">${icon.bell} Recevoir une notification sur ce téléphone</button>` : ''}
     ${list.length ? list.map(e => `
       <div class="row static ${e.seen ? '' : 'new'}"><span class="name">${esc(e.text)}</span><small>${ago(e.t)}</small></div>`).join('')
       : `<p class="empty">Rien pour l'instant.</p><p class="hint center">Ici s'affiche ce que font les autres : ajouts, départ en courses, articles pris pour vous, pas trouvés, dépenses.</p>`}`;

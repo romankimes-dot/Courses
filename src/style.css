@@ -22,9 +22,9 @@ h1 { margin: 0; font-size: 20px; }
 #gear.active { background: var(--accent-soft); }
 .tabbar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: var(--bg); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); z-index: 3; }
 .tabbar button { flex: 1; border: 0; background: none; color: var(--muted); padding: 8px 0 10px; font: 600 12px/1.2 system-ui, sans-serif; display: grid; justify-items: center; gap: 2px; cursor: pointer; }
-.tabbar button span { font-size: 22px; filter: grayscale(1); opacity: .7; }
+
 .tabbar button.active { color: var(--accent); }
-.tabbar button.active span { filter: none; opacity: 1; }
+
 body.bare .tabbar, body.bare header { display: none; }
 main { max-width: 640px; margin: 0 auto; padding: 12px 16px calc(72px + env(safe-area-inset-bottom)); min-height: calc(100vh - 60px); display: flex; flex-direction: column; }
 main > .quickbar { margin-top: auto; }
@@ -185,5 +185,26 @@ details.adv summary { cursor: pointer; color: var(--accent); font-weight: 600; p
 /* Outils sous la liste : boutons égaux, icône au-dessus, libellé court sur une ligne */
 .tools { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
 .tools button { display: grid; justify-items: center; gap: 4px; padding: 10px 4px; font-size: 14px; white-space: nowrap; color: var(--fg); }
-.tools button svg { color: var(--accent); }
+.tools button svg { color: var(--accent); width: 22px; height: 22px; }
 .tools button[data-a="clearList"] svg { color: #c0392b; }
+
+/* ---------- Icônes au trait (src/icons.js) ---------- */
+svg.i { width: 1.25em; height: 1.25em; vertical-align: -.25em; flex: none; }
+svg.i.on { color: #d9a400; }
+button svg.i { margin-right: 2px; }
+.tabbar button { gap: 4px; }
+.tabbar button svg.i { width: 24px; height: 24px; margin: 0; color: var(--muted); }
+.tabbar button.active svg.i { color: var(--accent); }
+#bell svg.i, #gear svg.i { width: 24px; height: 24px; margin: 0; color: var(--fg); }
+#listName svg.i { width: 18px; height: 18px; margin-left: 4px; vertical-align: -.15em; color: var(--muted); }
+.more svg.i { width: 20px; height: 20px; margin: 0; color: var(--muted); }
+.ghost svg.i { margin: 0; }
+.chip svg.i { width: 1em; height: 1em; margin-right: 4px; vertical-align: -.1em; }
+.welcome .logo svg.i { width: 64px; height: 64px; color: var(--accent); margin: 0 auto; }
+.pin-ic { color: var(--muted); display: grid; place-items: center; }
+.cell svg.i { width: 16px; height: 16px; color: var(--fg); }
+#update svg.i { width: 20px; height: 20px; }
+h3 svg.i { width: 1.1em; height: 1.1em; margin-right: 4px; vertical-align: -.2em; }
+
+.pins h3 { justify-content: flex-start; gap: 2px; }
+#toast button svg.i { width: 1.1em; height: 1.1em; vertical-align: -.2em; }
