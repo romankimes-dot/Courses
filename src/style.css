@@ -242,3 +242,5 @@ h3 svg.i { width: 1.1em; height: 1.1em; margin-right: 4px; vertical-align: -.2em
 .split .seg button { padding: 10px 4px; min-height: 44px; }
 .split .seg button.active { background: var(--accent); color: var(--on-accent); }
 .split p { margin: 0; }
+.tile .up { color: #c0392b; font-weight: 600; }
+.tile .down { color: var(--accent); font-weight: 600; }
