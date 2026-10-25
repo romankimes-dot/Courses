@@ -24,7 +24,7 @@ const { U, phones, start, share, syncAll, needs, add } = require('./_outils');
   await A.click('main .row:has-text("Lait")'); await A.click('main .row:has-text("Pain")');
   await A.click('[data-a=finish]'); await A.fill('#finishForm input', '12,30'); await A.click('#finishForm .primary');
   const afterFinish = await A.evaluate(() => ({ left: S.items.filter(i => i.need).map(i => i.name).sort(), shopping: !!myShopping() }));
-  await A.click('[data-a=go][data-v=catalog]'); await A.click('[data-a=noneNeed]'); await A.click('#toast [data-a=undo]');
+  await A.click('[data-a=clearList]'); await A.click('#toast [data-a=undo]');
   const undo = await needs(A);
   await A.click('[data-tab=budget]');
   const hero = (await A.textContent('.hero')).replace(/\s+/g, ' ').trim();
