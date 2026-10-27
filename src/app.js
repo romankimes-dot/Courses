@@ -572,7 +572,7 @@ const views = {
           <div class="add"><input name="name" placeholder="ex. Inès" autocomplete="given-name" required><button class="accent">OK</button></div>
         </form>` : welcomeInvite() || installCard()}
       ${shoppingBanner()}
-      ${need.length ? `
+      ${need.length && shopping ? `
         <div class="pace" role="progressbar" aria-valuemin="0" aria-valuemax="${need.length}" aria-valuenow="${cart.length}">
           ${mascot(cart.length / need.length, hop)}
           <div>
