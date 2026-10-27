@@ -285,3 +285,5 @@ h3 svg.i { width: 1.1em; height: 1.1em; margin-right: 4px; vertical-align: -.2em
   .addtop button.mic.listening { animation: pulse 1.1s ease-in-out infinite; }
   @keyframes pulse { 50% { box-shadow: 0 0 0 8px var(--accent-soft); } }
 }
+
+.confetti { position: fixed; top: 70%; width: 8px; height: 12px; border-radius: 2px; pointer-events: none; z-index: 99; }
