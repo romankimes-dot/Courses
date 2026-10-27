@@ -520,6 +520,35 @@ function shoppingGroups() {
   return { groups, mapped };
 }
 
+// En courses : une seule barre compacte (magasin, progression, moitié du circuit) pour laisser la place à la liste.
+// Le plan s'ouvre depuis le 📍 d'un article ; le choix du circuit est dans Réglages > Plan du magasin.
+function shopBar(need, cart, hop) {
+  const k = need.length ? cart.length / need.length : 0, o = otherPart();
+  const others = shoppers().filter(([n]) => n !== (me || '?')).map(([n]) => n === '?' ? 'Quelqu\'un' : n);
+  return `
+    <section class="shopbar">
+      <div class="sb-top">
+        ${mascot(k, hop)}
+        <div class="sb-mid">
+          <select id="store" aria-label="Magasin">
+            ${S.stores.map(s => `<option value="${s.id}"${s === store() ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}
+            <option value="none"${store() ? '' : ' selected'}>Autre magasin</option>
+          </select>
+          <div class="progress"><div style="width:${Math.round(100 * k)}%"></div></div>
+          <small>${cart.length} sur ${need.length}${cart.length < need.length ? ` · encore ${need.length - cart.length}` : ''}${others.length ? ` · ${others.map(esc).join(', ')} aussi en courses` : ''}</small>
+        </div>
+        <button class="ghost" data-a="stopShopping">Arrêter</button>
+      </div>
+      ${need.filter(i => !shopOf(i)).length > 3 ? `
+      <div class="seg mini" role="group" aria-label="Partie du circuit">
+        <button data-a="setWho" data-v="0" class="${who ? '' : 'active'}">Tout</button>
+        <button data-a="setWho" data-v="1" class="${who === 1 ? 'active' : ''}">Début</button>
+        <button data-a="setWho" data-v="2" class="${who === 2 ? 'active' : ''}">Fin</button>
+      </div>
+      ${o && who === o.part ? `<p class="warn small">${esc(o.name)} a déjà pris ${partName(o.part)} : choisissez l'autre moitié.</p>` : ''}` : ''}
+    </section>`;
+}
+
 // Dernière liste : les articles du dernier passage en caisse (et des passages du même moment, à deux)
 function lastList() {
   const ts = S.trips.filter(t => t.names?.length && t.type !== 'settle');
@@ -571,37 +600,8 @@ const views = {
           <p class="hint">Il s'affiche sur vos ajouts, pour que tous sachent qui a demandé quoi.</p>
           <div class="add"><input name="name" placeholder="ex. Inès" autocomplete="given-name" required><button class="accent">OK</button></div>
         </form>` : welcomeInvite() || installCard()}
-      ${shoppingBanner()}
-      ${need.length && shopping ? `
-        <div class="pace" role="progressbar" aria-valuemin="0" aria-valuemax="${need.length}" aria-valuenow="${cart.length}">
-          ${mascot(cart.length / need.length, hop)}
-          <div>
-            <div class="progress"><div style="width:${Math.round(100 * cart.length / need.length)}%"></div></div>
-            <small>${!cart.length ? `${need.length} article${need.length > 1 ? 's' : ''} à prendre` : `${cart.length} sur ${need.length} dans le caddie${cart.length < need.length ? ` · encore ${need.length - cart.length}` : ''}`}</small>
-          </div>
-        </div>` : ''}
-      ${shopping ? `
-        <section class="card shopping">
-          <div class="bar"><strong class="grow">${icon.cart} En courses</strong><button class="ghost" data-a="stopShopping">Arrêter</button></div>
-          ${storePicker()}
-          ${need.filter(i => !shopOf(i)).length > 3 ? `
-          <div class="split">
-            <p class="small">${otherPart() ? `${esc(otherPart().name)} a pris ${partName(otherPart().part)} du circuit${who === otherPart().part ? ' : choisissez l\'autre moitié, sinon vous ferez les mêmes rayons.' : '.'}` : shoppers().some(([n]) => n !== (me || '?')) ? 'Vous êtes deux en magasin : l\'un prend le début du circuit, l\'autre la fin.' : 'À deux en magasin ? Chacun prend une moitié du circuit.'}</p>
-            <div class="seg">
-              <button data-a="setWho" data-v="0" class="${who ? '' : 'active'}">Tout le magasin</button>
-              <button data-a="setWho" data-v="1" class="${who === 1 ? 'active' : ''}">Début</button>
-              <button data-a="setWho" data-v="2" class="${who === 2 ? 'active' : ''}">Fin</button>
-            </div>
-            ${who ? `<p class="small">${who === 1 ? 'Vous prenez le début' : 'Vous prenez la fin'} : ${groups.length ? groups.map(g => esc(g.aisle.name)).join(', ') : 'rien de plus à prendre'}. ${who === 1 ? 'L\'autre prend la fin.' : 'L\'autre prend le début.'}</p>` : ''}
-          </div>` : ''}
-          ${mapped ? `
-          <details class="adv" data-k="shopMap"><summary>Plan du magasin</summary>
-            <div class="seg">
-              <button data-a="setAuto" data-v="1" class="${M().auto ? 'active' : ''}">Circuit le plus court</button>
-              <button data-a="setAuto" data-v="" class="${M().auto ? '' : 'active'}">Ordre des rayons</button>
-            </div>
-            ${mapSvg(groups)}</details>` : ''}
-        </section>` : ''}
+      ${shopping ? '' : shoppingBanner()}
+      ${shopping ? shopBar(need, cart, hop) : ''}
       <form id="quick" class="addtop">
         <input name="name" value="${esc(quickDraft)}" placeholder="Ajouter… (lait, œufs, 2 kg tomates)" autocomplete="off" autocapitalize="sentences" required>
         <button class="accent" aria-label="Ajouter">${icon.plus}</button>
@@ -831,6 +831,10 @@ const views = {
         <button data-a="setBrush" data-v="entry" class="${brush === 'entry' ? 'on' : ''}">${icon.door} Entrée</button>
         ${S.aisles.map(a => `<button data-a="setBrush" data-v="${a.id}" class="${a.id === brush ? 'on' : ''}"><span class="dot" style="background:${aisleColor(a.id)}"></span>${esc(a.name)}</button>`).join('')}
         <button data-a="setBrush" data-v="" class="${brush === '' ? 'on' : ''}">${icon.x} Gomme</button>
+      </div>
+      <div class="seg">
+        <button data-a="setAuto" data-v="1" class="${st.map.auto ? 'active' : ''}">Circuit le plus court</button>
+        <button data-a="setAuto" data-v="" class="${st.map.auto ? '' : 'active'}">Ordre des rayons</button>
       </div>
       <div class="grid" id="planGrid" style="grid-template-columns:repeat(${st.map.cols},1fr)">
         ${Array.from({ length: st.map.rows * st.map.cols }, (_, n) => {

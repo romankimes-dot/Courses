@@ -317,3 +317,16 @@ h3 .all-taken { margin-left: auto; font-size: 13px; text-transform: none; letter
 #pull.ready { color: var(--accent); }
 #pull.spin svg { animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* En courses : barre compacte, collée sous l'en-tête */
+.shopbar { position: sticky; top: calc(57px + env(safe-area-inset-top)); z-index: 1; background: var(--accent-soft); border-radius: 0 0 14px 14px; margin: -12px -16px 10px; padding: 8px 16px 10px; display: grid; gap: 8px; }
+.sb-top { display: flex; align-items: center; gap: 10px; }
+.sb-top .mascot { width: 36px; height: 36px; flex: none; }
+.sb-mid { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.sb-mid select { border: 0; background: transparent; padding: 0; font-weight: 600; color: var(--fg); max-width: 100%; }
+.sb-mid small { color: var(--muted); font-variant-numeric: tabular-nums; }
+.sb-top > button { min-height: 44px; }
+.seg.mini { margin: 0; background: var(--card); }
+.seg.mini button { padding: 6px 4px; min-height: 36px; font-size: 14px; }
+.seg.mini button.active { background: var(--accent); color: var(--on-accent); }
+.shopbar .warn { margin: 0; }
