@@ -950,6 +950,8 @@ const suggestChips = () => {
 
 // Contenu de « Mes articles », filtré par ce qu'on tape dans le champ (recherche)
 function catalogItems() {
+  const all = quickDraft.split(/[,;]/), cmd = cmdOf(all.at(-1)); // « . » : paniers, recettes, articles
+  if (cmd != null) return `<div class="chips suggest">${cmdChips(cmd, all.length - 1)}</div>`;
   const q = sameKey(lastPart(quickDraft));
   const shown = i => !q || sameKey(i.name).split(' ').some(w => w.startsWith(q)) || sameKey(i.name).includes(q);
   const chip = i => `<button class="chip ${i.need ? 'on' : ''}" data-a="toggleNeed" data-id="${i.id}">${i.need ? icon.check : i.pin && !catalogPins ? icon.starOn : ''}${esc(i.name)}</button>`;
