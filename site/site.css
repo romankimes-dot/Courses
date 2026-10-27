@@ -145,13 +145,12 @@ section { padding: 120px 0; }
 .owe em { font-style: normal; color: var(--accent); font-weight: 600; }
 .small-muted { font-size: 13px; color: var(--muted); }
 .field-ui { background: var(--bg); border-radius: 99px; padding: 12px 16px; font-size: 15px; display: flex; align-items: center; }
-.field-ui i { width: 2px; height: 18px; background: var(--accent); margin-left: 1px; animation: caret 1s steps(1) infinite; }
+.field-ui i { display: inline-block; width: 2px; height: 18px; background: var(--accent); margin-left: 1px; animation: caret 1s steps(1) infinite; }
 @keyframes caret { 50% { opacity: 0; } }
-.chips-ui { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; font-size: 14px; }
-.chips-ui span { background: var(--bg); border-radius: 99px; padding: 8px 14px; display: inline-flex; align-items: center; gap: 6px; }
+.field-ui + .chips-ui { margin-top: 12px; }
 .chips-ui span.soft { color: var(--muted); }
 .chips-ui small { color: var(--muted); font-size: 12px; }
-.chips-ui .bk { width: 10px; height: 10px; border-radius: 3px; background: var(--accent); }
+.chips-ui .bk { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--accent); }
 .status { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; background: rgba(255, 255, 255, .16); border-radius: 99px; padding: 10px 16px; font-size: 14px; font-weight: 600; }
 .status i { width: 9px; height: 9px; border-radius: 50%; background: #ffb86b; }
 .status.ok i { background: #7ee0a2; }
