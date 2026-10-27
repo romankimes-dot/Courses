@@ -1655,6 +1655,33 @@ document.querySelector('header').addEventListener('click', e => {
   if (!e.target.closest('button, select, a, input')) scrollTo({ top: 0, behavior: motion() ? 'smooth' : 'auto' });
 });
 
+// Tirer la page vers le bas, tout en haut : recharger (app installée seulement ; le navigateur le fait déjà)
+let pull = null, pullEl = null;
+const PULL = 80;
+document.addEventListener('touchstart', e => {
+  pull = null;
+  if (!installed() || scrollY > 0 || e.target.closest('#planGrid, .overlay, input, select, textarea, .map')) return;
+  pull = { y: e.touches[0].clientY, x: e.touches[0].clientX, d: 0 };
+}, { passive: true });
+document.addEventListener('touchmove', e => {
+  if (!pull) return;
+  const dy = e.touches[0].clientY - pull.y, dx = e.touches[0].clientX - pull.x;
+  if (!pull.d && Math.abs(dx) > Math.abs(dy)) { pull = null; return; } // geste horizontal (glisser un article)
+  pull.d = Math.max(0, dy);
+  if (!pullEl) { pullEl = Object.assign(document.createElement('div'), { id: 'pull', innerHTML: icon.again }); document.body.append(pullEl); }
+  const k = Math.min(pull.d, 140);
+  pullEl.style.transform = `translate(-50%, ${k * .7}px) rotate(${k * 2.5}deg)`;
+  pullEl.style.opacity = Math.min(1, k / PULL);
+  pullEl.classList.toggle('ready', pull.d > PULL);
+}, { passive: true });
+document.addEventListener('touchend', () => {
+  if (!pull || !pullEl) return (pull = null);
+  const go = pull.d > PULL;
+  pull = null;
+  if (go) { pullEl.classList.add('spin'); tick(); flushSave(); setTimeout(() => location.reload(), 150); }
+  else { pullEl.style.transform = ''; pullEl.style.opacity = 0; }
+});
+
 let swipe = null, swiped = null; // swiped : la ligne qu'on vient de glisser (son « clic » est ignoré)
 document.addEventListener('touchstart', e => {
   const row = e.target.closest('[data-swipe]');
