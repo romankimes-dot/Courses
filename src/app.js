@@ -856,7 +856,8 @@ const views = {
         <label class="btn">Importer<input type="file" accept="application/json" id="import" hidden></label>
         <button data-a="reset">Réinitialiser</button>
       </div>
-      <p class="hint">Vos listes sont sur ce téléphone : exportez-les de temps en temps. <a href="site/cgu.html" target="_blank" rel="noopener">Conditions et confidentialité</a></p>`;
+      <p class="hint">Vos listes sont sur ce téléphone : exportez-les de temps en temps. <a href="site/cgu.html" target="_blank" rel="noopener">Conditions et confidentialité</a></p>
+      <p class="hint">Version de l'app : <span id="ver">…</span></p>`;
   },
 };
 
@@ -970,6 +971,9 @@ function catalogItems() {
   const block = items => catalogEdit ? items.map(row).join('') : `<div class="chips">${items.map(chip).join('')}</div>`;
   const keep = i => shown(i) && (!catalogPins || i.pin);
   const groups = [...byAisle(keep), ...byAisle(keep, S.shops)];
+  // Paniers et recettes dont le nom correspond (dès 2 lettres), au-dessus des articles
+  const lp = lastPart(quickDraft), sets = lp.length < 2 ? '' : setsFor(lp).filter(r => sameKey(r.name).includes(sameKey(lp))).slice(0, 4).map(setChip).join('');
+  if (sets) return `<div class="chips suggest">${sets}</div>` + (groups.length ? groups.map(g => `<section><h3>${esc(g.aisle.name)} <small>${g.items.length}</small></h3>${block(g.items)}</section>`).join('') : '');
   if (!groups.length) return q ? `<p class="hint center">Aucun ${catalogPins ? 'indispensable' : 'article'} « ${esc(lastPart(quickDraft))} » : touchez + pour le créer.</p>`
     : `<p class="hint center">Aucun indispensable pour l'instant : écrivez-en un ci-dessus, ou touchez Modifier puis ${icon.star}.</p>`;
   return groups.map(g => `<section><h3>${esc(g.aisle.name)} <small>${g.items.length}</small></h3>${block(g.items)}</section>`).join('');
@@ -1120,6 +1124,8 @@ function render() {
       requestAnimationFrame(step);
     });
   }
+  const ver = app.querySelector('#ver'); // version en service (nom du cache hors-ligne), pour vérifier une mise à jour
+  if (ver) caches.keys().then(ks => { ver.textContent = ks.find(k => k.startsWith('courses-'))?.slice(9) || '?'; }).catch(() => {});
   if (tab !== lastTab) scrollTo(0, 0);
   lastTab = tab;
   // Onglet allumé : la section dont dépend l'écran courant
