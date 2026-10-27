@@ -608,7 +608,7 @@ const views = {
         </div>` : ''}
       ${sections.map(g => `
         <section>
-          <h3>${g.num ? `<span class="num" style="background:${aisleColor(g.aisle.id)}">${g.num}</span>` : ''}${g.aisle.icon || ''}${esc(g.aisle.name)}</h3>
+          <h3>${g.num ? `<span class="num" style="background:${aisleColor(g.aisle.id)}">${g.num}</span>` : ''}${g.aisle.icon || ''}${esc(g.aisle.name)}${g.items.length > 1 ? `<button class="ghost all-taken" data-a="takeAll" data-ids="${g.items.map(i => i.id).join(' ')}">${icon.check} Tout pris</button>` : ''}</h3>
           <div class="rows">${g.items.map(itemRow).join('')}</div>
         </section>`).join('')}
       ${!need.length ? `
@@ -1031,6 +1031,8 @@ function render() {
     tmp.innerHTML = html;
     const fresh = tmp.querySelector(':scope > #quick');
     if (fresh) {
+      const ki = keep.querySelector('input'), fi = fresh.querySelector('input');
+      if (ki && fi && ki.value !== fi.value) ki.value = fi.value; // champ vidé après un ajout
       [...app.childNodes].forEach(n => n !== keep && n.remove());
       while (tmp.firstChild !== fresh) keep.before(tmp.firstChild);
       fresh.remove();
@@ -1412,6 +1414,14 @@ const actions = {
     i.doneAt = i.done ? Date.now() : undefined;
     i.doneBy = i.done ? me || '?' : undefined;
   },
+  // Tout le rayon d'un coup dans le caddie (Annuler possible)
+  takeAll: ({ ids }) => {
+    snapshot();
+    const its = ids.split(' ').map(item).filter(i => i && i.need && !i.done);
+    its.forEach(i => Object.assign(i, { done: true, doneAt: Date.now(), doneBy: me || '?' }));
+    tick();
+    toast(`${its.length} article${its.length > 1 ? 's' : ''} dans le caddie`);
+  },
   unneed: ({ id }) => { snapshot(); const i = item(id); drop(i); toast(`${i.name} retiré de la liste`); },
   delItem: ({ id }) => { S.items = S.items.filter(i => i.id !== id); },
   allPins: () => S.items.forEach(i => { if (i.pin) want(i); }),
@@ -1615,6 +1625,11 @@ document.addEventListener('click', e => {
   actions[el.dataset.a](el.dataset);
   render();
   saveSoon();
+});
+
+// Toucher l'en-tête (hors boutons) : retour en haut, comme sur iPhone
+document.querySelector('header').addEventListener('click', e => {
+  if (!e.target.closest('button, select, a, input')) scrollTo({ top: 0, behavior: motion() ? 'smooth' : 'auto' });
 });
 
 let swipe = null, swiped = null; // swiped : la ligne qu'on vient de glisser (son « clic » est ignoré)

@@ -85,6 +85,7 @@ La colonne de droite indique où c'est **aujourd'hui** (les premières demandes 
 | 52 | Voir l'autre en courses ; exporter le budget | Bulle « X est en courses · n pris · encore n · vient de prendre … » ; Dépenses > « Exporter l'historique par mois » (CSV pour tableur) |
 | 53 | Localiser un article en magasin | En courses, avec un plan : « Où est… ? » ; le rayon s'allume sur le plan (balise) avec son numéro d'arrêt |
 | 54 | « La plus fluide possible » | Revue mesurée (CPU ×4) : affichage avant l'enregistrement, pas d'enregistrement de synchro hors partage, vignettes en `blob:`, synchro sans fermer le clavier (le champ d'ajout est gardé), animations non rejouées, glisser sans retard, pas de zoom au double toucher. Cocher : ≈ 320 → 100 ms avec 40 photos |
+| 55 | Tout un rayon d'un coup ; remonter en haut | « Tout pris » sur le titre d'un rayon (2 articles et +, Annuler) ; toucher l'en-tête remonte en haut de la liste |
 | 37 | Mode partagé : **attribuer une part à un participant** (modifiable) | Fiche Ticket > Hors partage : « X € pour [membre] », plusieurs parts |
 
 ## 4. Décisions prises
