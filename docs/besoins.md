@@ -89,6 +89,7 @@ La colonne de droite indique où c'est **aujourd'hui** (les premières demandes 
 | 56 | Ajout groupé : « lait, beurre, café » | Sous le champ, une ligne de propositions par morceau ; un toucher met l'article sur la liste et retire son morceau ; Entrée ajoute le reste |
 | 57 | Recharger la dernière liste | « Reprendre la dernière liste » (liste vide) ou « Dernière » (outils) : les articles du dernier passage en caisse (et de ceux du même moment, à deux), Annuler possible |
 | 58 | Garder l'historique des budgets pour l'export | Budget mémorisé par mois (`settings.budgets`) ; l'export par mois prend le budget de chaque mois (vide avant le premier enregistré) |
+| 59 | Recharger en tirant la page vers le bas | App installée : tout en haut, tirer vers le bas (> 80 px) enregistre puis recharge ; flèche qui tourne ; inactif dans le navigateur (qui le fait déjà), le plan et les fenêtres |
 | 37 | Mode partagé : **attribuer une part à un participant** (modifiable) | Fiche Ticket > Hors partage : « X € pour [membre] », plusieurs parts |
 
 ## 4. Décisions prises
