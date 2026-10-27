@@ -931,11 +931,16 @@ function cmdChips(q, k) {
   const line = (label, chips) => chips ? `<div class="part"><small>${label}</small>${chips}</div>` : '';
   return line('Paniers', sets.filter(isBasket).slice(0, 8).map(set).join(''))
     + line('Recettes', sets.filter(r => !isBasket(r)).slice(0, 8).map(set).join(''))
+    + line('Rayons', aislesFor(q).slice(0, q ? 6 : 30).map(aisleChip).join(''))
     + line('Idées', ideas.map(({ l, n }) => `<button type="button" class="chip" data-a="openIdea" data-id="${n}">${icon.meals}${esc(l.name)} <small>${l.items.length}</small></button>`).join(''))
     + line('Articles', its.map(i => `<button type="button" class="chip ${i.need ? 'on' : ''}" data-a="pickPart" data-k="${k}" data-id="${i.id}">${i.need ? icon.check : ''}${esc(i.name)}</button>`).join(''))
     || `<p class="hint">Aucun panier, recette ni article « ${esc(q)} ».</p>`;
 }
 
+// Rayons et commerces dont le nom correspond : un toucher montre tous leurs articles à cocher
+const aislesFor = q => { const k = sameKey(q); return [...S.aisles, ...S.shops].filter(a => (!k || sameKey(a.name).includes(k)) && S.items.some(i => i.aisle === a.id)); };
+const dotColor = id => S.shops.some(s => s.id === id) ? 'var(--muted)' : aisleColor(id);
+const aisleChip = a => `<button type="button" class="chip" data-a="openAisle" data-id="${a.id}"><span class="dot" style="background:${dotColor(a.id)}"></span>${esc(a.name)} <small>${S.items.filter(i => i.aisle === a.id).length}</small></button>`;
 const setChip = r => `<button type="button" class="chip" data-a="openSet" data-id="${r.id}">${isBasket(r) ? icon.basket : icon.meals}${esc(r.name)} <small>${r.items.length || 'vide'}</small></button>`;
 
 // Propositions sous le champ : pour chaque morceau séparé par une virgule, les articles trouvés (un toucher = sur la liste)
@@ -948,10 +953,10 @@ const suggestChips = () => {
     return `<button type="button" class="chip ${i.need ? 'on' : ''}" data-a="pickPart" data-k="${k}" data-id="${i.id}">${i.need ? icon.check : ''}${esc(i.name)} <small>${esc(where)}</small></button>`;
   };
   // Paniers et recettes dont le nom correspond, aussi sans « . » (dès 2 lettres)
-  const sets = q => q.length < 2 ? [] : setsFor(q).filter(r => sameKey(r.name).includes(sameKey(q))).slice(0, 3);
-  if (parts.length < 2) return parts.flatMap(p => [...sets(p.q).map(setChip), ...matches(p.q).map(i => chip(i, p.k))]).join('');
+  const sets = q => q.length < 2 ? [] : [...setsFor(q).filter(r => sameKey(r.name).includes(sameKey(q))).slice(0, 3).map(setChip), ...aislesFor(q).slice(0, 2).map(aisleChip)];
+  if (parts.length < 2) return parts.flatMap(p => [...sets(p.q), ...matches(p.q).map(i => chip(i, p.k))]).join('');
   return parts.map(p => {
-    const found = [...sets(p.q).map(setChip), ...matches(p.q).slice(0, 4).map(i => chip(i, p.k))];
+    const found = [...sets(p.q), ...matches(p.q).slice(0, 4).map(i => chip(i, p.k))];
     return `<div class="part"><small>${esc(p.q)}</small>${found.join('') || '<small class="new-hint">nouveau : ajouté en validant</small>'}</div>`;
   }).join('');
 };
@@ -972,7 +977,7 @@ function catalogItems() {
   const keep = i => shown(i) && (!catalogPins || i.pin);
   const groups = [...byAisle(keep), ...byAisle(keep, S.shops)];
   // Paniers et recettes dont le nom correspond (dès 2 lettres), au-dessus des articles
-  const lp = lastPart(quickDraft), sets = lp.length < 2 ? '' : setsFor(lp).filter(r => sameKey(r.name).includes(sameKey(lp))).slice(0, 4).map(setChip).join('');
+  const lp = lastPart(quickDraft), sets = lp.length < 2 ? '' : [...setsFor(lp).filter(r => sameKey(r.name).includes(sameKey(lp))).slice(0, 4).map(setChip), ...aislesFor(lp).slice(0, 2).map(aisleChip)].join('');
   if (sets) return `<div class="chips suggest">${sets}</div>` + (groups.length ? groups.map(g => `<section><h3>${esc(g.aisle.name)} <small>${g.items.length}</small></h3>${block(g.items)}</section>`).join('') : '');
   if (!groups.length) return q ? `<p class="hint center">Aucun ${catalogPins ? 'indispensable' : 'article'} « ${esc(lastPart(quickDraft))} » : touchez + pour le créer.</p>`
     : `<p class="hint center">Aucun indispensable pour l'instant : écrivez-en un ci-dessus, ou touchez Modifier puis ${icon.star}.</p>`;
@@ -1511,6 +1516,23 @@ const actions = {
     if (isBasket(r)) { tab = 'catalog'; catalogBaskets = true; catalogPins = false; } else tab = 'recipes';
     toast(`${r.name} est vide : ajoutez-y des articles`, false);
   },
+  // Un rayon entier : tous ses articles, à cocher (rien de coché d'office : un rayon est long)
+  openAisle: ({ id }) => {
+    const parts = quickDraft.split(/[,;]/);
+    parts.pop();
+    quickDraft = parts.map(p => p.trim()).filter(Boolean).join(', ');
+    const a = [...S.aisles, ...S.shops].find(x => x.id === id), its = S.items.filter(i => i.aisle === id).sort((x, y) => x.name.localeCompare(y.name));
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="overlay sheet-modal">
+        <form id="aisleForm" class="card">
+          <h2><span class="dot" style="background:${dotColor(id)}"></span> ${esc(a.name)}</h2>
+          <p class="hint">Cochez ce qu'il faut acheter.</p>
+          ${its.map(i => `<label class="field check"><input type="checkbox" name="i" value="${i.id}"${i.need ? ' checked disabled' : ''}><span>${esc(i.name)}${i.need ? ' <small>déjà sur la liste</small>' : ''}</span></label>`).join('')}
+          <button class="primary">${icon.plus} Ajouter à la liste</button>
+          <button type="button" class="ghost wide" data-a="closePhoto">Annuler</button>
+        </form>
+      </div>`);
+  },
   openIdea: ({ id }) => {
     actions.libAdopt({ id });
     const r = cookbook().find(x => sameKey(x.name) === sameKey(LIBRARY[+id].name));
@@ -1796,6 +1818,15 @@ document.addEventListener('submit', e => {
     // Articles inconnus : sur la liste ? indispensables ? (fenêtre de choix)
     if (newItems.length) { setTimeout(askNewItems); save(); render(); return; }
     if (already.length) setTimeout(() => toast(`Déjà sur la liste : ${already.join(', ')}`, false));
+  }
+  if (e.target.id === 'aisleForm') {
+    const its = f.getAll('i').map(item).filter(i => i && !i.need);
+    e.target.closest('.overlay').remove();
+    snapshot();
+    its.forEach(want);
+    save(); render();
+    if (its.length) toast(`${its.length} article${its.length > 1 ? 's' : ''} ajouté${its.length > 1 ? 's' : ''}`);
+    return;
   }
   if (e.target.id === 'basketForm') {
     const r = recipe(e.target.dataset.id), its = f.getAll('i').map(item).filter(i => i && !i.need);

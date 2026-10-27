@@ -332,3 +332,4 @@ h3 .all-taken { margin-left: auto; font-size: 13px; text-transform: none; letter
 .sb-add { margin: -10px -16px 8px; padding: 8px 12px; background: var(--accent-soft); }
 .sb-warn { margin: -4px 0 8px; }
 .suggest .part svg.i { width: 1.05em; height: 1.05em; margin-right: 4px; vertical-align: -.15em; }
+.chip .dot, h2 .dot { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: .05em; }

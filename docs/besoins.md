@@ -92,6 +92,7 @@ La colonne de droite indique où c'est **aujourd'hui** (les premières demandes 
 | 59 | Recharger en tirant la page vers le bas | App installée : tout en haut, tirer vers le bas (> 80 px) enregistre puis recharge ; flèche qui tourne ; inactif dans le navigateur (qui le fait déjà), le plan et les fenêtres |
 | 60 | Mode « J'y vais » : maximiser la liste | Bandeau d'une ligne collé sous l'en-tête : panier, magasin, « 1 sur 8 », menu Tout / Début / Fin, + (ouvre le champ d'ajout, refermé après l'ajout), ✕ (arrêter), fine barre de progression ; plan via le 📍 des articles ; choix du circuit dans Réglages > Plan du magasin |
 | 61 | Un « . » (double espace) dans le champ d'ajout : retrouver produits, paniers, recettes | « .bébé », « bébé. » (double espace de l'iPhone) ou deux espaces en tête : propositions Paniers / Recettes / Articles ; « . » seul liste tous les paniers et recettes ; toucher un panier ou une recette ouvre sa fenêtre (décocher ce qu'on a) ; Entrée prend le premier trouvé, sans créer d'article |
+| 62 | Appeler paniers, recettes et rayons par leur nom | Dans le champ de la Liste et de Mes articles, dès 2 lettres (sans « . ») : paniers, recettes (même vides : ouverts pour être remplis) et rayons/commerces ; un rayon ouvre tous ses articles à cocher ; « . » ajoute les idées de recettes de la bibliothèque ; version de l'app affichée en bas des Réglages |
 | 37 | Mode partagé : **attribuer une part à un participant** (modifiable) | Fiche Ticket > Hors partage : « X € pour [membre] », plusieurs parts |
 
 ## 4. Décisions prises
