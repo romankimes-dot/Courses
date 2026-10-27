@@ -13,7 +13,7 @@ const { phones, start, needs, swipeLeft, add } = require('./_outils');
   await p.click('#toast [data-a=undo]');
   const afterUndo = await needs(p);
   await p.click('[data-a=goShopping]');
-  const shoppingCard = await p.isVisible('.card.shopping');
+  const shoppingCard = await p.isVisible('.shopbar');
   await p.click('main .row:has-text("Lait")'); await p.click('main .row:has-text("Pain")');
   const cart = await p.$$eval('.basket .row .name', e => e.map(x => x.textContent.trim()));
   await p.click('[data-a=finish]'); await p.fill('#finishForm input', '23,40'); await p.click('#finishForm .primary');
