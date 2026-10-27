@@ -369,7 +369,7 @@ function block(x, y, h, l, hue, opacity = 1) {
 }
 
 // groups : rayons à visiter, dans l'ordre du circuit
-function mapSvg(groups) {
+function mapSvg(groups, find = null) { // find : rayon à montrer (« Où c'est ? »)
   const { cols, rows, cells, entry } = M();
   const todo = new Set(groups.filter(g => g.items.some(i => !i.done)).map(g => g.aisle.id));
   const visit = new Set(groups.map(g => g.aisle.id));
@@ -377,7 +377,8 @@ function mapSvg(groups) {
   // Peintre : du fond (x + y petit) vers l'avant
   const blocks = Object.entries(cells).map(([c, id]) => [cell(c), id])
     .sort(([a], [b]) => a[0] + a[1] - b[0] - b[1] || a[0] - b[0])
-    .map(([[x, y], id]) => todo.has(id) ? block(x, y, .7, 60, hue(id))
+    .map(([[x, y], id]) => id === find ? block(x, y, .9, 50, hue(id))
+      : todo.has(id) ? block(x, y, .7, 60, hue(id))
       : visit.has(id) ? block(x, y, .7, 70, null, .55)
       : block(x, y, .35, 78, null)).join('');
   const floor = poly([[0, 0], [cols, 0], [cols, rows], [0, rows]], 'var(--card)', 'stroke="var(--line)" stroke-width=".04"');
@@ -399,12 +400,22 @@ function mapSvg(groups) {
       <text x="${px}" y="${py + .13}" font-size=".36" font-weight="700" text-anchor="middle" fill="#fff">${s.k + 1}</text>
     </g>`;
   }).join('');
+  // Balise sur le rayon cherché
+  let beacon = '';
+  if (find && centroid(find)) {
+    const [fx, fy] = iso(...centroid(find), 1.6);
+    const anim = (attr, v) => motion() ? `<animate attributeName="${attr}" values="${v}" dur="1.4s" repeatCount="indefinite"/>` : '';
+    beacon = `<g class="beacon">
+      <circle cx="${fx}" cy="${fy}" r=".7" fill="none" stroke="var(--accent)" stroke-width=".08">${anim('r', '.3;1.1')}${anim('opacity', '1;0')}</circle>
+      <circle cx="${fx}" cy="${fy}" r=".26" fill="var(--accent)" stroke="var(--bg)" stroke-width=".06"/>
+    </g>`;
+  }
   const pad = .5;
   return `
     <svg class="map" viewBox="${-rows - pad} ${-1.7 - pad} ${cols + rows + 2 * pad} ${(cols + rows) / 2 + 1.7 + 2 * pad}">
       ${floor}${door}
       <polyline points="${path}" fill="none" stroke="var(--accent)" stroke-width=".1" stroke-dasharray=".25 .15" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>
-      ${blocks}${pins}
+      ${blocks}${pins}${beacon}
     </svg>`;
 }
 
@@ -538,12 +549,16 @@ const views = {
             </div>
             ${who ? `<p class="small">${who === 1 ? 'Vous prenez le début' : 'Vous prenez la fin'} : ${groups.length ? groups.map(g => esc(g.aisle.name)).join(', ') : 'rien de plus à prendre'}. ${who === 1 ? 'L\'autre prend la fin.' : 'L\'autre prend le début.'}</p>` : ''}
           </div>` : ''}
-          ${mapped ? `<details class="adv" data-k="shopMap"><summary>Plan du magasin</summary>
+          ${mapped ? `
+          <form id="findForm" class="find"><input name="q" value="${esc(findQ)}" placeholder="Où est… ? (ex. café)" autocomplete="off" enterkeyhint="search"></form>
+          <div id="findRes" class="chips">${findChips()}</div>
+          ${spotLine(groups)}
+          <details class="adv" data-k="shopMap" ${spot ? 'open' : ''}><summary>Plan du magasin</summary>
             <div class="seg">
               <button data-a="setAuto" data-v="1" class="${M().auto ? 'active' : ''}">Circuit le plus court</button>
               <button data-a="setAuto" data-v="" class="${M().auto ? '' : 'active'}">Ordre des rayons</button>
             </div>
-            ${mapSvg(groups)}</details>` : ''}
+            ${mapSvg(groups, spotAisle())}</details>` : ''}
         </section>` : ''}
       <form id="quick" class="addtop">
         <input name="name" value="${esc(quickDraft)}" placeholder="Ajouter… (lait, œufs, 2 kg tomates)" autocomplete="off" autocapitalize="sentences" required>
@@ -841,6 +856,19 @@ function matches(q) {
     .sort((a, b) => a.score - b.score || (b.i.bought?.length || 0) - (a.i.bought?.length || 0) || a.i.name.localeCompare(b.i.name))
     .slice(0, 6).map(x => x.i);
 }
+// « Où c'est ? » en magasin : on cherche un article, son rayon s'allume sur le plan
+let findQ = '', spot = null;
+const spotAisle = () => { const i = spot && item(spot); return i && !shopOf(i) ? i.aisle : null; };
+const findChips = () => matches(findQ).map(i => `<button type="button" class="chip" data-a="locate" data-id="${i.id}">${icon.pin || ''}${esc(i.name)}</button>`).join('');
+function spotLine(groups) {
+  const i = spot && item(spot);
+  if (!i) return '';
+  const a = S.aisles.find(x => x.id === i.aisle), k = groups.findIndex(g => g.aisle.id === i.aisle);
+  const where = shopOf(i) ? `chez ${esc(shopOf(i).name)}, pas dans ce magasin`
+    : !centroid(i.aisle) ? `rayon ${esc(a?.name || '?')}, pas encore placé sur le plan`
+    : `rayon ${esc(a?.name || '?')}${k >= 0 ? `, arrêt n° ${k + 1} du circuit` : ''}`;
+  return `<p class="spot">${icon.pin}<span><strong>${esc(i.name)}</strong> : ${where}</span><button class="ghost" data-a="locate" data-id="" aria-label="Fermer">${icon.x}</button></p>`;
+}
 const suggestChips = () => matches(lastPart(quickDraft)).map(i => {
   const where = shopOf(i)?.name || S.aisles.find(a => a.id === i.aisle)?.name || '';
   return `<button type="button" class="chip ${i.need ? 'on' : ''}" data-a="pickSuggest" data-id="${i.id}">${i.need ? icon.check : ''}${esc(i.name)} <small>${esc(where)}</small></button>`;
@@ -938,6 +966,11 @@ document.addEventListener('input', e => {
     recipeDraft = e.target.value;
     const box = document.getElementById('recipeItems');
     if (box) box.innerHTML = recipeItems();
+  }
+  if (e.target.closest('#findForm')) {
+    findQ = e.target.value;
+    const box = document.getElementById('findRes');
+    if (box) box.innerHTML = findChips();
   }
   if (e.target.closest('#quick')) {
     quickDraft = e.target.value;
@@ -1350,7 +1383,8 @@ const actions = {
     if (o) { who = o.part === 1 ? 2 : 1; try { localStorage.setItem(K('courses.who'), who); } catch {} }
     S.parts[me || '?'] = who;
   },
-  stopShopping: () => { delete S.shoppers[me || '?']; delete S.parts[me || '?']; },
+  locate: ({ id }) => { spot = id || null; findQ = ''; },
+  stopShopping: () => { spot = null; delete S.shoppers[me || '?']; delete S.parts[me || '?']; },
   // Toucher une proposition : l'article va sur la liste, on continue à taper
   pickSuggest: ({ id }) => {
     const i = item(id), parts = quickDraft.split(/[,;]/);
@@ -1567,6 +1601,7 @@ document.addEventListener('submit', e => {
   e.preventDefault();
   const f = new FormData(e.target);
   const name = f.get('name');
+  if (e.target.id === 'findForm') { const [i] = matches(findQ); if (i) actions.locate({ id: i.id }); }
   if (e.target.id === 'quick') { // « lait, œufs, 2 kg tomates »
     quickDraft = '';
     const already = [];
