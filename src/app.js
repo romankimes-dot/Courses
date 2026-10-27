@@ -495,6 +495,11 @@ const views = {
           <div class="add"><input name="name" placeholder="ex. Inès" autocomplete="given-name" required><button class="accent">OK</button></div>
         </form>` : welcomeInvite() || installCard()}
       ${shoppingBanner()}
+      ${need.length && cart.length ? `
+        <div class="pace" role="progressbar" aria-valuemin="0" aria-valuemax="${need.length}" aria-valuenow="${cart.length}">
+          <div class="progress"><div style="width:${Math.round(100 * cart.length / need.length)}%"></div></div>
+          <small>${cart.length} sur ${need.length} dans le caddie${cart.length < need.length ? ` · encore ${need.length - cart.length}` : ''}</small>
+        </div>` : ''}
       ${shopping ? `
         <section class="card shopping">
           <div class="bar"><strong class="grow">${icon.cart} En courses</strong><button class="ghost" data-a="stopShopping">Arrêter</button></div>
@@ -518,6 +523,7 @@ const views = {
         </section>` : ''}
       <form id="quick" class="addtop">
         <input name="name" value="${esc(quickDraft)}" placeholder="Ajouter… (lait, œufs, 2 kg tomates)" autocomplete="off" autocapitalize="sentences" required>
+        ${Speech ? `<button type="button" class="mic" data-a="dictate" aria-label="Dicter">${icon.mic}</button>` : ''}
         <button class="accent" aria-label="Ajouter">${icon.plus}</button>
       </form>
       <div id="suggest" class="chips suggest">${suggestChips()}</div>
@@ -537,7 +543,7 @@ const views = {
         <div class="empty-state">
           <p>Rien à acheter pour l'instant.</p>
           <p class="hint">Écrivez ce qu'il manque, touchez une suggestion, ou piochez dans vos articles.${Sync.config() ? ' Tout le monde voit la même liste.' : ''}</p>
-        </div>` : need.every(i => i.done) ? `<p class="hint center">${icon.check} Tout est dans le caddie.</p>` : ''}
+        </div>` : need.every(i => i.done) ? `<div class="all-done"><span class="medal">${icon.check}</span><strong>Tout est dans le caddie !</strong><small>Il ne reste plus qu'à passer en caisse.</small></div>` : ''}
       ${cart.length ? `
         <section class="basket">
           <h3>${icon.basket} Dans le caddie · ${cart.length}</h3>
@@ -620,7 +626,7 @@ const views = {
     return `
       <div class="hero">
         <small>Dépensé ce mois</small>
-        <strong>${euro(sum(month))}</strong>
+        <strong data-count="${sum(month)}">${euro(sum(month))}</strong>
         <small>${prev.length ? `mois dernier : ${euro(sum(prev))}` : `${month.length} passage${month.length > 1 ? 's' : ''} en caisse`}</small>
         ${budget ? `
           <div class="progress ${sum(month) > budget ? 'over' : ''}"><div style="width:${Math.min(100, 100 * sum(month) / budget)}%"></div></div>
@@ -785,6 +791,10 @@ const storePicker = manage => `
 
 // Ajout : dès les premières lettres, propositions parmi les articles déjà connus (accents et pluriels ignorés).
 // On cherche sur le dernier article tapé (« lait, tom » -> tom), sans la quantité (« 2 kg tom » -> tom).
+const Speech = window.SpeechRecognition || window.webkitSpeechRecognition; // dictée : absente de certains navigateurs
+const motion = () => !matchMedia('(prefers-reduced-motion: reduce)').matches;
+let flyFrom = null; // position de la ligne avant qu'elle parte dans le caddie
+let popId = null; // article qu'on vient de cocher : petite animation après le rendu
 let quickDraft = '', refocusQuick = false, refocusSel = null; // champ à reprendre après le rendu
 const refocusQuickInput = () => app.querySelector('#quick input')?.focus();
 const lastPart = v => v.split(/[,;]/).pop().replace(/^\s*\d+(?:[.,]\d+)?\s*(?:kg|g|l|cl|ml|x|×)?\s+(?:de |d')?/i, '').trim();
@@ -912,6 +922,8 @@ function render() {
   if (brush === null || (brush && brush !== 'entry' && !S.aisles.some(a => a.id === brush))) brush = S.aisles[0].id;
   // Les panneaux dépliés le restent quand l'écran se redessine (sinon chaque modification les refermait)
   const open = tab === lastTab ? new Set([...app.querySelectorAll('details[data-k][open]')].map(d => d.dataset.k)) : new Set();
+  const rowKey = r => (r.closest('.basket') ? 'c' : 'l') + r.dataset.id;
+  const before = tab === 'list' && tab === lastTab ? new Set([...app.querySelectorAll('.row[data-swipe]')].map(rowKey)) : null;
   app.innerHTML = views[tab]();
   app.querySelectorAll('details[data-k]').forEach(d => { if (open.has(d.dataset.k)) d.open = true; });
   if (refocusSel) {
@@ -925,6 +937,30 @@ function render() {
     const q = app.querySelector('#quick input');
     q?.focus();
     q?.setSelectionRange(q.value.length, q.value.length);
+  }
+  if (popId) {
+    const row = app.querySelector(`.row[data-id="${popId}"].done`);
+    row?.classList.add('pop');
+    // l'article « vole » de sa place jusqu'au caddie
+    if (row && flyFrom != null && motion()) {
+      const dy = flyFrom - row.getBoundingClientRect().top;
+      if (Math.abs(dy) > 4) row.animate([{ transform: `translateY(${dy}px)`, opacity: .5 }, { transform: 'none', opacity: 1 }], { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    }
+    popId = null; flyFrom = null;
+  }
+  // un nouvel article (le mien ou celui d'un autre) glisse en place
+  if (before && motion()) {
+    const fresh = [...app.querySelectorAll('.row[data-swipe]')].filter(r => !before.has(rowKey(r)) && !r.classList.contains('pop'));
+    if (fresh.length <= 8) fresh.forEach(r => r.animate([{ opacity: 0, transform: 'translateY(-10px)' }, { opacity: 1, transform: 'none' }], { duration: 280, easing: 'ease-out' }));
+  }
+  // changement d'onglet : fondu léger ; chiffres du budget qui défilent
+  if (tab !== lastTab && lastTab !== null && motion()) {
+    app.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'ease-out' });
+    app.querySelectorAll('[data-count]').forEach(el => {
+      const v = +el.dataset.count, t0 = performance.now();
+      const step = t => { const k = Math.min(1, (t - t0) / 700); el.textContent = euro(v * (1 - (1 - k) ** 3)); if (k < 1) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    });
   }
   if (tab !== lastTab) scrollTo(0, 0);
   lastTab = tab;
@@ -1134,6 +1170,24 @@ let undoSnap = null, toastTimer;
 let undoAfter = null;
 function snapshot() { undoSnap = Sync.strings(Sync.records(S)); }
 // Bandeau du bas : un message, et « Annuler » si l'action se défait
+// Confettis légers à la fin des courses
+function confetti() {
+  if (!motion()) return;
+  const colors = ['#1f5fcc', '#7aa5f0', '#f2b84b', '#e5736b', '#5ab88a'];
+  for (let k = 0; k < 28; k++) {
+    const s = document.createElement('i');
+    s.className = 'confetti';
+    s.style.cssText = `left:${50 + (Math.random() - .5) * 20}%;background:${colors[k % 5]}`;
+    document.body.append(s);
+    const dx = (Math.random() - .5) * 320, dy = -(120 + Math.random() * 220);
+    s.animate([
+      { transform: 'translate(0,0) rotate(0)', opacity: 1 },
+      { transform: `translate(${dx}px,${dy}px) rotate(${Math.random() * 540}deg)`, opacity: 1, offset: .45 },
+      { transform: `translate(${dx * 1.3}px,${dy + 520}px) rotate(900deg)`, opacity: 0 },
+    ], { duration: 1400 + Math.random() * 600, easing: 'cubic-bezier(.2,.6,.4,1)' }).onfinish = () => s.remove();
+  }
+}
+
 function toast(msg, undo = true) {
   let el = document.getElementById('toast');
   if (!el) { el = Object.assign(document.createElement('div'), { id: 'toast' }); document.body.append(el); }
@@ -1242,8 +1296,29 @@ const actions = {
   toggleDone: ({ id }) => {
     const i = item(id);
     i.done = !i.done;
+    if (i.done) { popId = id; flyFrom = app.querySelector(`.row[data-id="${id}"]`)?.getBoundingClientRect().top ?? null; navigator.vibrate?.(12); }
     i.doneAt = i.done ? Date.now() : undefined;
     i.doneBy = i.done ? me || '?' : undefined;
+  },
+  // Dictée : « lait et œufs, 2 kilos de tomates » → ajoutés comme si on les avait tapés
+  dictate: () => {
+    const btn = app.querySelector('.mic');
+    if (!Speech || btn?.classList.contains('listening')) return;
+    const r = new Speech();
+    r.lang = 'fr-FR';
+    r.onstart = () => btn?.classList.add('listening');
+    r.onend = () => btn?.classList.remove('listening');
+    r.onerror = e => { if (e.error === 'not-allowed') alert('Autorisez le micro pour dicter vos articles.'); };
+    r.onresult = e => {
+      const text = e.results[0][0].transcript.trim()
+        .replace(/\s+(?:et|virgule)\s+/gi, ', ')
+        .replace(/\bkilos?\b/gi, 'kg').replace(/\blitres?\b/gi, 'l').replace(/\bgrammes?\b/gi, 'g');
+      const form = app.querySelector('#quick');
+      if (!text || !form) return;
+      form.elements.name.value = text;
+      form.requestSubmit();
+    };
+    r.start();
   },
   unneed: ({ id }) => { snapshot(); const i = item(id); drop(i); toast(`${i.name} retiré de la liste`); },
   delItem: ({ id }) => { S.items = S.items.filter(i => i.id !== id); },
@@ -1303,7 +1378,9 @@ const actions = {
   },
   shareList: async () => {
     const groups = [...byAisle(i => i.need), ...byAisle(i => i.need, S.shops)];
-    const text = `${currentList().name}\n` + groups.map(g => `\n${g.aisle.name}\n` + g.items.map(i => `• ${i.name}${i.note ? ` (${i.note})` : ''}`).join('\n')).join('\n');
+    // Liste partagée : le lien à la fin de la note s'ouvre dans l'app, où l'on coche et ajoute en direct
+    const text = `${currentList().name}\n` + groups.map(g => `\n${g.aisle.name}\n` + g.items.map(i => `• ${i.name}${i.note ? ` (${i.note})` : ''}`).join('\n')).join('\n')
+      + (Sync.config() ? `\n\nOuvrir la liste en direct :\n${Sync.inviteLink()}` : '');
     try { await navigator.share({ title: 'Courses', text }); }
     catch (e) { if (e.name !== 'AbortError') { await navigator.clipboard?.writeText(text); toast('Liste copiée', false); } }
   },
@@ -1451,8 +1528,13 @@ document.addEventListener('touchend', () => {
   const { row, dx } = swipe;
   swipe = null;
   if (dx < -10) swiped = row;
-  if (dx < -90) { actions.unneed({ id: row.dataset.swipe }); save(); render(); }
-  else row.style.transform = '';
+  if (dx < -90) {
+    const done = () => { actions.unneed({ id: row.dataset.swipe }); save(); render(); };
+    if (!motion()) return done();
+    row.style.transition = 'transform .2s ease-in, opacity .2s';
+    row.style.transform = 'translateX(-110%)'; row.style.opacity = 0;
+    setTimeout(done, 200);
+  } else row.style.transform = '';
 });
 
 document.addEventListener('submit', e => {
@@ -1545,6 +1627,7 @@ document.addEventListener('submit', e => {
     S.trips.push({ id: uid(), date: now, total: parseEuro(name || ''), place: where, n: taken.length, names: taken.map(i => i.name), by: me || undefined });
     tab = 'list';
     save(); render();
+    confetti();
     toast(learned ? `Courses terminées. Ordre des rayons ajusté pour ${store().name}` : 'Courses terminées');
     return;
   }
