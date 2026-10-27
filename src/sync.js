@@ -52,6 +52,7 @@ const Sync = (() => {
 
   // Appelé après chaque sauvegarde locale : repère ce qui a changé depuis la dernière fois
   function changed() {
+    if (!cfg) return status(); // liste non partagée : rien à envoyer (Sync.create repart de zéro)
     const cur = strings(records(S)), u = Date.now();
     if (cfg) {
       let n = 0;
@@ -82,7 +83,8 @@ const Sync = (() => {
   }
 
   async function run() {
-    if (!cfg) { if (autoFill()) { save(); render(); } return; }
+    flushSave();
+    if (!cfg) { if (autoFill()) { save(); renderWhenFree(); } return; }
     if (busy) return;
     if (me && !(S.people ||= {})[me]) { S.people[me] = Date.now(); save(); } // membre de la liste, même sans rien ajouter
     busy = true;
@@ -116,17 +118,12 @@ const Sync = (() => {
           noteActivity(prev, rows);
           const ln = S.settings.listName;
           if (ln && !currentList().name.startsWith(ln)) { currentList().name = ln; saveLists(); }
-          // Ne pas casser une saisie en cours ; le champ d'ajout rapide vide garde le focus
-          const el = document.activeElement;
-          if (!el?.matches('input:not([type=checkbox]), select') || (el.closest('#quick') && !el.value)) {
-            const quick = el?.closest('#quick');
-            render();
-            if (quick) app.querySelector('#quick input')?.focus();
-          }
+          // Ne pas casser une saisie en cours (ni fermer le clavier) : on redessinera en quittant le champ
+          renderWhenFree();
         }
       }
       state = 'ok';
-      if (autoFill()) { save(); if (!document.activeElement?.matches('input:not([type=checkbox]), select')) render(); }
+      if (autoFill()) { save(); renderWhenFree(); }
     } catch (e) {
       state = navigator.onLine === false ? 'off' : 'err';
     } finally {
