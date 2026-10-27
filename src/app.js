@@ -919,18 +919,23 @@ function spotPanel(i) {
 const cmdOf = p => { const m = p.match(/^\s*\.\s*(.*)$/) || p.match(/^ {2,}(\S.*)$/) || p.match(/^\s*(.+?)\.\s*$/); return m ? m[1].trim() : null; };
 const setsFor = q => {
   const k = sameKey(q);
-  return S.recipes.filter(r => r.items.length && (!k || [r.name, r.cat || ''].some(t => sameKey(t).includes(k))))
+  return S.recipes.filter(r => !k || [r.name, r.cat || ''].some(t => sameKey(t).includes(k)))
     .sort((a, b) => isBasket(b) - isBasket(a) || a.name.localeCompare(b.name));
 };
 function cmdChips(q, k) {
-  const sets = setsFor(q), its = q ? matches(q) : [];
-  const set = r => `<button type="button" class="chip" data-a="openSet" data-id="${r.id}">${isBasket(r) ? icon.basket : icon.meals}${esc(r.name)} <small>${r.items.length}</small></button>`;
+  const sets = setsFor(q), its = q ? matches(q) : [], kq = sameKey(q);
+  // Idées de recettes de la bibliothèque, pas encore dans Mes recettes (adoptées au toucher)
+  const ideas = q && typeof LIBRARY !== 'undefined' ? LIBRARY.map((l, n) => ({ l, n })).filter(({ l }) => !adopted(l) && [l.name, l.cat].some(t => sameKey(t).includes(kq))).slice(0, 6) : [];
+  const set = setChip;
   const line = (label, chips) => chips ? `<div class="part"><small>${label}</small>${chips}</div>` : '';
   return line('Paniers', sets.filter(isBasket).slice(0, 8).map(set).join(''))
     + line('Recettes', sets.filter(r => !isBasket(r)).slice(0, 8).map(set).join(''))
+    + line('Idées', ideas.map(({ l, n }) => `<button type="button" class="chip" data-a="openIdea" data-id="${n}">${icon.meals}${esc(l.name)} <small>${l.items.length}</small></button>`).join(''))
     + line('Articles', its.map(i => `<button type="button" class="chip ${i.need ? 'on' : ''}" data-a="pickPart" data-k="${k}" data-id="${i.id}">${i.need ? icon.check : ''}${esc(i.name)}</button>`).join(''))
     || `<p class="hint">Aucun panier, recette ni article « ${esc(q)} ».</p>`;
 }
+
+const setChip = r => `<button type="button" class="chip" data-a="openSet" data-id="${r.id}">${isBasket(r) ? icon.basket : icon.meals}${esc(r.name)} <small>${r.items.length || 'vide'}</small></button>`;
 
 // Propositions sous le champ : pour chaque morceau séparé par une virgule, les articles trouvés (un toucher = sur la liste)
 const suggestChips = () => {
@@ -941,10 +946,12 @@ const suggestChips = () => {
     const where = shopOf(i)?.name || S.aisles.find(a => a.id === i.aisle)?.name || '';
     return `<button type="button" class="chip ${i.need ? 'on' : ''}" data-a="pickPart" data-k="${k}" data-id="${i.id}">${i.need ? icon.check : ''}${esc(i.name)} <small>${esc(where)}</small></button>`;
   };
-  if (parts.length < 2) return parts.flatMap(p => matches(p.q).map(i => chip(i, p.k))).join('');
+  // Paniers et recettes dont le nom correspond, aussi sans « . » (dès 2 lettres)
+  const sets = q => q.length < 2 ? [] : setsFor(q).filter(r => sameKey(r.name).includes(sameKey(q))).slice(0, 3);
+  if (parts.length < 2) return parts.flatMap(p => [...sets(p.q).map(setChip), ...matches(p.q).map(i => chip(i, p.k))]).join('');
   return parts.map(p => {
-    const found = matches(p.q).slice(0, 4);
-    return `<div class="part"><small>${esc(p.q)}</small>${found.map(i => chip(i, p.k)).join('') || '<small class="new-hint">nouveau : ajouté en validant</small>'}</div>`;
+    const found = [...sets(p.q).map(setChip), ...matches(p.q).slice(0, 4).map(i => chip(i, p.k))];
+    return `<div class="part"><small>${esc(p.q)}</small>${found.join('') || '<small class="new-hint">nouveau : ajouté en validant</small>'}</div>`;
   }).join('');
 };
 
@@ -1489,10 +1496,19 @@ const actions = {
   // Toucher une proposition : l'article va sur la liste, on continue à taper
   // Un panier ou une recette appelé avec « . » : sa fenêtre (cases à décocher), le « . » retiré du champ
   openSet: ({ id }) => {
-    const parts = quickDraft.split(/[,;]/);
+    const parts = quickDraft.split(/[,;]/), r = recipe(id);
     parts.pop();
     quickDraft = parts.map(p => p.trim()).filter(Boolean).join(', ');
-    actions.addBasket({ id });
+    if (r.items.length) return actions.addBasket({ id });
+    // Panier ou recette encore vide : on l'ouvre pour y mettre des articles
+    recipeEdit = r.id; recipeAdd = null;
+    if (isBasket(r)) { tab = 'catalog'; catalogBaskets = true; catalogPins = false; } else tab = 'recipes';
+    toast(`${r.name} est vide : ajoutez-y des articles`, false);
+  },
+  openIdea: ({ id }) => {
+    actions.libAdopt({ id });
+    const r = cookbook().find(x => sameKey(x.name) === sameKey(LIBRARY[+id].name));
+    if (r) actions.openSet({ id: r.id });
   },
   pickSuggest: ({ id }) => actions.pickPart({ id, k: quickDraft.split(/[,;]/).length - 1 }),
   // Un article choisi sous le champ : sur la liste, et son morceau retiré du champ
