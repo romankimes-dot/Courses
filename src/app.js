@@ -923,11 +923,14 @@ const setsFor = q => {
     .sort((a, b) => isBasket(b) - isBasket(a) || a.name.localeCompare(b.name));
 };
 function cmdChips(q, k) {
-  const sets = setsFor(q), its = q ? matches(q) : [];
+  const sets = setsFor(q), its = q ? matches(q) : [], kq = sameKey(q);
+  // Idées de recettes de la bibliothèque, pas encore dans Mes recettes (adoptées au toucher)
+  const ideas = q && typeof LIBRARY !== 'undefined' ? LIBRARY.map((l, n) => ({ l, n })).filter(({ l }) => !adopted(l) && [l.name, l.cat].some(t => sameKey(t).includes(kq))).slice(0, 6) : [];
   const set = r => `<button type="button" class="chip" data-a="openSet" data-id="${r.id}">${isBasket(r) ? icon.basket : icon.meals}${esc(r.name)} <small>${r.items.length}</small></button>`;
   const line = (label, chips) => chips ? `<div class="part"><small>${label}</small>${chips}</div>` : '';
   return line('Paniers', sets.filter(isBasket).slice(0, 8).map(set).join(''))
     + line('Recettes', sets.filter(r => !isBasket(r)).slice(0, 8).map(set).join(''))
+    + line('Idées', ideas.map(({ l, n }) => `<button type="button" class="chip" data-a="openIdea" data-id="${n}">${icon.meals}${esc(l.name)} <small>${l.items.length}</small></button>`).join(''))
     + line('Articles', its.map(i => `<button type="button" class="chip ${i.need ? 'on' : ''}" data-a="pickPart" data-k="${k}" data-id="${i.id}">${i.need ? icon.check : ''}${esc(i.name)}</button>`).join(''))
     || `<p class="hint">Aucun panier, recette ni article « ${esc(q)} ».</p>`;
 }
@@ -1493,6 +1496,11 @@ const actions = {
     parts.pop();
     quickDraft = parts.map(p => p.trim()).filter(Boolean).join(', ');
     actions.addBasket({ id });
+  },
+  openIdea: ({ id }) => {
+    actions.libAdopt({ id });
+    const r = cookbook().find(x => sameKey(x.name) === sameKey(LIBRARY[+id].name));
+    if (r) actions.openSet({ id: r.id });
   },
   pickSuggest: ({ id }) => actions.pickPart({ id, k: quickDraft.split(/[,;]/).length - 1 }),
   // Un article choisi sous le champ : sur la liste, et son morceau retiré du champ
