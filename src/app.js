@@ -1365,9 +1365,7 @@ const actions = {
   },
   shareList: async () => {
     const groups = [...byAisle(i => i.need), ...byAisle(i => i.need, S.shops)];
-    // Liste partagée : le lien à la fin de la note s'ouvre dans l'app, où l'on coche et ajoute en direct
-    const text = `${currentList().name}\n` + groups.map(g => `\n${g.aisle.name}\n` + g.items.map(i => `• ${i.name}${i.note ? ` (${i.note})` : ''}`).join('\n')).join('\n')
-      + (Sync.config() ? `\n\nOuvrir la liste en direct :\n${Sync.inviteLink()}` : '');
+    const text = `${currentList().name}\n` + groups.map(g => `\n${g.aisle.name}\n` + g.items.map(i => `• ${i.name}${i.note ? ` (${i.note})` : ''}`).join('\n')).join('\n');
     try { await navigator.share({ title: 'Courses', text }); }
     catch (e) { if (e.name !== 'AbortError') { await navigator.clipboard?.writeText(text); toast('Liste copiée', false); } }
   },
