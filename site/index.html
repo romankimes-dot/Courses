@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Courses</title>
-  <meta name="description" content="La liste de courses partagée du foyer : chacun ajoute depuis son téléphone, et au magasin tout est rangé par rayon, même sans réseau. Gratuite, sans compte.">
+  <meta name="description" content="La liste de courses partagée du foyer : chacun ajoute depuis son téléphone, un mot appelle un panier ou une recette, et au magasin tout est rangé par rayon, même sans réseau. Gratuite, sans compte.">
   <meta property="og:title" content="Courses">
   <meta property="og:description" content="La liste de courses partagée du foyer, rangée par rayons, même sans réseau.">
   <meta property="og:image" content="img/liste.png">
@@ -54,10 +54,10 @@
         <div>
           <h2 class="flow-intro">Une semaine<br>de courses.</h2>
           <div class="steps">
-            <div class="step on"><div class="n">1 · Dans la semaine</div><h3>On remplit la liste à plusieurs.</h3><p>Chacun ajoute ce qui manque. Tout se range par rayon.</p><img class="shot-sm" src="img/liste.png" alt="La liste rangée par rayons" loading="lazy"></div>
-            <div class="step"><div class="n">2 · Samedi matin</div><h3>« J'y vais » lance le circuit.</h3><p>Les rayons dans l'ordre du magasin. À deux, chacun sa moitié.</p><img class="shot-sm" src="img/magasin.png" alt="Le circuit dans le magasin" loading="lazy"></div>
-            <div class="step"><div class="n">3 · Dans les rayons</div><h3>On coche, l'autre le voit.</h3><p>Personne ne prend deux fois la même chose. Même sans réseau.</p><img class="shot-sm" src="img/caddie.png" alt="Les articles dans le caddie" loading="lazy"></div>
-            <div class="step"><div class="n">4 · À la caisse</div><h3>Le ticket rejoint le budget.</h3><p>Budget commun en couple, ou dépenses partagées : qui a payé, qui doit combien.</p><img class="shot-sm" src="img/partage.png" alt="Le partage des dépenses" loading="lazy"></div>
+            <div class="step on"><div class="n">1 · Dans la semaine</div><h3>On remplit la liste à plusieurs.</h3><p>Chacun ajoute ce qui manque, tout se range par rayon. Un mot appelle un panier, une recette ou un rayon entier.</p><img class="shot-sm" src="img/liste.png" alt="La liste rangée par rayons" loading="lazy"></div>
+            <div class="step"><div class="n">2 · Samedi matin</div><h3>« J'y vais » lance le circuit.</h3><p>Les rayons dans l'ordre du magasin, la liste en plein écran. Un doute ? Le rayon s'allume sur le plan. À deux, chacun sa moitié.</p><img class="shot-sm" src="img/magasin.png" alt="Le circuit dans le magasin, le rayon du lait allumé sur le plan" loading="lazy"></div>
+            <div class="step"><div class="n">3 · Dans les rayons</div><h3>On coche, l'autre le voit.</h3><p>Le panier se remplit à l'écran, personne ne prend deux fois la même chose. Même sans réseau.</p><img class="shot-sm" src="img/caddie.png" alt="Les articles dans le caddie" loading="lazy"></div>
+            <div class="step"><div class="n">4 · À la caisse</div><h3>Le ticket rejoint le budget.</h3><p>Budget commun en couple, ou dépenses partagées : qui a payé, qui doit combien. L'historique mois par mois s'exporte dans un tableur.</p><img class="shot-sm" src="img/partage.png" alt="Le partage des dépenses" loading="lazy"></div>
           </div>
         </div>
       </div>
@@ -66,8 +66,15 @@
     <section class="more">
       <div class="wrap">
         <div class="bento">
+          <div class="tile w2">
+            <div><h3>Un mot suffit</h3><p>« bébé » appelle le panier, « pizza » la recette, « crèmerie » tout le rayon. Et ce qui revient chaque semaine se propose tout seul.</p></div>
+            <div class="ui">
+              <div class="field-ui">bé<i></i></div>
+              <div class="chips-ui"><span><b class="bk"></b>Bébé <small>3</small></span><span>Beurre</span><span class="soft">↻ Litière</span><span class="soft">↻ Café</span><span class="soft">Reprendre la dernière liste</span></div>
+            </div>
+          </div>
           <div class="tile">
-            <div><h3>Les repas de la semaine</h3><p>Les ingrédients sur la liste en un geste. Une centaine d'idées.</p></div>
+            <div><h3>Les repas de la semaine</h3><p>Les ingrédients sur la liste en un geste. 130 idées de recettes.</p></div>
             <div class="ui">
               <div class="week">
                 <div class="today"><b>Mar</b>Croque-monsieur</div>
@@ -86,7 +93,7 @@
               <div class="owe"><span>Hugo doit 56,87 € à Léa</span><em>Remboursé</em></div>
             </div>
           </div>
-          <div class="tile blue">
+          <div class="tile blue w2">
             <div><h3>Même sans réseau</h3><p>Au fond du magasin, tout marche. Ça se synchronise en sortant.</p></div>
             <div class="ui"><span class="status" id="netStatus"><i></i><span>Hors ligne · 3 en attente</span></span></div>
           </div>
