@@ -261,7 +261,9 @@ h3 svg.i { width: 1.1em; height: 1.1em; margin-right: 4px; vertical-align: -.2em
 .chips.filters .chip.on small { color: inherit; opacity: .8; }
 
 /* Retours satisfaisants : progression, coche qui rebondit, tout est pris */
-.pace { margin: 4px 2px 10px; display: grid; gap: 4px; }
+.pace { margin: 4px 2px 10px; display: grid; grid-template-columns: 48px 1fr; gap: 10px; align-items: center; }
+.pace > div { display: grid; gap: 4px; }
+.mascot { width: 48px; height: 48px; color: var(--accent); }
 .pace .progress div { transition: width .35s ease; }
 .pace small { color: var(--muted); font-variant-numeric: tabular-nums; }
 .all-done { display: grid; justify-items: center; gap: 4px; text-align: center; padding: 18px 8px; }
@@ -279,3 +281,15 @@ h3 svg.i { width: 1.1em; height: 1.1em; margin-right: 4px; vertical-align: -.2em
 
 .confetti { position: fixed; top: 70%; width: 8px; height: 12px; border-radius: 2px; pointer-events: none; z-index: 99; }
 #haptic { position: fixed; left: -99px; top: 0; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+
+/* En courses, en direct */
+.banner.live { display: flex; gap: 10px; align-items: flex-start; }
+.banner.live > div { display: grid; gap: 6px; }
+.banner.live small { color: var(--muted); }
+.banner.live .dot { width: 10px; height: 10px; border-radius: 50%; background: #4fae7b; flex: none; margin-top: 5px; }
+@media (prefers-reduced-motion: no-preference) {
+  .banner.live .dot { animation: live 1.6s ease-in-out infinite; }
+  @keyframes live { 50% { box-shadow: 0 0 0 6px rgba(79, 174, 123, .25); } }
+  .mascot.full { animation: hop .6s ease-out; }
+  @keyframes hop { 30% { transform: translateY(-6px); } 60% { transform: translateY(0); } 80% { transform: translateY(-2px); } }
+}
