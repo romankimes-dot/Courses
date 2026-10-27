@@ -83,9 +83,12 @@ La colonne de droite indique où c'est **aujourd'hui** (les premières demandes 
 | 50 | Éditeur de magasin « un peu compliqué », le panneau se referme à chaque changement de taille | Les panneaux dépliés le restent à chaque mise à jour de l'écran (plan, rayons, commerces, chiffres, plan en courses) ; palette de rayons colorés au lieu d'une liste déroulante ; on peint en glissant le doigt ; aperçu 3D du circuit sous la grille ; numéros retirés des cases (l'ordre se lit dans l'aperçu) |
 | 51 | « Donner envie de l'utiliser » | Liste : barre de progression et mascotte panier, coche animée + haptique (Android ; interrupteur natif sur iPhone), vol vers le caddie, confettis à « Terminer », fondu des onglets, compteur du budget ; tout coupé avec « Réduire les animations ». Essayés puis retirés : dictée vocale (peu fiable), lien dans « Envoyer », carte image. Refusés : séries, sons, thèmes, todo (brouille le plan du magasin) |
 | 52 | Voir l'autre en courses ; exporter le budget | Bulle « X est en courses · n pris · encore n · vient de prendre … » ; Dépenses > « Exporter l'historique par mois » (CSV pour tableur) |
-| 53 | Localiser un article en magasin | En courses, avec un plan : « Où est… ? » ; le rayon s'allume sur le plan (balise) avec son numéro d'arrêt |
+| 53 | Localiser un article en magasin, sans retaper | En courses, avec un plan : bouton sur chaque ligne (activer / désactiver) ; le plan s'ouvre sous la ligne, rayon allumé et numéro d'arrêt |
 | 54 | « La plus fluide possible » | Revue mesurée (CPU ×4) : affichage avant l'enregistrement, pas d'enregistrement de synchro hors partage, vignettes en `blob:`, synchro sans fermer le clavier (le champ d'ajout est gardé), animations non rejouées, glisser sans retard, pas de zoom au double toucher. Cocher : ≈ 320 → 100 ms avec 40 photos |
 | 55 | Tout un rayon d'un coup ; remonter en haut | « Tout pris » sur le titre d'un rayon (2 articles et +, Annuler) ; toucher l'en-tête remonte en haut de la liste |
+| 56 | Ajout groupé : « lait, beurre, café » | Sous le champ, une ligne de propositions par morceau ; un toucher met l'article sur la liste et retire son morceau ; Entrée ajoute le reste |
+| 57 | Recharger la dernière liste | « Reprendre la dernière liste » (liste vide) ou « Dernière » (outils) : les articles du dernier passage en caisse (et de ceux du même moment, à deux), Annuler possible |
+| 58 | Garder l'historique des budgets pour l'export | Budget mémorisé par mois (`settings.budgets`) ; l'export par mois prend le budget de chaque mois (vide avant le premier enregistré) |
 | 37 | Mode partagé : **attribuer une part à un participant** (modifiable) | Fiche Ticket > Hors partage : « X € pour [membre] », plusieurs parts |
 
 ## 4. Décisions prises

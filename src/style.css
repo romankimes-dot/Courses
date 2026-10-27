@@ -293,12 +293,17 @@ h3 svg.i { width: 1.1em; height: 1.1em; margin-right: 4px; vertical-align: -.2em
   @keyframes hop { 30% { transform: translateY(-6px); } 60% { transform: translateY(0); } 80% { transform: translateY(-2px); } }
 }
 
-/* Où c'est ? */
-.find input { width: 100%; border-radius: 20px; padding: 10px 14px; margin: 10px 0 6px; }
-.spot { display: flex; align-items: center; gap: 8px; background: var(--card); color: var(--fg); border-radius: 10px; padding: 8px 6px 8px 12px; margin: 4px 0; font-size: 15px; }
+/* Où est-ce ? (bouton sur la ligne, plan juste dessous) */
+.row .locate { min-width: 44px; min-height: 44px; margin: -6px -4px; display: grid; place-items: center; color: var(--muted); }
+.row .locate.on { color: var(--accent); }
+.row-map { padding: 4px 12px 10px; background: var(--accent-soft); }
+.row-map .map { margin: 4px auto 0; }
+.spot { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 15px; }
 .spot > svg { color: var(--accent); flex: none; }
-.spot span { flex: 1; }
-.spot button { margin-left: auto; min-width: 44px; min-height: 40px; }
+/* Ajout groupé : une ligne de propositions par morceau */
+.suggest .part { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; width: 100%; }
+.suggest .part > small:first-child { min-width: 64px; color: var(--muted); }
+.suggest .new-hint { color: var(--muted); font-style: italic; }
 
 /* Toucher net : pas de zoom au double toucher ni de flash gris (iOS) */
 html { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
