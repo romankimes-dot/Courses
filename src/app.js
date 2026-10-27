@@ -883,7 +883,8 @@ function tick() {
     l.click();
   } catch {}
 }
-const monthKey = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+// Déclarée en function : clean() s'en sert dès le chargement, avant cette ligne
+function monthKey(t) { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
 // Budget d'un mois : le dernier fixé jusqu'à ce mois-là (rien avant le premier enregistré)
 const budgetOf = k => { const b = S.settings.budgets || {}, ks = Object.keys(b).filter(x => x <= k).sort(); return ks.length ? b[ks.at(-1)] || null : null; };
 const motion = () => !matchMedia('(prefers-reduced-motion: reduce)').matches;
