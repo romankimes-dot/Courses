@@ -523,7 +523,6 @@ const views = {
         </section>` : ''}
       <form id="quick" class="addtop">
         <input name="name" value="${esc(quickDraft)}" placeholder="Ajouter… (lait, œufs, 2 kg tomates)" autocomplete="off" autocapitalize="sentences" required>
-        ${Speech ? `<button type="button" class="mic" data-a="dictate" aria-label="Dicter">${icon.mic}</button>` : ''}
         <button class="accent" aria-label="Ajouter">${icon.plus}</button>
       </form>
       <div id="suggest" class="chips suggest">${suggestChips()}</div>
@@ -791,7 +790,15 @@ const storePicker = manage => `
 
 // Ajout : dès les premières lettres, propositions parmi les articles déjà connus (accents et pluriels ignorés).
 // On cherche sur le dernier article tapé (« lait, tom » -> tom), sans la quantité (« 2 kg tom » -> tom).
-const Speech = window.SpeechRecognition || window.webkitSpeechRecognition; // dictée : absente de certains navigateurs
+// Petit retour haptique : vibration (Android) ou, sur iPhone, le « clic » d'un interrupteur natif
+function tick() {
+  if (navigator.vibrate) return navigator.vibrate(12);
+  try {
+    let l = document.getElementById('haptic');
+    if (!l) { l = Object.assign(document.createElement('label'), { id: 'haptic', ariaHidden: 'true', innerHTML: '<input type="checkbox" switch tabindex="-1">' }); document.body.append(l); }
+    l.click();
+  } catch {}
+}
 const motion = () => !matchMedia('(prefers-reduced-motion: reduce)').matches;
 let flyFrom = null; // position de la ligne avant qu'elle parte dans le caddie
 let popId = null; // article qu'on vient de cocher : petite animation après le rendu
@@ -1296,29 +1303,9 @@ const actions = {
   toggleDone: ({ id }) => {
     const i = item(id);
     i.done = !i.done;
-    if (i.done) { popId = id; flyFrom = app.querySelector(`.row[data-id="${id}"]`)?.getBoundingClientRect().top ?? null; navigator.vibrate?.(12); }
+    if (i.done) { popId = id; flyFrom = app.querySelector(`.row[data-id="${id}"]`)?.getBoundingClientRect().top ?? null; tick(); }
     i.doneAt = i.done ? Date.now() : undefined;
     i.doneBy = i.done ? me || '?' : undefined;
-  },
-  // Dictée : « lait et œufs, 2 kilos de tomates » → ajoutés comme si on les avait tapés
-  dictate: () => {
-    const btn = app.querySelector('.mic');
-    if (!Speech || btn?.classList.contains('listening')) return;
-    const r = new Speech();
-    r.lang = 'fr-FR';
-    r.onstart = () => btn?.classList.add('listening');
-    r.onend = () => btn?.classList.remove('listening');
-    r.onerror = e => { if (e.error === 'not-allowed') alert('Autorisez le micro pour dicter vos articles.'); };
-    r.onresult = e => {
-      const text = e.results[0][0].transcript.trim()
-        .replace(/\s+(?:et|virgule)\s+/gi, ', ')
-        .replace(/\bkilos?\b/gi, 'kg').replace(/\blitres?\b/gi, 'l').replace(/\bgrammes?\b/gi, 'g');
-      const form = app.querySelector('#quick');
-      if (!text || !form) return;
-      form.elements.name.value = text;
-      form.requestSubmit();
-    };
-    r.start();
   },
   unneed: ({ id }) => { snapshot(); const i = item(id); drop(i); toast(`${i.name} retiré de la liste`); },
   delItem: ({ id }) => { S.items = S.items.filter(i => i.id !== id); },
@@ -1378,9 +1365,7 @@ const actions = {
   },
   shareList: async () => {
     const groups = [...byAisle(i => i.need), ...byAisle(i => i.need, S.shops)];
-    // Liste partagée : le lien à la fin de la note s'ouvre dans l'app, où l'on coche et ajoute en direct
-    const text = `${currentList().name}\n` + groups.map(g => `\n${g.aisle.name}\n` + g.items.map(i => `• ${i.name}${i.note ? ` (${i.note})` : ''}`).join('\n')).join('\n')
-      + (Sync.config() ? `\n\nOuvrir la liste en direct :\n${Sync.inviteLink()}` : '');
+    const text = `${currentList().name}\n` + groups.map(g => `\n${g.aisle.name}\n` + g.items.map(i => `• ${i.name}${i.note ? ` (${i.note})` : ''}`).join('\n')).join('\n');
     try { await navigator.share({ title: 'Courses', text }); }
     catch (e) { if (e.name !== 'AbortError') { await navigator.clipboard?.writeText(text); toast('Liste copiée', false); } }
   },
