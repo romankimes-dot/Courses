@@ -914,8 +914,28 @@ function spotPanel(i) {
   const a = S.aisles.find(x => x.id === i.aisle);
   return `<div class="row-map"><p class="spot">${icon.pin}<span>Rayon <strong>${esc(a?.name || '?')}</strong>${k >= 0 ? ` · arrêt n° ${k + 1} du circuit` : ''}</span></p>${mapSvg(groups, i.aisle)}</div>`;
 }
+// « . » (le double espace du clavier de l'iPhone) : chercher parmi les paniers, les recettes et les articles.
+// « .bébé », « bébé. » ou deux espaces en tête ; « . » seul montre tous les paniers et recettes.
+const cmdOf = p => { const m = p.match(/^\s*\.\s*(.*)$/) || p.match(/^ {2,}(\S.*)$/) || p.match(/^\s*(.+?)\.\s*$/); return m ? m[1].trim() : null; };
+const setsFor = q => {
+  const k = sameKey(q);
+  return S.recipes.filter(r => r.items.length && (!k || [r.name, r.cat || ''].some(t => sameKey(t).includes(k))))
+    .sort((a, b) => isBasket(b) - isBasket(a) || a.name.localeCompare(b.name));
+};
+function cmdChips(q, k) {
+  const sets = setsFor(q), its = q ? matches(q) : [];
+  const set = r => `<button type="button" class="chip" data-a="openSet" data-id="${r.id}">${isBasket(r) ? icon.basket : icon.meals}${esc(r.name)} <small>${r.items.length}</small></button>`;
+  const line = (label, chips) => chips ? `<div class="part"><small>${label}</small>${chips}</div>` : '';
+  return line('Paniers', sets.filter(isBasket).slice(0, 8).map(set).join(''))
+    + line('Recettes', sets.filter(r => !isBasket(r)).slice(0, 8).map(set).join(''))
+    + line('Articles', its.map(i => `<button type="button" class="chip ${i.need ? 'on' : ''}" data-a="pickPart" data-k="${k}" data-id="${i.id}">${i.need ? icon.check : ''}${esc(i.name)}</button>`).join(''))
+    || `<p class="hint">Aucun panier, recette ni article « ${esc(q)} ».</p>`;
+}
+
 // Propositions sous le champ : pour chaque morceau séparé par une virgule, les articles trouvés (un toucher = sur la liste)
 const suggestChips = () => {
+  const all = quickDraft.split(/[,;]/), cmd = cmdOf(all.at(-1));
+  if (cmd != null) return cmdChips(cmd, all.length - 1);
   const parts = quickDraft.split(/[,;]/).map((p, k) => ({ k, q: lastPart(p) })).filter(p => p.q);
   const chip = (i, k) => {
     const where = shopOf(i)?.name || S.aisles.find(a => a.id === i.aisle)?.name || '';
@@ -1465,6 +1485,13 @@ const actions = {
   locate: ({ id }) => { spot = spot === id ? null : id; },
   stopShopping: () => { spot = null; addOpen = false; delete S.shoppers[me || '?']; delete S.parts[me || '?']; },
   // Toucher une proposition : l'article va sur la liste, on continue à taper
+  // Un panier ou une recette appelé avec « . » : sa fenêtre (cases à décocher), le « . » retiré du champ
+  openSet: ({ id }) => {
+    const parts = quickDraft.split(/[,;]/);
+    parts.pop();
+    quickDraft = parts.map(p => p.trim()).filter(Boolean).join(', ');
+    actions.addBasket({ id });
+  },
   pickSuggest: ({ id }) => actions.pickPart({ id, k: quickDraft.split(/[,;]/).length - 1 }),
   // Un article choisi sous le champ : sur la liste, et son morceau retiré du champ
   pickPart: ({ id, k }) => {
@@ -1496,7 +1523,7 @@ const actions = {
     document.body.insertAdjacentHTML('beforeend', `
       <div class="overlay sheet-modal">
         <form id="basketForm" class="card" data-id="${r.id}">
-          <h2>${icon.basket} ${esc(r.name)}</h2>
+          <h2>${isBasket(r) ? icon.basket : icon.meals} ${esc(r.name)}</h2>
           <p class="hint">Décochez ce que vous avez déjà.</p>
           ${its.map(i => `<label class="field check"><input type="checkbox" name="i" value="${i.id}"${i.need ? ' disabled' : ' checked'}><span>${esc(i.name)}${r.qty?.[i.id] ? ` <small>${esc(r.qty[i.id])}</small>` : ''}${i.need ? ' <small>déjà sur la liste</small>' : ''}</span></label>`).join('')}
           <button class="primary">${icon.plus} Ajouter à la liste</button>
@@ -1724,7 +1751,9 @@ document.addEventListener('submit', e => {
     addOpen = false; // en courses : le champ se referme après l'ajout
     const already = [];
     newItems = [];
+    let cmd = null;
     name.split(/[,;\n]+/).forEach(raw => {
+      if (cmdOf(raw) != null) return (cmd = cmdOf(raw)); // « .bébé » : panier ou recette, pas un nouvel article
       const m = raw.trim().match(/^(\d+(?:[.,]\d+)?\s*(?:kg|g|l|cl|ml|x|×|paquets?|boîtes?|bouteilles?)?)\s+(?:de |d')?(.+)$/i);
       const n = (m ? m[2] : raw).trim(), qty = m ? m[1].trim() : null;
       if (!n) return;
@@ -1734,6 +1763,12 @@ document.addEventListener('submit', e => {
       want(ex);
       if (qty) ex.note = qty;
     });
+    if (cmd != null) {
+      const [r] = setsFor(cmd), [i] = cmd ? matches(cmd) : [];
+      if (r && cmd) setTimeout(() => actions.addBasket({ id: r.id }));
+      else if (i) want(i);
+      else if (cmd) setTimeout(() => toast(`Aucun panier, recette ni article « ${cmd} »`, false));
+    }
     // Articles inconnus : sur la liste ? indispensables ? (fenêtre de choix)
     if (newItems.length) { setTimeout(askNewItems); save(); render(); return; }
     if (already.length) setTimeout(() => toast(`Déjà sur la liste : ${already.join(', ')}`, false));
