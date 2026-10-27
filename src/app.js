@@ -423,8 +423,15 @@ const myShopping = () => shoppers().find(([n]) => n === (me || '?'))?.[1];
 const shoppingBanner = () => {
   const others = shoppers().filter(([n]) => n !== (me || '?'));
   if (!others.length) return '';
-  const who = others.map(([n, at]) => { const min = Math.round((Date.now() - at) / 6e4); return `${esc(n === '?' ? 'Quelqu\'un' : n)} (${min < 2 ? 'à l\'instant' : `depuis ${min} min`})`; }).join(', ');
-  return `<div class="banner">${icon.cart} En courses : ${who}. Ce que vous ajoutez ${others.length > 1 ? 'leur' : 'lui'} arrive.</div>`;
+  // En direct : depuis quand, combien pris, ce qui reste, le dernier article mis dans le caddie
+  const left = S.items.filter(i => i.need && !i.done).length;
+  const lines = others.map(([n, at]) => {
+    const min = Math.round((Date.now() - at) / 6e4), taken = S.items.filter(i => i.need && i.done && i.doneBy === n);
+    const last = taken.sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0))[0];
+    return `<div><strong>${esc(n === '?' ? 'Quelqu\'un' : n)}</strong> est en courses ${min < 2 ? 'depuis un instant' : `depuis ${min} min`}
+      <br><small>${taken.length} pris · encore ${left}${last && Date.now() - (last.doneAt || 0) < 10 * 6e4 ? ` · vient de prendre ${esc(last.name)}` : ''}</small></div>`;
+  }).join('');
+  return `<div class="banner live"><span class="dot"></span><div>${lines}<small>Ce que vous ajoutez ${others.length > 1 ? 'leur' : 'lui'} arrive.</small></div></div>`;
 };
 const mine = i => !i.doneBy || i.doneBy === (me || '?');
 // L'autre personne en courses qui a pris une moitié du magasin : { name, part } ou null
@@ -469,6 +476,20 @@ function shoppingGroups() {
   return { groups, mapped };
 }
 
+// La mascotte : un panier qui se remplit à mesure qu'on coche, et sourit de plus en plus
+function mascot(k) {
+  const h = 22 * k, smile = 32 + 6 * k, full = k >= 1;
+  return `<svg class="mascot ${full ? 'full' : ''}" viewBox="0 0 48 48" aria-hidden="true">
+    <defs><clipPath id="mascotIn"><path d="M8 18h32l-4 22H12z"/></clipPath></defs>
+    <rect x="0" y="${40 - h}" width="48" height="${h}" clip-path="url(#mascotIn)" fill="currentColor" opacity=".22"/>
+    <path d="M16 18l6-10M32 18l-6-10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M8 18h32l-4 22H12z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+    ${full ? '<path d="M17 28l2.5-2.5L22 28M26 28l2.5-2.5L31 28" fill="none" stroke="var(--fg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+      : '<circle cx="19.5" cy="27" r="1.8" fill="var(--fg)"/><circle cx="28.5" cy="27" r="1.8" fill="var(--fg)"/>'}
+    <path d="M19 32Q24 ${smile} 29 32" fill="none" stroke="var(--fg)" stroke-width="2" stroke-linecap="round"/>
+  </svg>`;
+}
+
 const views = {
   // LA liste : on la remplit à plusieurs, on la suit en magasin. Un seul geste : toucher = dans le caddie.
   list() {
@@ -495,10 +516,13 @@ const views = {
           <div class="add"><input name="name" placeholder="ex. Inès" autocomplete="given-name" required><button class="accent">OK</button></div>
         </form>` : welcomeInvite() || installCard()}
       ${shoppingBanner()}
-      ${need.length && cart.length ? `
+      ${need.length ? `
         <div class="pace" role="progressbar" aria-valuemin="0" aria-valuemax="${need.length}" aria-valuenow="${cart.length}">
-          <div class="progress"><div style="width:${Math.round(100 * cart.length / need.length)}%"></div></div>
-          <small>${cart.length} sur ${need.length} dans le caddie${cart.length < need.length ? ` · encore ${need.length - cart.length}` : ''}</small>
+          ${mascot(cart.length / need.length)}
+          <div>
+            <div class="progress"><div style="width:${Math.round(100 * cart.length / need.length)}%"></div></div>
+            <small>${!cart.length ? `${need.length} article${need.length > 1 ? 's' : ''} à prendre` : `${cart.length} sur ${need.length} dans le caddie${cart.length < need.length ? ` · encore ${need.length - cart.length}` : ''}`}</small>
+          </div>
         </div>` : ''}
       ${shopping ? `
         <section class="card shopping">
@@ -660,7 +684,8 @@ const views = {
           <span>${t.total == null ? '<small>Ajouter €</small>' : euro(t.total)}</span>${icon.right}
         </div>`).join('') || '<p class="hint">Le montant est demandé (facultatif) quand vous terminez des courses.</p>'}
       ${S.trips.length > tripsShown ? `<button class="wide" data-a="moreTrips">Voir les passages plus anciens (${S.trips.length - tripsShown})</button>` : ''}
-      ${S.trips.length ? '<p class="hint">Touchez un ticket pour corriger le montant ou ajouter des articles pris en plus de la liste.</p>' : ''}`;
+      ${S.trips.length ? '<p class="hint">Touchez un ticket pour corriger le montant ou ajouter des articles pris en plus de la liste.</p>' : ''}
+      ${paid.length ? `<button class="wide" data-a="exportMonths">${icon.share} Exporter l'historique par mois (tableur)</button>` : ''}`;
   },
 
   aisles() {
@@ -1471,6 +1496,22 @@ applySize(); },
   },
   closePhoto: () => document.querySelector('.overlay')?.remove(),
   delPhoto: ({ id }) => { delete item(id).photo; actions.closePhoto(); },
+  // Historique du budget par mois, en CSV lisible par Excel / Numbers (séparateur « ; », virgule décimale)
+  exportMonths: () => {
+    const paid = S.trips.filter(t => t.total != null && t.type !== 'settle'), budget = S.settings.budget;
+    const months = {};
+    paid.forEach(t => { const d = new Date(t.date), k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; (months[k] ||= []).push(t.total); });
+    const n = v => v == null ? '' : v.toFixed(2).replace('.', ',');
+    const rows = Object.keys(months).sort().map(k => {
+      const ts = months[k], total = ts.reduce((a, b) => a + b, 0);
+      const label = new Date(+k.slice(0, 4), +k.slice(5) - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      return [label, ts.length, n(total), n(total / ts.length), n(budget), budget ? n(budget - total) : ''].join(';');
+    });
+    const csv = '\ufeff' + ['Mois;Passages;Dépensé (€);Panier moyen (€);Budget actuel (€);Reste sur le budget (€)', ...rows].join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    Object.assign(document.createElement('a'), { href: url, download: `budget-${currentList().name}.csv` }).click();
+    URL.revokeObjectURL(url);
+  },
   export: () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }));
     Object.assign(document.createElement('a'), { href: url, download: 'courses.json' }).click();
