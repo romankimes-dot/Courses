@@ -495,6 +495,11 @@ const views = {
           <div class="add"><input name="name" placeholder="ex. Inès" autocomplete="given-name" required><button class="accent">OK</button></div>
         </form>` : welcomeInvite() || installCard()}
       ${shoppingBanner()}
+      ${need.length && cart.length ? `
+        <div class="pace" role="progressbar" aria-valuemin="0" aria-valuemax="${need.length}" aria-valuenow="${cart.length}">
+          <div class="progress"><div style="width:${Math.round(100 * cart.length / need.length)}%"></div></div>
+          <small>${cart.length} sur ${need.length} dans le caddie${cart.length < need.length ? ` · encore ${need.length - cart.length}` : ''}</small>
+        </div>` : ''}
       ${shopping ? `
         <section class="card shopping">
           <div class="bar"><strong class="grow">${icon.cart} En courses</strong><button class="ghost" data-a="stopShopping">Arrêter</button></div>
@@ -537,7 +542,7 @@ const views = {
         <div class="empty-state">
           <p>Rien à acheter pour l'instant.</p>
           <p class="hint">Écrivez ce qu'il manque, touchez une suggestion, ou piochez dans vos articles.${Sync.config() ? ' Tout le monde voit la même liste.' : ''}</p>
-        </div>` : need.every(i => i.done) ? `<p class="hint center">${icon.check} Tout est dans le caddie.</p>` : ''}
+        </div>` : need.every(i => i.done) ? `<div class="all-done"><span class="medal">${icon.check}</span><strong>Tout est dans le caddie !</strong><small>Il ne reste plus qu'à passer en caisse.</small></div>` : ''}
       ${cart.length ? `
         <section class="basket">
           <h3>${icon.basket} Dans le caddie · ${cart.length}</h3>
@@ -785,6 +790,7 @@ const storePicker = manage => `
 
 // Ajout : dès les premières lettres, propositions parmi les articles déjà connus (accents et pluriels ignorés).
 // On cherche sur le dernier article tapé (« lait, tom » -> tom), sans la quantité (« 2 kg tom » -> tom).
+let popId = null; // article qu'on vient de cocher : petite animation après le rendu
 let quickDraft = '', refocusQuick = false, refocusSel = null; // champ à reprendre après le rendu
 const refocusQuickInput = () => app.querySelector('#quick input')?.focus();
 const lastPart = v => v.split(/[,;]/).pop().replace(/^\s*\d+(?:[.,]\d+)?\s*(?:kg|g|l|cl|ml|x|×)?\s+(?:de |d')?/i, '').trim();
@@ -925,6 +931,10 @@ function render() {
     const q = app.querySelector('#quick input');
     q?.focus();
     q?.setSelectionRange(q.value.length, q.value.length);
+  }
+  if (popId) {
+    app.querySelector(`.row[data-id="${popId}"].done`)?.classList.add('pop');
+    popId = null;
   }
   if (tab !== lastTab) scrollTo(0, 0);
   lastTab = tab;
@@ -1242,6 +1252,7 @@ const actions = {
   toggleDone: ({ id }) => {
     const i = item(id);
     i.done = !i.done;
+    if (i.done) { popId = id; navigator.vibrate?.(12); }
     i.doneAt = i.done ? Date.now() : undefined;
     i.doneBy = i.done ? me || '?' : undefined;
   },
