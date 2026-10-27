@@ -88,6 +88,8 @@ function clean(st) {
   if (st.settings.listName != null) st.settings.listName = String(st.settings.listName).slice(0, 40);
   st.aliases = Object.fromEntries(Object.entries(st.aliases || {}).filter(([, v]) => v === 'ignore' || ID.test(v)));
   if (st.settings.budget != null) st.settings.budget = num0(st.settings.budget);
+  st.settings.budgets = Object.fromEntries(Object.entries(st.settings.budgets && typeof st.settings.budgets === 'object' ? st.settings.budgets : {}).filter(([k]) => /^\d{4}-\d{2}$/.test(k)).map(([k, v]) => [k, num0(v)]));
+  if (st.settings.budget && !Object.keys(st.settings.budgets).length) st.settings.budgets[monthKey(Date.now())] = st.settings.budget; // historique commencé ce mois-ci
   if (st.settings.split != null) st.settings.split = st.settings.split === true;
   if (st.settings.autofill != null) st.settings.autofill = st.settings.autofill === true;
   delete st.settings.shopping;
@@ -495,8 +497,8 @@ const itemRow = i => `
   <div class="row big ${i.done ? 'done' : ''} ${isNew(i) ? 'new' : ''}" data-a="toggleDone" data-id="${i.id}" data-swipe="${i.id}">
     <span class="box"></span>
     <span class="name">${esc(i.name)}${noteOf(i)}${i.done ? (mine(i) ? '' : ` <small>· pris par ${esc(i.doneBy)}</small>`) : byOf(i)}${isNew(i) ? ' <small class="tag">nouveau</small>' : ''}${i.auto && !i.done ? ' <small class="tag">suggéré</small>' : ''}${i.missing && !i.done ? ` <small class="warn">${icon.alert} pas trouvé le ${shortDate(i.missing.at)}</small>` : ''}${i.alt && !i.done ? `<br><small>si absent : ${esc(i.alt)}</small>` : ''}</span>
-    ${thumb(i)}${more(i)}
-  </div>`;
+    ${canLocate(i) ? `<button class="ghost locate ${spot === i.id ? 'on' : ''}" data-a="locate" data-id="${i.id}" aria-label="Où est-ce dans le magasin ?" aria-pressed="${spot === i.id}">${icon.pin}</button>` : ''}${thumb(i)}${more(i)}
+  </div>${spot === i.id && canLocate(i) ? spotPanel(i) : ''}`;
 
 // Rayons dans l'ordre où on les parcourt : circuit du magasin en courses (et ma moitié si on est deux)
 function shoppingGroups() {
@@ -516,6 +518,15 @@ function shoppingGroups() {
     groups = part.map(id => groups.find(g => g.aisle.id === id));
   }
   return { groups, mapped };
+}
+
+// Dernière liste : les articles du dernier passage en caisse (et des passages du même moment, à deux)
+function lastList() {
+  const ts = S.trips.filter(t => t.names?.length && t.type !== 'settle');
+  if (!ts.length) return [];
+  const at = Math.max(...ts.map(t => t.date));
+  const names = ts.filter(t => at - t.date < 6 * 36e5).flatMap(t => t.names);
+  return [...new Set(names.map(findItem).filter(Boolean))];
 }
 
 // La mascotte : un panier qui se remplit à mesure qu'on coche, et sourit de plus en plus
@@ -584,15 +595,12 @@ const views = {
             ${who ? `<p class="small">${who === 1 ? 'Vous prenez le début' : 'Vous prenez la fin'} : ${groups.length ? groups.map(g => esc(g.aisle.name)).join(', ') : 'rien de plus à prendre'}. ${who === 1 ? 'L\'autre prend la fin.' : 'L\'autre prend le début.'}</p>` : ''}
           </div>` : ''}
           ${mapped ? `
-          <form id="findForm" class="find"><input name="q" value="${esc(findQ)}" placeholder="Où est… ? (ex. café)" autocomplete="off" enterkeyhint="search"></form>
-          <div id="findRes" class="chips">${findChips()}</div>
-          ${spotLine(groups)}
-          <details class="adv" data-k="shopMap" ${spot ? 'open' : ''}><summary>Plan du magasin</summary>
+          <details class="adv" data-k="shopMap"><summary>Plan du magasin</summary>
             <div class="seg">
               <button data-a="setAuto" data-v="1" class="${M().auto ? 'active' : ''}">Circuit le plus court</button>
               <button data-a="setAuto" data-v="" class="${M().auto ? '' : 'active'}">Ordre des rayons</button>
             </div>
-            ${mapSvg(groups, spotAisle())}</details>` : ''}
+            ${mapSvg(groups)}</details>` : ''}
         </section>` : ''}
       <form id="quick" class="addtop">
         <input name="name" value="${esc(quickDraft)}" placeholder="Ajouter… (lait, œufs, 2 kg tomates)" autocomplete="off" autocapitalize="sentences" required>
@@ -615,6 +623,7 @@ const views = {
         <div class="empty-state">
           <p>Rien à acheter pour l'instant.</p>
           <p class="hint">Écrivez ce qu'il manque, touchez une suggestion, ou piochez dans vos articles.${Sync.config() ? ' Tout le monde voit la même liste.' : ''}</p>
+          ${lastList().length ? `<button class="wide" data-a="reloadLast">${icon.again} Reprendre la dernière liste (${lastList().length})</button>` : ''}
         </div>` : need.every(i => i.done) ? `<div class="all-done"><span class="medal ${hop ? 'hop' : ''}">${icon.check}</span><strong>Tout est dans le caddie !</strong><small>Il ne reste plus qu'à passer en caisse.</small></div>` : ''}
       ${cart.length ? `
         <section class="basket">
@@ -626,6 +635,7 @@ const views = {
           : need.length && !shopping ? `<button class="primary" data-a="goShopping">${icon.cart} J'y vais${estimate ? ` <small>≈ ${euro(estimate)}</small>` : ''}</button>` : ''}
         <div class="tools">
           <button data-a="go" data-v="catalog">${icon.plus}Articles</button>
+          ${need.length && lastList().some(i => !i.need) ? `<button data-a="reloadLast">${icon.again}Dernière</button>` : ''}
           ${need.length ? `<button data-a="shareList">${icon.share}Envoyer</button><button data-a="clearList">${icon.trash}Vider</button>` : ''}
         </div>
       </div>`;
@@ -873,6 +883,9 @@ function tick() {
     l.click();
   } catch {}
 }
+const monthKey = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+// Budget d'un mois : le dernier fixé jusqu'à ce mois-là (rien avant le premier enregistré)
+const budgetOf = k => { const b = S.settings.budgets || {}, ks = Object.keys(b).filter(x => x <= k).sort(); return ks.length ? b[ks.at(-1)] || null : null; };
 const motion = () => !matchMedia('(prefers-reduced-motion: reduce)').matches;
 let flyFrom = null; // position de la ligne avant qu'elle parte dans le caddie
 let popId = null; // article qu'on vient de cocher : petite animation après le rendu
@@ -890,23 +903,27 @@ function matches(q) {
     .sort((a, b) => a.score - b.score || (b.i.bought?.length || 0) - (a.i.bought?.length || 0) || a.i.name.localeCompare(b.i.name))
     .slice(0, 6).map(x => x.i);
 }
-// « Où c'est ? » en magasin : on cherche un article, son rayon s'allume sur le plan
-let findQ = '', spot = null;
-const spotAisle = () => { const i = spot && item(spot); return i && !shopOf(i) ? i.aisle : null; };
-const findChips = () => matches(findQ).map(i => `<button type="button" class="chip" data-a="locate" data-id="${i.id}">${icon.pin || ''}${esc(i.name)}</button>`).join('');
-function spotLine(groups) {
-  const i = spot && item(spot);
-  if (!i) return '';
-  const a = S.aisles.find(x => x.id === i.aisle), k = groups.findIndex(g => g.aisle.id === i.aisle);
-  const where = shopOf(i) ? `chez ${esc(shopOf(i).name)}, pas dans ce magasin`
-    : !centroid(i.aisle) ? `rayon ${esc(a?.name || '?')}, pas encore placé sur le plan`
-    : `rayon ${esc(a?.name || '?')}${k >= 0 ? `, arrêt n° ${k + 1} du circuit` : ''}`;
-  return `<p class="spot">${icon.pin}<span><strong>${esc(i.name)}</strong> : ${where}</span><button class="ghost" data-a="locate" data-id="" aria-label="Fermer">${icon.x}</button></p>`;
+// « Où est-ce ? » en magasin : le bouton de la ligne ouvre le plan juste dessous, le rayon allumé
+let spot = null;
+const canLocate = i => !i.done && !shopOf(i) && !!myShopping() && !!centroid(i.aisle);
+function spotPanel(i) {
+  const { groups } = shoppingGroups(), k = groups.findIndex(g => g.aisle.id === i.aisle);
+  const a = S.aisles.find(x => x.id === i.aisle);
+  return `<div class="row-map"><p class="spot">${icon.pin}<span>Rayon <strong>${esc(a?.name || '?')}</strong>${k >= 0 ? ` · arrêt n° ${k + 1} du circuit` : ''}</span></p>${mapSvg(groups, i.aisle)}</div>`;
 }
-const suggestChips = () => matches(lastPart(quickDraft)).map(i => {
-  const where = shopOf(i)?.name || S.aisles.find(a => a.id === i.aisle)?.name || '';
-  return `<button type="button" class="chip ${i.need ? 'on' : ''}" data-a="pickSuggest" data-id="${i.id}">${i.need ? icon.check : ''}${esc(i.name)} <small>${esc(where)}</small></button>`;
-}).join('');
+// Propositions sous le champ : pour chaque morceau séparé par une virgule, les articles trouvés (un toucher = sur la liste)
+const suggestChips = () => {
+  const parts = quickDraft.split(/[,;]/).map((p, k) => ({ k, q: lastPart(p) })).filter(p => p.q);
+  const chip = (i, k) => {
+    const where = shopOf(i)?.name || S.aisles.find(a => a.id === i.aisle)?.name || '';
+    return `<button type="button" class="chip ${i.need ? 'on' : ''}" data-a="pickPart" data-k="${k}" data-id="${i.id}">${i.need ? icon.check : ''}${esc(i.name)} <small>${esc(where)}</small></button>`;
+  };
+  if (parts.length < 2) return parts.flatMap(p => matches(p.q).map(i => chip(i, p.k))).join('');
+  return parts.map(p => {
+    const found = matches(p.q).slice(0, 4);
+    return `<div class="part"><small>${esc(p.q)}</small>${found.map(i => chip(i, p.k)).join('') || '<small class="new-hint">nouveau : ajouté en validant</small>'}</div>`;
+  }).join('');
+};
 
 // Contenu de « Mes articles », filtré par ce qu'on tape dans le champ (recherche)
 function catalogItems() {
@@ -1000,11 +1017,6 @@ document.addEventListener('input', e => {
     recipeDraft = e.target.value;
     const box = document.getElementById('recipeItems');
     if (box) box.innerHTML = recipeItems();
-  }
-  if (e.target.closest('#findForm')) {
-    findQ = e.target.value;
-    const box = document.getElementById('findRes');
-    if (box) box.innerHTML = findChips();
   }
   if (e.target.closest('#quick')) {
     quickDraft = e.target.value;
@@ -1422,6 +1434,13 @@ const actions = {
     tick();
     toast(`${its.length} article${its.length > 1 ? 's' : ''} dans le caddie`);
   },
+  reloadLast: () => {
+    const its = lastList().filter(i => !i.need);
+    if (!its.length) return toast('Tout est déjà sur la liste', false);
+    snapshot();
+    its.forEach(want);
+    toast(`${its.length} article${its.length > 1 ? 's' : ''} de la dernière liste`);
+  },
   unneed: ({ id }) => { snapshot(); const i = item(id); drop(i); toast(`${i.name} retiré de la liste`); },
   delItem: ({ id }) => { S.items = S.items.filter(i => i.id !== id); },
   allPins: () => S.items.forEach(i => { if (i.pin) want(i); }),
@@ -1440,18 +1459,21 @@ const actions = {
     if (o) { who = o.part === 1 ? 2 : 1; try { localStorage.setItem(K('courses.who'), who); } catch {} }
     S.parts[me || '?'] = who;
   },
-  locate: ({ id }) => { spot = id || null; findQ = ''; },
+  locate: ({ id }) => { spot = spot === id ? null : id; },
   stopShopping: () => { spot = null; delete S.shoppers[me || '?']; delete S.parts[me || '?']; },
   // Toucher une proposition : l'article va sur la liste, on continue à taper
-  pickSuggest: ({ id }) => {
-    const i = item(id), parts = quickDraft.split(/[,;]/);
-    const qty = parts.at(-1).match(/^\s*(\d+(?:[.,]\d+)?\s*(?:kg|g|l|cl|ml|x|×)?)\s/i)?.[1].trim();
+  pickSuggest: ({ id }) => actions.pickPart({ id, k: quickDraft.split(/[,;]/).length - 1 }),
+  // Un article choisi sous le champ : sur la liste, et son morceau retiré du champ
+  pickPart: ({ id, k }) => {
+    const i = item(id), parts = quickDraft.split(/[,;]/), last = +k === parts.length - 1;
+    const qty = parts[+k].match(/^\s*(\d+(?:[.,]\d+)?\s*(?:kg|g|l|cl|ml|x|×)?)\s/i)?.[1].trim();
     if (tab === 'catalog') i.freq = true;
     if (i.need) toast(`${i.name} : déjà sur la liste${i.by ? ` (${i.by})` : ''}`, false);
     else want(i);
     if (qty) i.note = qty;
-    parts.pop();
-    quickDraft = parts.length ? parts.join(',') + ', ' : '';
+    parts.splice(+k, 1);
+    const rest = parts.map(p => p.trim()).filter(Boolean);
+    quickDraft = rest.length ? rest.join(', ') + (last ? ', ' : '') : '';
     refocusQuick = true;
   },
   // Vider la liste d'un geste (Annuler pendant 6 s)
@@ -1589,16 +1611,17 @@ applySize(); },
   delPhoto: ({ id }) => { delete item(id).photo; actions.closePhoto(); },
   // Historique du budget par mois, en CSV lisible par Excel / Numbers (séparateur « ; », virgule décimale)
   exportMonths: () => {
-    const paid = S.trips.filter(t => t.total != null && t.type !== 'settle'), budget = S.settings.budget;
+    const paid = S.trips.filter(t => t.total != null && t.type !== 'settle');
     const months = {};
-    paid.forEach(t => { const d = new Date(t.date), k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; (months[k] ||= []).push(t.total); });
+    paid.forEach(t => (months[monthKey(t.date)] ||= []).push(t.total));
     const n = v => v == null ? '' : v.toFixed(2).replace('.', ',');
     const rows = Object.keys(months).sort().map(k => {
       const ts = months[k], total = ts.reduce((a, b) => a + b, 0);
       const label = new Date(+k.slice(0, 4), +k.slice(5) - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      const budget = budgetOf(k);
       return [label, ts.length, n(total), n(total / ts.length), n(budget), budget ? n(budget - total) : ''].join(';');
     });
-    const csv = '\ufeff' + ['Mois;Passages;Dépensé (€);Panier moyen (€);Budget actuel (€);Reste sur le budget (€)', ...rows].join('\r\n');
+    const csv = '\ufeff' + ['Mois;Passages;Dépensé (€);Panier moyen (€);Budget (€);Reste sur le budget (€)', ...rows].join('\r\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     Object.assign(document.createElement('a'), { href: url, download: `budget-${currentList().name}.csv` }).click();
     URL.revokeObjectURL(url);
@@ -1665,7 +1688,6 @@ document.addEventListener('submit', e => {
   e.preventDefault();
   const f = new FormData(e.target);
   const name = f.get('name');
-  if (e.target.id === 'findForm') { const [i] = matches(findQ); if (i) actions.locate({ id: i.id }); }
   if (e.target.id === 'quick') { // « lait, œufs, 2 kg tomates »
     quickDraft = '';
     const already = [];
@@ -1756,7 +1778,10 @@ document.addEventListener('submit', e => {
     toast(learned ? `Courses terminées. Ordre des rayons ajusté pour ${store().name}` : 'Courses terminées');
     return;
   }
-  if (e.target.id === 'budgetForm') S.settings.budget = parseEuro(name);
+  if (e.target.id === 'budgetForm') { // le budget du mois est gardé, pour l'export par mois
+    S.settings.budget = parseEuro(name);
+    (S.settings.budgets ||= {})[monthKey(Date.now())] = S.settings.budget ?? 0;
+  }
   if (e.target.id === 'joinForm') {
     const c = Sync.decode(name);
     if (!c) return alert('Lien d\'invitation invalide');
