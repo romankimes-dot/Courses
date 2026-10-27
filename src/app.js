@@ -121,11 +121,28 @@ function load() {
   try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; }
 }
 let S = upgrade(load() || seed());
+// Enregistrer après avoir affiché : le toucher se voit tout de suite, l'écriture suit (forcée avant la synchro et en quittant)
+let saveDue = false;
+function saveSoon() { if (!saveDue) { saveDue = true; requestAnimationFrame(() => setTimeout(flushSave)); } }
+function flushSave() { if (saveDue) { saveDue = false; save(); } }
+addEventListener('pagehide', flushSave);
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
+
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); }
   catch { if (typeof toast === 'function') toast('Mémoire du téléphone pleine : supprimez quelques photos d\'articles.', false); }
   if (typeof Sync !== 'undefined') Sync.changed();
 }
+
+// Une réception pendant une saisie : on redessine quand le champ est quitté (sinon le clavier se ferme)
+const typing = () => document.activeElement?.matches('input:not([type=checkbox]), select, textarea') && !document.activeElement.closest('#quick');
+let renderDue = false, pointerDown = false;
+function renderWhenFree() { if (typing() || pointerDown) renderDue = true; else render(); }
+const flushRender = () => setTimeout(() => { if (renderDue && !typing() && !pointerDown) render(); }, 300);
+document.addEventListener('focusout', flushRender);
+document.addEventListener('pointerdown', () => { pointerDown = true; }, true);
+document.addEventListener('pointerup', () => { pointerDown = false; flushRender(); }, true);
+document.addEventListener('pointercancel', () => { pointerDown = false; flushRender(); }, true);
 
 let tab = 'list';
 let settingsBack = 'list'; // où revenir en quittant les réglages
@@ -424,8 +441,22 @@ function mapSvg(groups, find = null) { // find : rayon à montrer (« Où c'est 
 const lastPrice = i => i.prices?.length ? i.prices[i.prices.length - 1].p : null;
 const euro = v => v.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
 
+const blobs = new Map();
+function photoUrl(p) {
+  if (!p.startsWith('data:')) return p;
+  let u = blobs.get(p);
+  if (!u) {
+    try {
+      const [head, b64] = p.split(','), bin = atob(b64), bytes = new Uint8Array(bin.length);
+      for (let k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
+      u = URL.createObjectURL(new Blob([bytes], { type: head.slice(5).split(';')[0] }));
+    } catch { u = p; }
+    blobs.set(p, u);
+  }
+  return u;
+}
 const thumb = (i, add) => i.photo
-  ? `<img class="thumb" src="${esc(i.photo)}" alt="" data-a="viewPhoto" data-id="${i.id}">`
+  ? `<img class="thumb" src="${esc(photoUrl(i.photo))}" alt="" data-a="viewPhoto" data-id="${i.id}">`
   : add ? `<button class="ghost" data-a="photo" data-id="${i.id}" title="Photo">${icon.camera}</button>` : '';
 
 // Qui est en courses en ce moment (« J'y vais », valable 3 h), plusieurs personnes possibles
@@ -488,9 +519,10 @@ function shoppingGroups() {
 }
 
 // La mascotte : un panier qui se remplit à mesure qu'on coche, et sourit de plus en plus
-function mascot(k) {
+let wasFull = false; // la mascotte et la médaille ne sautent qu'au moment où tout est pris, pas à chaque rendu
+function mascot(k, hop) {
   const h = 22 * k, smile = 32 + 6 * k, full = k >= 1;
-  return `<svg class="mascot ${full ? 'full' : ''}" viewBox="0 0 48 48" aria-hidden="true">
+  return `<svg class="mascot ${hop ? 'hop' : ''}" viewBox="0 0 48 48" aria-hidden="true">
     <defs><clipPath id="mascotIn"><path d="M8 18h32l-4 22H12z"/></clipPath></defs>
     <rect x="0" y="${40 - h}" width="48" height="${h}" clip-path="url(#mascotIn)" fill="currentColor" opacity=".22"/>
     <path d="M16 18l6-10M32 18l-6-10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -517,6 +549,8 @@ const views = {
     const myCart = cart.filter(mine);
     const estimate = need.filter(i => lastPrice(i) != null).reduce((t, i) => t + lastPrice(i), 0);
     const chips = suggestions().map(x => x.i).filter(i => !i.need);
+    const full = need.length > 0 && cart.length === need.length, hop = full && !wasFull;
+    wasFull = full;
     let hint = false;
     try { hint = !localStorage.getItem('courses.hint'); } catch {}
     return `
@@ -529,7 +563,7 @@ const views = {
       ${shoppingBanner()}
       ${need.length ? `
         <div class="pace" role="progressbar" aria-valuemin="0" aria-valuemax="${need.length}" aria-valuenow="${cart.length}">
-          ${mascot(cart.length / need.length)}
+          ${mascot(cart.length / need.length, hop)}
           <div>
             <div class="progress"><div style="width:${Math.round(100 * cart.length / need.length)}%"></div></div>
             <small>${!cart.length ? `${need.length} article${need.length > 1 ? 's' : ''} à prendre` : `${cart.length} sur ${need.length} dans le caddie${cart.length < need.length ? ` · encore ${need.length - cart.length}` : ''}`}</small>
@@ -581,7 +615,7 @@ const views = {
         <div class="empty-state">
           <p>Rien à acheter pour l'instant.</p>
           <p class="hint">Écrivez ce qu'il manque, touchez une suggestion, ou piochez dans vos articles.${Sync.config() ? ' Tout le monde voit la même liste.' : ''}</p>
-        </div>` : need.every(i => i.done) ? `<div class="all-done"><span class="medal">${icon.check}</span><strong>Tout est dans le caddie !</strong><small>Il ne reste plus qu'à passer en caisse.</small></div>` : ''}
+        </div>` : need.every(i => i.done) ? `<div class="all-done"><span class="medal ${hop ? 'hop' : ''}">${icon.check}</span><strong>Tout est dans le caddie !</strong><small>Il ne reste plus qu'à passer en caisse.</small></div>` : ''}
       ${cart.length ? `
         <section class="basket">
           <h3>${icon.basket} Dans le caddie · ${cart.length}</h3>
@@ -980,6 +1014,7 @@ document.addEventListener('input', e => {
   }
 });
 function render() {
+  renderDue = false;
   if (!S.aisles.length) {
     app.innerHTML = `<p class="empty">${tab === 'aisles' ? '' : 'En attente de la première synchronisation…'}</p>${tab === 'aisles' ? views.aisles() : ''}`;
     return;
@@ -989,7 +1024,19 @@ function render() {
   const open = tab === lastTab ? new Set([...app.querySelectorAll('details[data-k][open]')].map(d => d.dataset.k)) : new Set();
   const rowKey = r => (r.closest('.basket') ? 'c' : 'l') + r.dataset.id;
   const before = tab === 'list' && tab === lastTab ? new Set([...app.querySelectorAll('.row[data-swipe]')].map(rowKey)) : null;
-  app.innerHTML = views[tab]();
+  // Le champ d'ajout qui a le focus est gardé tel quel : le clavier reste ouvert pendant que le reste se met à jour
+  const html = views[tab](), keep = app.querySelector(':scope > #quick');
+  if (keep?.contains(document.activeElement) && tab === lastTab) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const fresh = tmp.querySelector(':scope > #quick');
+    if (fresh) {
+      [...app.childNodes].forEach(n => n !== keep && n.remove());
+      while (tmp.firstChild !== fresh) keep.before(tmp.firstChild);
+      fresh.remove();
+      keep.after(...tmp.childNodes);
+    } else app.innerHTML = html;
+  } else app.innerHTML = html;
   app.querySelectorAll('details[data-k]').forEach(d => { if (open.has(d.dataset.k)) d.open = true; });
   if (refocusSel) {
     const l = app.querySelector(refocusSel);
@@ -1566,8 +1613,8 @@ document.addEventListener('click', e => {
   swiped = null;
   if (!el || el.disabled) return;
   actions[el.dataset.a](el.dataset);
-  save();
   render();
+  saveSoon();
 });
 
 let swipe = null, swiped = null; // swiped : la ligne qu'on vient de glisser (son « clic » est ignoré)
@@ -1580,6 +1627,7 @@ document.addEventListener('touchmove', e => {
   const dx = e.touches[0].clientX - swipe.x, dy = e.touches[0].clientY - swipe.y;
   if (Math.abs(dy) > Math.abs(dx) && !swipe.dx) { swipe = null; return; }
   swipe.dx = Math.min(0, dx);
+  swipe.row.style.transition = 'none'; // la ligne suit le doigt sans retard
   swipe.row.style.transform = `translateX(${swipe.dx}px)`;
   swipe.row.classList.toggle('removing', swipe.dx < -90);
 }, { passive: true });
@@ -1587,6 +1635,7 @@ document.addEventListener('touchend', () => {
   if (!swipe) return;
   const { row, dx } = swipe;
   swipe = null;
+  row.style.transition = '';
   if (dx < -10) swiped = row;
   if (dx < -90) {
     const done = () => { actions.unneed({ id: row.dataset.swipe }); save(); render(); };

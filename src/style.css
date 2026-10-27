@@ -49,7 +49,7 @@ input, select { font: inherit; padding: 8px 10px; border: 1px solid var(--line);
 
 .row { display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-radius: 8px; cursor: pointer; user-select: none; }
 .row.static { cursor: default; }
-.row:not(.static):hover { background: var(--card); }
+@media (hover: hover) { .row:not(.static):hover { background: var(--card); } }
 .row .name { flex: 1; }
 .box { width: 20px; height: 20px; border: 2px solid var(--line); border-radius: 6px; flex: none; }
 .row.on { background: var(--accent-soft); }
@@ -57,7 +57,7 @@ input, select { font: inherit; padding: 8px 10px; border: 1px solid var(--line);
 .row.done .name { text-decoration: line-through; color: var(--muted); }
 
 .progress { height: 6px; background: var(--card); border-radius: 3px; overflow: hidden; }
-.progress div { height: 100%; background: var(--accent); transition: width .2s; }
+.progress div { height: 100%; background: var(--accent); }
 
 .sug { background: var(--card); border-radius: 10px; padding: 4px 8px 8px; margin-top: 8px; }
 .sug h3 { display: flex; justify-content: space-between; align-items: center; }
@@ -264,7 +264,6 @@ h3 svg.i { width: 1.1em; height: 1.1em; margin-right: 4px; vertical-align: -.2em
 .pace { margin: 4px 2px 10px; display: grid; grid-template-columns: 48px 1fr; gap: 10px; align-items: center; }
 .pace > div { display: grid; gap: 4px; }
 .mascot { width: 48px; height: 48px; color: var(--accent); }
-.pace .progress div { transition: width .35s ease; }
 .pace small { color: var(--muted); font-variant-numeric: tabular-nums; }
 .all-done { display: grid; justify-items: center; gap: 4px; text-align: center; padding: 18px 8px; }
 .all-done .medal { width: 48px; height: 48px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
@@ -274,7 +273,7 @@ h3 svg.i { width: 1.1em; height: 1.1em; margin-right: 4px; vertical-align: -.2em
 @media (prefers-reduced-motion: no-preference) {
   .row.pop .box { animation: pop .38s cubic-bezier(.3, 1.6, .5, 1); }
   .row.pop { animation: flash .6s ease-out; }
-  .all-done .medal { animation: pop .5s cubic-bezier(.3, 1.6, .5, 1); }
+  .all-done .medal.hop { animation: pop .5s cubic-bezier(.3, 1.6, .5, 1); }
   @keyframes pop { 0% { transform: scale(.4); } 100% { transform: scale(1); } }
   @keyframes flash { 0% { background: var(--accent-soft); } 100% { background: transparent; } }
 }
@@ -290,7 +289,7 @@ h3 svg.i { width: 1.1em; height: 1.1em; margin-right: 4px; vertical-align: -.2em
 @media (prefers-reduced-motion: no-preference) {
   .banner.live .dot { animation: live 1.6s ease-in-out infinite; }
   @keyframes live { 50% { box-shadow: 0 0 0 6px rgba(79, 174, 123, .25); } }
-  .mascot.full { animation: hop .6s ease-out; }
+  .mascot.hop { animation: hop .6s ease-out; }
   @keyframes hop { 30% { transform: translateY(-6px); } 60% { transform: translateY(0); } 80% { transform: translateY(-2px); } }
 }
 
@@ -300,3 +299,6 @@ h3 svg.i { width: 1.1em; height: 1.1em; margin-right: 4px; vertical-align: -.2em
 .spot > svg { color: var(--accent); flex: none; }
 .spot span { flex: 1; }
 .spot button { margin-left: auto; min-width: 44px; min-height: 40px; }
+
+/* Toucher net : pas de zoom au double toucher ni de flash gris (iOS) */
+html { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
