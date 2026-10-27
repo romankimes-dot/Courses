@@ -9,8 +9,8 @@ const { phones, start, share, syncAll, add } = require('./_outils');
   await add(A, 'lait, pain, 2 kg tomates, pâtes, café, eau');
   await syncAll(A, B);
   await A.click('[data-a=goShopping]'); await B.click('[data-a=goShopping]'); await syncAll(A, B);
-  const banner = await A.textContent('.banner').catch(() => null);
-  await A.click('[data-a=setWho][data-v="1"]'); await B.click('[data-a=setWho][data-v="2"]');
+  const banner = await A.textContent('.shopbar small').catch(() => null); // en courses : l'autre est indiqué dans le bandeau
+  await A.selectOption('#who', '1'); await B.selectOption('#who', '2');
   const partA = await A.$$eval('main section:not(.basket) .row .name', e => e.map(x => x.textContent.trim().split(' ')[0]));
   const partB = await B.$$eval('main section:not(.basket) .row .name', e => e.map(x => x.textContent.trim().split(' ')[0]));
   await A.click(`main .row:has-text("${partA[0]}")`); await B.click(`main .row:has-text("${partB[0]}")`); await syncAll(A, B);

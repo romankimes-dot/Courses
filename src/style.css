@@ -317,3 +317,17 @@ h3 .all-taken { margin-left: auto; font-size: 13px; text-transform: none; letter
 #pull.ready { color: var(--accent); }
 #pull.spin svg { animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* En courses : bandeau d'une ligne collé sous l'en-tête (le + ouvre le champ d'ajout juste dessous) */
+.shopbar { position: sticky; top: calc(57px + env(safe-area-inset-top)); z-index: 2; background: var(--accent-soft); margin: -12px -16px 10px; padding: 6px 8px 8px 12px; display: flex; align-items: center; gap: 6px; }
+.shopbar .mascot { width: 30px; height: 30px; flex: none; }
+.sb-mid { flex: 1; min-width: 0; display: grid; line-height: 1.2; }
+.sb-mid select { border: 0; background: transparent; padding: 0; font-weight: 600; font-size: 15px; color: var(--fg); max-width: 100%; text-overflow: ellipsis; }
+.sb-mid small { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shopbar select.pill { border: 0; border-radius: 20px; height: 40px; padding: 0 4px 0 10px; background: var(--card); font-size: 14px; flex: none; }
+.shopbar .round { width: 44px; height: 44px; border-radius: 50%; padding: 0; display: grid; place-items: center; flex: none; background: var(--card); border: 0; }
+.shopbar .round.accent { background: var(--accent); color: var(--on-accent); }
+.sb-line { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--line); }
+.sb-line i { display: block; height: 100%; background: var(--accent); }
+.sb-add { margin: -10px -16px 8px; padding: 8px 12px; background: var(--accent-soft); }
+.sb-warn { margin: -4px 0 8px; }

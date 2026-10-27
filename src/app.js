@@ -520,6 +520,32 @@ function shoppingGroups() {
   return { groups, mapped };
 }
 
+// En courses : une seule barre compacte (magasin, progression, moitié du circuit) pour laisser la place à la liste.
+// Le plan s'ouvre depuis le 📍 d'un article ; le choix du circuit est dans Réglages > Plan du magasin.
+function shopBar(need, cart, hop) {
+  const k = need.length ? cart.length / need.length : 0, o = otherPart();
+  const others = shoppers().filter(([n]) => n !== (me || '?')).map(([n]) => n === '?' ? 'Quelqu\'un' : n);
+  const split = need.filter(i => !shopOf(i)).length > 3;
+  return `
+    <section class="shopbar">
+      ${mascot(k, hop)}
+      <div class="sb-mid">
+        <select id="store" aria-label="Magasin">
+          ${S.stores.map(s => `<option value="${s.id}"${s === store() ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}
+          <option value="none"${store() ? '' : ' selected'}>Autre magasin</option>
+        </select>
+        <small>${cart.length} sur ${need.length}${cart.length < need.length ? ` · encore ${need.length - cart.length}` : ''}${others.length ? ` · ${others.map(esc).join(', ')} aussi là` : ''}</small>
+      </div>
+      ${split ? `<select id="who" class="pill" aria-label="Partie du circuit">
+        ${[['0', 'Tout'], ['1', 'Début'], ['2', 'Fin']].map(([v, l]) => `<option value="${v}"${+v === who ? ' selected' : ''}>${l}</option>`).join('')}
+      </select>` : ''}
+      <button class="round ${addOpen ? 'on' : 'accent'}" data-a="toggleAdd" aria-label="${addOpen ? 'Fermer l\'ajout' : 'Ajouter un article'}">${icon.plus}</button>
+      <button class="round" data-a="stopShopping" aria-label="Arrêter les courses">${icon.x}</button>
+      <div class="sb-line"><i style="width:${Math.round(100 * k)}%"></i></div>
+    </section>
+    ${o && who === o.part ? `<p class="warn small sb-warn">${esc(o.name)} a déjà pris ${partName(o.part)} : choisissez l'autre moitié.</p>` : ''}`;
+}
+
 // Dernière liste : les articles du dernier passage en caisse (et des passages du même moment, à deux)
 function lastList() {
   const ts = S.trips.filter(t => t.names?.length && t.type !== 'settle');
@@ -571,42 +597,14 @@ const views = {
           <p class="hint">Il s'affiche sur vos ajouts, pour que tous sachent qui a demandé quoi.</p>
           <div class="add"><input name="name" placeholder="ex. Inès" autocomplete="given-name" required><button class="accent">OK</button></div>
         </form>` : welcomeInvite() || installCard()}
-      ${shoppingBanner()}
-      ${need.length && shopping ? `
-        <div class="pace" role="progressbar" aria-valuemin="0" aria-valuemax="${need.length}" aria-valuenow="${cart.length}">
-          ${mascot(cart.length / need.length, hop)}
-          <div>
-            <div class="progress"><div style="width:${Math.round(100 * cart.length / need.length)}%"></div></div>
-            <small>${!cart.length ? `${need.length} article${need.length > 1 ? 's' : ''} à prendre` : `${cart.length} sur ${need.length} dans le caddie${cart.length < need.length ? ` · encore ${need.length - cart.length}` : ''}`}</small>
-          </div>
-        </div>` : ''}
-      ${shopping ? `
-        <section class="card shopping">
-          <div class="bar"><strong class="grow">${icon.cart} En courses</strong><button class="ghost" data-a="stopShopping">Arrêter</button></div>
-          ${storePicker()}
-          ${need.filter(i => !shopOf(i)).length > 3 ? `
-          <div class="split">
-            <p class="small">${otherPart() ? `${esc(otherPart().name)} a pris ${partName(otherPart().part)} du circuit${who === otherPart().part ? ' : choisissez l\'autre moitié, sinon vous ferez les mêmes rayons.' : '.'}` : shoppers().some(([n]) => n !== (me || '?')) ? 'Vous êtes deux en magasin : l\'un prend le début du circuit, l\'autre la fin.' : 'À deux en magasin ? Chacun prend une moitié du circuit.'}</p>
-            <div class="seg">
-              <button data-a="setWho" data-v="0" class="${who ? '' : 'active'}">Tout le magasin</button>
-              <button data-a="setWho" data-v="1" class="${who === 1 ? 'active' : ''}">Début</button>
-              <button data-a="setWho" data-v="2" class="${who === 2 ? 'active' : ''}">Fin</button>
-            </div>
-            ${who ? `<p class="small">${who === 1 ? 'Vous prenez le début' : 'Vous prenez la fin'} : ${groups.length ? groups.map(g => esc(g.aisle.name)).join(', ') : 'rien de plus à prendre'}. ${who === 1 ? 'L\'autre prend la fin.' : 'L\'autre prend le début.'}</p>` : ''}
-          </div>` : ''}
-          ${mapped ? `
-          <details class="adv" data-k="shopMap"><summary>Plan du magasin</summary>
-            <div class="seg">
-              <button data-a="setAuto" data-v="1" class="${M().auto ? 'active' : ''}">Circuit le plus court</button>
-              <button data-a="setAuto" data-v="" class="${M().auto ? '' : 'active'}">Ordre des rayons</button>
-            </div>
-            ${mapSvg(groups)}</details>` : ''}
-        </section>` : ''}
-      <form id="quick" class="addtop">
+      ${shopping ? '' : shoppingBanner()}
+      ${shopping ? shopBar(need, cart, hop) : ''}
+      ${!shopping || addOpen ? `
+      <form id="quick" class="addtop ${shopping ? 'sb-add' : ''}">
         <input name="name" value="${esc(quickDraft)}" placeholder="Ajouter… (lait, œufs, 2 kg tomates)" autocomplete="off" autocapitalize="sentences" required>
         <button class="accent" aria-label="Ajouter">${icon.plus}</button>
       </form>
-      <div id="suggest" class="chips suggest">${suggestChips()}</div>
+      <div id="suggest" class="chips suggest">${suggestChips()}</div>` : ''}
       ${hint && need.length ? `<p class="hint tip">Touchez un article quand il est dans le caddie. Glissez-le vers la gauche pour le retirer. <button class="ghost" data-a="hintDone">OK</button></p>` : ''}
       ${baskets().length && !shopping ? `
         <div class="chips">${baskets().filter(r => r.items.length).map(r => `<button class="chip" data-a="addBasket" data-id="${r.id}">${icon.basket} ${esc(r.name)}</button>`).join('')}</div>` : ''}
@@ -832,6 +830,10 @@ const views = {
         ${S.aisles.map(a => `<button data-a="setBrush" data-v="${a.id}" class="${a.id === brush ? 'on' : ''}"><span class="dot" style="background:${aisleColor(a.id)}"></span>${esc(a.name)}</button>`).join('')}
         <button data-a="setBrush" data-v="" class="${brush === '' ? 'on' : ''}">${icon.x} Gomme</button>
       </div>
+      <div class="seg">
+        <button data-a="setAuto" data-v="1" class="${st.map.auto ? 'active' : ''}">Circuit le plus court</button>
+        <button data-a="setAuto" data-v="" class="${st.map.auto ? '' : 'active'}">Ordre des rayons</button>
+      </div>
       <div class="grid" id="planGrid" style="grid-template-columns:repeat(${st.map.cols},1fr)">
         ${Array.from({ length: st.map.rows * st.map.cols }, (_, n) => {
           const c = `${n % st.map.cols},${Math.floor(n / st.map.cols)}`;
@@ -905,7 +907,7 @@ function matches(q) {
     .slice(0, 6).map(x => x.i);
 }
 // « Où est-ce ? » en magasin : le bouton de la ligne ouvre le plan juste dessous, le rayon allumé
-let spot = null;
+let spot = null, addOpen = false; // addOpen : champ d'ajout ouvert depuis le + du bandeau (en courses)
 const canLocate = i => !i.done && !shopOf(i) && !!myShopping() && !!centroid(i.aisle);
 function spotPanel(i) {
   const { groups } = shoppingGroups(), k = groups.findIndex(g => g.aisle.id === i.aisle);
@@ -1461,7 +1463,7 @@ const actions = {
     S.parts[me || '?'] = who;
   },
   locate: ({ id }) => { spot = spot === id ? null : id; },
-  stopShopping: () => { spot = null; delete S.shoppers[me || '?']; delete S.parts[me || '?']; },
+  stopShopping: () => { spot = null; addOpen = false; delete S.shoppers[me || '?']; delete S.parts[me || '?']; },
   // Toucher une proposition : l'article va sur la liste, on continue à taper
   pickSuggest: ({ id }) => actions.pickPart({ id, k: quickDraft.split(/[,;]/).length - 1 }),
   // Un article choisi sous le champ : sur la liste, et son morceau retiré du champ
@@ -1572,6 +1574,7 @@ applySize(); },
     S.shops = S.shops.filter(x => x.id !== id);
     S.items.forEach(i => { if (i.aisle === id) i.aisle = fallbackAisle(); });
   },
+  toggleAdd: () => { addOpen = !addOpen; if (addOpen) { refocusQuick = true; scrollTo(0, 0); } else quickDraft = ''; },
   setWho: ({ v }) => { who = +v; S.parts[me || '?'] = who; try { localStorage.setItem(K('courses.who'), v); } catch {} },
   setBrush: ({ v }) => { brush = v; },
   size: ({ dim, d }) => {
@@ -1718,6 +1721,7 @@ document.addEventListener('submit', e => {
   const name = f.get('name');
   if (e.target.id === 'quick') { // « lait, œufs, 2 kg tomates »
     quickDraft = '';
+    addOpen = false; // en courses : le champ se referme après l'ajout
     const already = [];
     newItems = [];
     name.split(/[,;\n]+/).forEach(raw => {
@@ -1842,6 +1846,7 @@ document.addEventListener('change', async e => {
     return render();
   }
   if (e.target.id === 'auto') { store().map.auto = e.target.checked; save(); return render(); }
+  if (e.target.id === 'who') { actions.setWho({ v: e.target.value }); save(); return render(); }
   if (e.target.id === 'store') { setStore(e.target.value); return render(); }
   if (e.target.id !== 'import' || !e.target.files[0]) return;
   try {
