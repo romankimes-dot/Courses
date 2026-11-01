@@ -113,7 +113,7 @@ h2 { font-size: 18px; margin: 8px 0; }
 .empty-photo { font-size: 28px; padding: 0; border: 1px dashed var(--line); background: var(--card); }
 .title { flex: 1; min-width: 0; font-size: 22px; font-weight: 600; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 6px 2px; background: none; }
 .field { display: grid; gap: 4px; margin: 12px 0; font-size: 14px; color: var(--muted); }
-.field select, .field input:not([type=checkbox]) { color: var(--fg); }
+.field select, .field input:not([type=checkbox]) { color: var(--fg); font-size: max(16px, 1em); } /* moins de 16 px : Safari iPhone zoome au toucher */
 .field.check { display: flex; gap: 10px; align-items: flex-start; }
 .field.check input { margin-top: 3px; width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
 .field.check span { color: var(--fg); font-size: 16px; }

@@ -1638,13 +1638,12 @@ const actions = {
         <form id="finishForm" class="card">
           <h2>Terminer les courses</h2>
           <p>${taken.length} article${taken.length > 1 ? 's' : ''} pris${left ? `, ${left} pas pris : ${left > 1 ? 'ils restent' : 'il reste'} sur la liste pour la prochaine fois.` : '.'}</p>
-          <label class="field">Montant du ticket <small>(facultatif)</small><input name="name" inputmode="decimal" placeholder="ex. 42,50" autocomplete="off"></label>
+          <label class="field">Montant du ticket <small>(facultatif)</small><input name="amount" inputmode="decimal" placeholder="ex. 42,50" autocomplete="off"></label>
           ${left ? `<label class="field check"><input type="checkbox" name="missing"${left <= taken.length ? ' checked' : ''}><span>Signaler « pas trouvé »<br><small>L'auteur voit qu'il manquait en rayon. Décochez si vous avez juste arrêté avant la fin.</small></span></label>` : ''}
           <button class="primary">${icon.check} Terminer</button>
           <button type="button" class="ghost wide" data-a="closePhoto">Continuer les courses</button>
         </form>
-      </div>`);
-    document.querySelector('#finishForm input').focus();
+      </div>`); // pas de focus d'office : le clavier ne s'ouvre que si l'on veut saisir le montant
   },
   delTrip: ({ id }) => { if (confirm('Supprimer ce passage en caisse ?')) { S.trips = S.trips.filter(t => t.id !== id); if (tab === 'trip') tab = 'budget'; } },
   // Déplace un rayon dans l'ordre du magasin courant (ou l'ordre générique)
@@ -1939,7 +1938,7 @@ document.addEventListener('submit', e => {
     });
     // « Pas trouvé » seulement si personne d'autre n'est encore en courses
     if (!othersShopping() && e.target.missing?.checked) S.items.filter(i => i.need && !i.done && here(i)).forEach(i => { i.missing = { by: me || '', at: now }; });
-    S.trips.push({ id: uid(), date: now, total: parseEuro(name || ''), place: where, n: taken.length, names: taken.map(i => i.name), by: me || undefined });
+    S.trips.push({ id: uid(), date: now, total: parseEuro(e.target.amount.value || ''), place: where, n: taken.length, names: taken.map(i => i.name), by: me || undefined });
     tab = 'list';
     save(); render();
     confetti();
