@@ -169,8 +169,8 @@ try { size = localStorage.getItem('courses.size') || ''; } catch {}
 const applySize = () => { document.documentElement.dataset.size = size; };
 applySize();
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
-let who = 0; // courses à deux : 0 = seul, 1 ou 2 = mon circuit (propre à cet appareil)
-try { who = +localStorage.getItem(K('courses.who')) || 0; } catch {}
+let who = 0; // courses à deux : 0 = tout, 1 ou 2 = ma moitié du circuit (momentané : « Tout » à chaque départ)
+if (S.shoppers?.[me || '?'] && [1, 2].includes(S.parts?.[me || '?'])) who = S.parts[me || '?']; // rechargé en pleines courses
 let recipeEdit = null, recipeAdd = null, recipeSkip = new Set(); // recette en cours d'édition / d'ajout
 let place = ''; // en courses : '' = supermarché, sinon id du commerce
 let storeId = null; // supermarché où je suis (propre à cet appareil) ; 'none' = magasin non cartographié
@@ -584,6 +584,7 @@ const views = {
     ].filter(g => g.items.length);
     const cart = need.filter(i => i.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
     const myCart = cart.filter(mine);
+    const left = need.length - cart.length; // en courses : on peut terminer à tout moment, le reste attend sur la liste
     const estimate = need.filter(i => lastPrice(i) != null).reduce((t, i) => t + lastPrice(i), 0);
     const chips = suggestions().map(x => x.i).filter(i => !i.need);
     const full = need.length > 0 && cart.length === need.length, hop = full && !wasFull;
@@ -629,7 +630,8 @@ const views = {
           <div class="rows">${cart.map(itemRow).join('')}</div>
         </section>` : ''}
       <div class="actions">
-        ${myCart.length ? `<button class="primary" data-a="finish">${icon.check} Terminer les courses (${myCart.length})</button>`
+        ${myCart.length && shopping && left ? `<button class="primary finish-float" data-a="finish">${icon.check} Terminer les courses (${myCart.length}) <small>· ${left} sur la liste</small></button>`
+          : myCart.length ? `<button class="primary" data-a="finish">${icon.check} Terminer les courses (${myCart.length})</button>`
           : need.length && !shopping ? `<button class="primary" data-a="goShopping">${icon.cart} J'y vais${estimate ? ` <small>≈ ${euro(estimate)}</small>` : ''}</button>` : ''}
         <div class="tools">
           <button data-a="go" data-v="catalog">${icon.plus}Articles</button>
@@ -703,15 +705,54 @@ const views = {
     const monthlyUse = tracked.reduce((t, x) => t + x.p * 30 / x.r.every, 0);
     const priced = S.items.filter(i => i.prices?.length).sort((a, b) => b.prices.at(-1).d - a.prices.at(-1).d);
     const tile = (label, v, sub = '') => `<div class="tile"><small>${label}</small><strong>${v == null ? '—' : euro(v)}</strong><small>${sub}</small></div>`;
+    const passages = n => `${n} passage${n > 1 ? 's' : ''}`;
+    const gauge = (v, b, open = true) => b ? `
+          <div class="progress ${v > b ? 'over' : ''}"><div style="width:${Math.min(100, 100 * v / b)}%"></div></div>
+          <small>${v > b ? `Budget dépassé de ${euro(v - b)}` : `${open ? 'Reste' : 'Resté'} ${euro(b - v)} sur ${euro(b)}`}</small>` : '';
+    // Mois choisi (‹ ›, ou touché dans « Mois passés ») ou 30 jours glissants
+    const mStart = k => new Date(y, m - k, 1).getTime();
+    const inMonth = k => paid.filter(t => t.date >= mStart(k) && t.date < mStart(k - 1));
+    const oldest = paid.length ? Math.min(...paid.map(t => t.date)) : Date.now();
+    const back = Math.min(24, (y - new Date(oldest).getFullYear()) * 12 + m - new Date(oldest).getMonth());
+    budgetAt = Math.min(budgetAt, back);
+    const sel = inMonth(budgetAt), selPrev = inMonth(budgetAt + 1), selKey = monthKey(mStart(budgetAt));
+    const monthName = k => new Date(mStart(k)).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    const roll = paid.filter(t => t.date >= Date.now() - 30 * DAY), rollPrev = paid.filter(t => t.date >= Date.now() - 60 * DAY && t.date < Date.now() - 30 * DAY);
+    const rollPct = sum(rollPrev) ? Math.round((sum(roll) - sum(rollPrev)) / sum(rollPrev) * 100) : null;
+    const pastMonths = Array.from({ length: back }, (_, k) => k + 1).map(k => ({ k, ts: inMonth(k), b: budgetOf(monthKey(mStart(k))) }));
+    // Un mois passé choisi : ses passages seulement (remboursements compris)
+    const shown = budgetView === 'month' && budgetAt ? S.trips.filter(t => t.date >= mStart(budgetAt) && t.date < mStart(budgetAt - 1)) : S.trips;
+    const top = Math.max(1, ...pastMonths.map(x => Math.max(sum(x.ts), x.b || 0)));
     return `
-      <div class="hero">
-        <small>Dépensé ce mois</small>
-        <strong data-count="${sum(month)}">${euro(sum(month))}</strong>
-        <small>${prev.length ? `mois dernier : ${euro(sum(prev))}` : `${month.length} passage${month.length > 1 ? 's' : ''} en caisse`}</small>
-        ${budget ? `
-          <div class="progress ${sum(month) > budget ? 'over' : ''}"><div style="width:${Math.min(100, 100 * sum(month) / budget)}%"></div></div>
-          <small>${sum(month) > budget ? `Budget dépassé de ${euro(sum(month) - budget)}` : `Reste ${euro(budget - sum(month))} sur ${euro(budget)}`}</small>` : ''}
+      <div class="seg budget-view">
+        <button data-a="budgetView" data-v="month" class="${budgetView === 'month' ? 'active' : ''}">Par mois</button>
+        <button data-a="budgetView" data-v="30" class="${budgetView === '30' ? 'active' : ''}">30 jours glissants</button>
       </div>
+      ${budgetView === '30' ? `
+      <div class="hero">
+        <small>Dépensé ces 30 derniers jours (depuis le ${shortDate(Date.now() - 30 * DAY)})</small>
+        <strong data-count="${sum(roll)}">${euro(sum(roll))}</strong>
+        <small>${passages(roll.length)}${rollPrev.length ? ` · 30 jours d'avant : ${euro(sum(rollPrev))}${rollPct == null ? '' : ` <span class="${rollPct > 0 ? 'up' : 'down'}">(${rollPct > 0 ? '+' : rollPct < 0 ? '−' : ''}${Math.abs(rollPct)} %)</span>`}` : ''}</small>
+        ${gauge(sum(roll), budget)}
+      </div>` : `
+      <div class="hero">
+        <div class="month-nav">
+          <button class="ghost" data-a="budgetMonth" data-d="1" aria-label="Mois précédent"${budgetAt >= back ? ' disabled' : ''}>${icon.back}</button>
+          <small>${budgetAt ? `Dépensé en ${monthName(budgetAt)}` : 'Dépensé ce mois'}</small>
+          <button class="ghost" data-a="budgetMonth" data-d="-1" aria-label="Mois suivant"${budgetAt ? '' : ' disabled'}>${icon.right}</button>
+        </div>
+        <strong data-count="${sum(sel)}">${euro(sum(sel))}</strong>
+        <small>${passages(sel.length)}${selPrev.length ? ` · mois d'avant : ${euro(sum(selPrev))}` : ''}</small>
+        ${gauge(sum(sel), budgetAt ? budgetOf(selKey) : budget, !budgetAt)}
+      </div>
+      ${pastMonths.length ? `<details class="adv" data-k="pastMonths"><summary>Mois passés (${pastMonths.length})</summary>
+        ${pastMonths.map(x => `
+        <div class="row month-row ${x.k === budgetAt ? 'on' : ''}" data-a="pickMonth" data-v="${x.k}">
+          <span class="name">${monthName(x.k).replace(/^./, c => c.toUpperCase())} <small>${passages(x.ts.length)}</small>
+            <span class="mbar"><i class="${x.b && sum(x.ts) > x.b ? 'over' : ''}" style="width:${100 * sum(x.ts) / top}%"></i>${x.b ? `<b style="left:${100 * x.b / top}%"></b>` : ''}</span></span>
+          <span>${euro(sum(x.ts))}${x.b ? `<br><small>/ ${euro(x.b)}</small>` : ''}</span>
+        </div>`).join('')}
+      </details>` : ''}`}
       <form id="budgetForm" class="add">
         <label class="small grow">Budget mensuel (€)</label>
         <input name="name" inputmode="decimal" value="${budget ?? ''}" placeholder="ex. 600" style="flex:0 0 110px">
@@ -734,13 +775,13 @@ const views = {
         return `<div class="row" data-a="openItem" data-id="${i.id}"><span class="name">${esc(i.name)} <small>${esc(i.prices.at(-1).at || '')}</small></span>${diff ? `<small class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? icon.up : icon.dn} ${Math.abs(diff)} %</small>` : ''}<span>${euro(b)}</span></div>`;
       }).join('')}` : ''}
       </details>
-      <h3>Passages en caisse <small>${S.trips.length}</small></h3>
-      ${[...S.trips].sort((a, b) => b.date - a.date).slice(0, tripsShown).map(t => `
+      ${budgetView === 'month' && budgetAt ? `<h3>Passages en ${monthName(budgetAt)} <small>${shown.length}</small> <button class="ghost all-taken" data-a="pickMonth" data-v="0">Tous</button></h3>` : `<h3>Passages en caisse <small>${S.trips.length}</small></h3>`}
+      ${[...shown].sort((a, b) => b.date - a.date).slice(0, tripsShown).map(t => `
         <div class="row" data-a="openTrip" data-id="${t.id}">
           <span class="name">${shortDate(t.date)} · ${esc(t.type === 'settle' ? `${t.from} → ${t.to}` : t.place)}${t.n ? ` <small>${t.n} art.</small>` : ''}${S.settings.split && t.by && t.type !== 'settle' ? ` <small>· payé par ${esc(t.by)}${partsSum(t) ? `, ${euro(partsSum(t))} hors partage` : ''}</small>` : ''}${t.names?.length ? `<br><small>${t.names.slice(0, 12).map(esc).join(', ')}${t.names.length > 12 ? '…' : ''}</small>` : ''}</span>
           <span>${t.total == null ? '<small>Ajouter €</small>' : euro(t.total)}</span>${icon.right}
         </div>`).join('') || '<p class="hint">Le montant est demandé (facultatif) quand vous terminez des courses.</p>'}
-      ${S.trips.length > tripsShown ? `<button class="wide" data-a="moreTrips">Voir les passages plus anciens (${S.trips.length - tripsShown})</button>` : ''}
+      ${shown.length > tripsShown ? `<button class="wide" data-a="moreTrips">Voir les passages plus anciens (${shown.length - tripsShown})</button>` : ''}
       ${S.trips.length ? '<p class="hint">Touchez un ticket pour corriger le montant ou ajouter des articles pris en plus de la liste.</p>' : ''}
       ${paid.length ? `<button class="wide" data-a="exportMonths">${icon.share} Exporter l'historique par mois (tableur)</button>` : ''}`;
   },
@@ -1020,6 +1061,7 @@ function linkTo(r, i) {
   refocusSel = '#link input';
 }
 let tripsShown = 20; // passages en caisse affichés dans Dépenses
+let budgetView = 'month', budgetAt = 0; // Dépenses : par mois (0 = ce mois, 1 = le précédent…) ou 30 jours glissants
 let catalogEdit = false, catalogPins = false, catalogBaskets = false; // « Mes articles » : modification, filtres
 
 // Mes articles > Paniers : des articles achetés ensemble, ajoutés à la liste d'un geste
@@ -1499,11 +1541,11 @@ const actions = {
   goShopping: () => {
     S.shoppers[me || '?'] = Date.now(); tab = 'list';
     const o = otherPart(); // l'autre a déjà pris une moitié : je prends l'autre
-    if (o) { who = o.part === 1 ? 2 : 1; try { localStorage.setItem(K('courses.who'), who); } catch {} }
+    who = o ? (o.part === 1 ? 2 : 1) : 0;
     S.parts[me || '?'] = who;
   },
   locate: ({ id }) => { spot = spot === id ? null : id; },
-  stopShopping: () => { spot = null; addOpen = false; delete S.shoppers[me || '?']; delete S.parts[me || '?']; },
+  stopShopping: () => { spot = null; addOpen = false; who = 0; delete S.shoppers[me || '?']; delete S.parts[me || '?']; },
   // Toucher une proposition : l'article va sur la liste, on continue à taper
   // Un panier ou une recette appelé avec « . » : sa fenêtre (cases à décocher), le « . » retiré du champ
   openSet: ({ id }) => {
@@ -1562,6 +1604,9 @@ const actions = {
   hintDone: () => { try { localStorage.setItem('courses.hint', '1'); } catch {} },
   catalogEdit: () => { catalogEdit = !catalogEdit; },
   moreTrips: () => { tripsShown += 20; },
+  budgetView: ({ v }) => { budgetView = v; },
+  budgetMonth: ({ d }) => { budgetAt = Math.max(0, budgetAt + +d); },
+  pickMonth: ({ v }) => { budgetAt = +v; scrollTo({ top: 0, behavior: motion() ? 'smooth' : 'auto' }); },
   catalogPins: ({ v }) => { catalogPins = v === '1'; catalogBaskets = v === 'baskets'; },
   // Puce d'un panier sur la liste : fenêtre où l'on décoche ce qu'on a déjà, puis ajout (Annuler possible)
   addBasket: ({ id }) => {
@@ -1592,8 +1637,9 @@ const actions = {
       <div class="overlay sheet-modal">
         <form id="finishForm" class="card">
           <h2>Terminer les courses</h2>
-          <p>${taken.length} article${taken.length > 1 ? 's' : ''} pris${left ? `, ${left} pas trouvé${left > 1 ? 's' : ''} : ${left > 1 ? 'ils restent' : 'il reste'} sur la liste et l'auteur le voit.` : '.'}</p>
+          <p>${taken.length} article${taken.length > 1 ? 's' : ''} pris${left ? `, ${left} pas pris : ${left > 1 ? 'ils restent' : 'il reste'} sur la liste pour la prochaine fois.` : '.'}</p>
           <label class="field">Montant du ticket <small>(facultatif)</small><input name="name" inputmode="decimal" placeholder="ex. 42,50" autocomplete="off"></label>
+          ${left ? `<label class="field check"><input type="checkbox" name="missing"${left <= taken.length ? ' checked' : ''}><span>Signaler « pas trouvé »<br><small>L'auteur voit qu'il manquait en rayon. Décochez si vous avez juste arrêté avant la fin.</small></span></label>` : ''}
           <button class="primary">${icon.check} Terminer</button>
           <button type="button" class="ghost wide" data-a="closePhoto">Continuer les courses</button>
         </form>
@@ -1648,7 +1694,7 @@ applySize(); },
     S.items.forEach(i => { if (i.aisle === id) i.aisle = fallbackAisle(); });
   },
   toggleAdd: () => { addOpen = !addOpen; if (addOpen) { refocusQuick = true; scrollTo(0, 0); } else quickDraft = ''; },
-  setWho: ({ v }) => { who = +v; S.parts[me || '?'] = who; try { localStorage.setItem(K('courses.who'), v); } catch {} },
+  setWho: ({ v }) => { who = +v; S.parts[me || '?'] = who; },
   setBrush: ({ v }) => { brush = v; },
   size: ({ dim, d }) => {
     const m = store().map;
@@ -1884,7 +1930,7 @@ document.addEventListener('submit', e => {
     const { taken, here, where } = myTrip();
     snapshot();
     const learned = where === store()?.name && learnOrder(taken);
-    delete S.shoppers[me || '?']; delete S.parts[me || '?'];
+    delete S.shoppers[me || '?']; delete S.parts[me || '?']; who = 0;
     const now = Date.now();
     taken.forEach(i => {
       i.bought = [...(i.bought || []), now].slice(-HISTORY);
@@ -1892,7 +1938,7 @@ document.addEventListener('submit', e => {
       delete i.doneAt; delete i.doneBy; delete i.missing; delete i.auto;
     });
     // « Pas trouvé » seulement si personne d'autre n'est encore en courses
-    if (!othersShopping()) S.items.filter(i => i.need && !i.done && here(i)).forEach(i => { i.missing = { by: me || '', at: now }; });
+    if (!othersShopping() && e.target.missing?.checked) S.items.filter(i => i.need && !i.done && here(i)).forEach(i => { i.missing = { by: me || '', at: now }; });
     S.trips.push({ id: uid(), date: now, total: parseEuro(name || ''), place: where, n: taken.length, names: taken.map(i => i.name), by: me || undefined });
     tab = 'list';
     save(); render();

@@ -36,4 +36,5 @@ Un dossier optionnel en argument reçoit les captures d'écran.
 | `moitie-auto.js` | à deux : la 2e personne reçoit l'autre moitié du circuit, avertie si elle prend la même |
 | `courses-a-deux.js` | deux personnes en courses, chacune termine son panier, quantités, « déjà sur la liste » |
 | `installer.js` | installer sur l'écran d'accueil : guide iPhone (accueil, liste, Réglages), bouton natif Android, « Plus tard », lien `?installer`, rien une fois installée |
+| `fin-partielle-et-budget.js` | terminer en pleines courses (bouton visible, reste sur la liste, « pas trouvé » facultatif), « Tout » remis à chaque départ, Dépenses par mois / mois passés / 30 jours glissants |
 | `indispensables-et-panier.js` | ⭐ indispensables, panier en bas, ordre des rayons appris |

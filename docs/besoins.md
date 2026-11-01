@@ -21,7 +21,7 @@ Synthèse des demandes du propriétaire (fil de conception d'octobre 2026), des 
 - **Mes articles** (Liste > Articles) : filtres **Tous / Indispensables / Paniers** ; recherche ; Modifier (☆ et fiche).
 - **Repas** (onglet 2) : semaine, recettes posées sur les jours, ingrédients mis sur la liste d'un geste ; **Mes recettes**
   (recherche nom/catégorie/ingrédient, catégories, ingrédients piochés ou créés sur place).
-- **Dépenses** (onglet 3) : dépensé ce mois, budget, conso estimée ; passages en caisse triés par date ; **fiche Ticket** (lieu, date,
+- **Dépenses** (onglet 3) : par mois (mois passés) ou 30 jours glissants, budget, conso estimée ; passages en caisse triés par date ; **fiche Ticket** (lieu, date,
   montant, articles ajoutés/retirés après coup) ; dépense à la main datée. Option **partage des dépenses** (qui doit quoi, parts hors partage).
 - **En-tête** : sélecteur de listes (plusieurs listes), 🔔 activité, ⚙️ réglages (cette liste : nom, partage, **pré-remplir la liste**,
   **partager les dépenses** ; vous ; notifications ; magasins, rayons, commerces, plan ; apparence ; données).
@@ -94,6 +94,9 @@ La colonne de droite indique où c'est **aujourd'hui** (les premières demandes 
 | 61 | Un « . » (double espace) dans le champ d'ajout : retrouver produits, paniers, recettes | « .bébé », « bébé. » (double espace de l'iPhone) ou deux espaces en tête : propositions Paniers / Recettes / Articles ; « . » seul liste tous les paniers et recettes ; toucher un panier ou une recette ouvre sa fenêtre (décocher ce qu'on a) ; Entrée prend le premier trouvé, sans créer d'article |
 | 62 | Appeler paniers, recettes et rayons par leur nom | Dans le champ de la Liste et de Mes articles, dès 2 lettres (sans « . ») : paniers, recettes (même vides : ouverts pour être remplis) et rayons/commerces ; un rayon ouvre tous ses articles à cocher ; « . » ajoute les idées de recettes de la bibliothèque ; version de l'app affichée en bas des Réglages |
 | 63 | Revoir la page vitrine | Captures refaites depuis l'app actuelle (liste, « J'y vais » avec le plan sous un article, caddie qui se remplit) ; textes des 4 étapes mis à jour (un mot appelle panier/recette/rayon, plan, export par mois) ; nouvelle tuile « Un mot suffit » ; 130 idées |
+| 64 | Terminer les courses même si la liste n'est pas finie, en laissant le reste | En courses, « Terminer les courses (n) · n sur la liste » flotte au-dessus des onglets dès le 1er article pris ; le reste reste sur la liste ; case « Signaler pas trouvé » (cochée d'office seulement si on a pris au moins autant qu'il en reste) |
+| 65 | Budget : mois en cours, mois passés et 30 jours roulants | Dépenses : « Par mois » (‹ › pour remonter, « Mois passés » en barres avec le trait du budget du mois ; un mois choisi filtre ses passages) / « 30 jours glissants » (comparé aux 30 jours d'avant, jauge sur le budget mensuel) |
+| 66 | Tout / Début / Fin : momentané, « Tout » par défaut | Le choix n'est plus mémorisé : « Tout » à chaque « J'y vais » (sauf si l'autre a déjà pris une moitié : on reçoit l'autre), retour à « Tout » en terminant ou en arrêtant |
 | 37 | Mode partagé : **attribuer une part à un participant** (modifiable) | Fiche Ticket > Hors partage : « X € pour [membre] », plusieurs parts |
 
 ## 4. Décisions prises
