@@ -14,7 +14,7 @@ const { phones, start, share, syncAll, add } = require('./_outils');
   await A.click('main .row:has-text("Céréales")');
   await syncAll(A, B); await B.evaluate(() => render());
   const inesSees = await B.$$eval('.basket .row .name', e => e.map(x => x.textContent.trim()));
-  await A.click('[data-a=finish]'); await A.click('#finishForm .primary');
+  await A.click('[data-a=finish]'); await A.check('#finishForm [name=missing]'); await A.click('#finishForm .primary');
   await syncAll(A, B); await B.evaluate(() => render());
   const after = await B.$$eval('main .row .name', e => e.map(x => x.textContent.trim()));
   console.log(JSON.stringify({ meCard, adds, inesSees, after, errs }, null, 1));
